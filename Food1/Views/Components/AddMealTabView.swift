@@ -73,7 +73,6 @@ struct PhotoRecognitionTab: View {
     let selectedDate: Date
 
     @StateObject private var recognitionService = FoodRecognitionService()
-    private let nutritionService = USDANutritionService()
 
     @State private var showingSourcePicker = false
     @State private var showingCamera = false
@@ -122,7 +121,12 @@ struct PhotoRecognitionTab: View {
                 NutritionReviewView(
                     selectedDate: selectedDate,
                     foodName: prediction.displayName,
-                    capturedImage: capturedImage
+                    capturedImage: capturedImage,
+                    prefilledCalories: prediction.calories,
+                    prefilledProtein: prediction.protein,
+                    prefilledCarbs: prediction.carbs,
+                    prefilledFat: prediction.fat,
+                    prefilledServingSize: prediction.servingSize
                 )
             }
         }
@@ -192,7 +196,7 @@ struct PhotoRecognitionTab: View {
                 Text("No Food Detected")
                     .font(.system(size: 20, weight: .bold))
 
-                Text("We couldn't recognize any food in this image. Try taking another photo.")
+                Text(recognitionService.errorMessage ?? "We couldn't recognize any food in this image. Try taking another photo with better lighting.")
                     .font(.system(size: 15))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -477,24 +481,65 @@ struct PredictionRow: View {
     let prediction: FoodRecognitionService.FoodPrediction
     let onTap: () -> Void
 
+    private var confidenceColor: Color {
+        switch prediction.confidencePercentage {
+        case 90...100:
+            return .green
+        case 70..<90:
+            return .blue
+        case 50..<70:
+            return .orange
+        default:
+            return .red
+        }
+    }
+
     var body: some View {
         Button(action: onTap) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(prediction.displayName)
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.primary)
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text(prediction.displayName)
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundColor(.primary)
 
-                    Text("\(prediction.confidencePercentage)% confidence")
-                        .font(.system(size: 14))
+                            Spacer()
+
+                            // Confidence badge
+                            Text("\(prediction.confidencePercentage)%")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(confidenceColor)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(
+                                    Capsule()
+                                        .fill(confidenceColor.opacity(0.15))
+                                )
+                        }
+
+                        // Show 1-sentence description if available (FastVLM)
+                        if let description = prediction.description {
+                            Text(description)
+                                .font(.system(size: 14))
+                                .foregroundColor(.secondary)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.leading)
+                        } else if prediction.hasNutritionData {
+                            // Show nutrition summary if no description
+                            Text("\(Int(prediction.calories ?? 0)) cal • \(Int(prediction.protein ?? 0))g protein")
+                                .font(.system(size: 14))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.secondary)
                 }
 
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.secondary)
             }
             .padding(16)
             .background(

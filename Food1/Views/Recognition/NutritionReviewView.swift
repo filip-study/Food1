@@ -10,12 +10,31 @@ import SwiftData
 
 /// View for reviewing and editing nutrition data before saving the meal
 struct NutritionReviewView: View {
+
+    // MARK: - Local Nutrition Data Structure
+    struct NutritionData {
+        let foodName: String
+        let calories: Double
+        let protein: Double
+        let carbs: Double
+        let fat: Double
+        let servingSize: String
+        let servingSizeGrams: Double
+    }
+
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
 
     let selectedDate: Date
     let foodName: String
     let capturedImage: UIImage?
+
+    // Optional prefilled nutrition from FastVLM
+    let prefilledCalories: Double?
+    let prefilledProtein: Double?
+    let prefilledCarbs: Double?
+    let prefilledFat: Double?
+    let prefilledServingSize: String?
 
     @State private var mealName = ""
     @State private var selectedEmoji = "🍽️"
@@ -28,9 +47,8 @@ struct NutritionReviewView: View {
 
     @State private var isLoadingNutrition = true
     @State private var errorMessage: String?
-    @State private var baseNutrition: USDANutritionService.NutritionData?
+    @State private var baseNutrition: NutritionData?
 
-    private let nutritionService = USDANutritionService()
     private let emojiOptions = ["🥗", "🍎", "🥣", "🍳", "🥪", "🍕", "🍔", "🌮", "🍜", "🍱", "🐟", "🥤", "☕", "🍰", "🥐", "🍽️"]
 
     var body: some View {
@@ -191,20 +209,36 @@ struct NutritionReviewView: View {
         isLoadingNutrition = true
         errorMessage = nil
 
-        do {
-            let nutrition = try await nutritionService.searchAndGetNutrition(query: foodName)
+        // Use prefilled nutrition data if available
+        if let cals = prefilledCalories,
+           let prot = prefilledProtein,
+           let carb = prefilledCarbs,
+           let fat = prefilledFat {
 
-            if let nutrition = nutrition {
-                baseNutrition = nutrition
-                mealName = nutrition.foodName
-                updateNutritionValues()
-            } else {
-                errorMessage = "No nutrition data found for '\(foodName)'"
-                mealName = foodName
-            }
-        } catch {
-            errorMessage = error.localizedDescription
+            // Use prefilled nutrition data directly
             mealName = foodName
+            self.calories = String(format: "%.0f", cals)
+            self.protein = String(format: "%.1f", prot)
+            self.carbs = String(format: "%.1f", carb)
+            self.fat = String(format: "%.1f", fat)
+
+            // Create a base nutrition entry for serving size adjustment
+            baseNutrition = NutritionData(
+                foodName: foodName,
+                calories: cals,
+                protein: prot,
+                carbs: carb,
+                fat: fat,
+                servingSize: prefilledServingSize ?? "1 serving",
+                servingSizeGrams: 100.0  // Default to 100g
+            )
+
+            print("✅ Using prefilled nutrition data")
+        } else {
+            // No nutrition data provided
+            mealName = foodName
+            errorMessage = "Nutrition data not available. Please enter manually."
+            print("⚠️ No nutrition data provided")
         }
 
         isLoadingNutrition = false
@@ -249,7 +283,12 @@ struct NutritionReviewView: View {
     NutritionReviewView(
         selectedDate: Date(),
         foodName: "Grilled Chicken Salad",
-        capturedImage: nil
+        capturedImage: nil,
+        prefilledCalories: nil,
+        prefilledProtein: nil,
+        prefilledCarbs: nil,
+        prefilledFat: nil,
+        prefilledServingSize: nil
     )
     .modelContainer(PreviewContainer().container)
 }

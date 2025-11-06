@@ -1,0 +1,32 @@
+# Cloudflare Worker Configuration
+# Learn more: https://developers.cloudflare.com/workers/
+
+name = "food-vision-api"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+# Environment variables (set via Cloudflare dashboard or CLI)
+# DO NOT commit actual values to git!
+#
+# Required secrets (set with: wrangler secret put OPENAI_API_KEY):
+# - OPENAI_API_KEY: Your OpenAI API key
+# - AUTH_TOKEN: Random token for iOS app authentication
+#
+# Example:
+# wrangler secret put OPENAI_API_KEY
+# wrangler secret put AUTH_TOKEN
+
+# Account ID (replace with your Cloudflare account ID)
+# Find it at: https://dash.cloudflare.com/
+# account_id = "your-account-id-here"
+
+# Workers Free Plan Limits:
+# - 100,000 requests/day
+# - 10ms CPU time per request
+# - No KV or Durable Objects needed for basic usage
+
+[env.production]
+name = "food-vision-api"
+
+[env.development]
+name = "food-vision-api-dev"

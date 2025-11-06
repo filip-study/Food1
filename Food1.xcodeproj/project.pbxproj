@@ -6,8 +6,19 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		729E49CBB870FDEB64607121 /* model in Resources */ = {isa = PBXBuildFile; fileRef = F8614D879D319366EDE477D6 /* model */; };
+		DC5B52B82EBBA39500D0439E /* MLX in Frameworks */ = {isa = PBXBuildFile; productRef = DC5B52B72EBBA39500D0439E /* MLX */; };
+		DC5B52BA2EBBA39900D0439E /* MLXNN in Frameworks */ = {isa = PBXBuildFile; productRef = DC5B52B92EBBA39900D0439E /* MLXNN */; };
+		DC5B52BC2EBBA3A900D0439E /* MLXFast in Frameworks */ = {isa = PBXBuildFile; productRef = DC5B52BB2EBBA3A900D0439E /* MLXFast */; };
+		DC5B52BE2EBBA3AE00D0439E /* MLXRandom in Frameworks */ = {isa = PBXBuildFile; productRef = DC5B52BD2EBBA3AE00D0439E /* MLXRandom */; };
+		DC5B52C02EBBA3B500D0439E /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = DC5B52BF2EBBA3B500D0439E /* MLXLMCommon */; };
+		DC5B52C22EBBA3BC00D0439E /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = DC5B52C12EBBA3BC00D0439E /* MLXVLM */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		DC65CB812EB8EA5900B066D7 /* Food1.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Food1.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F8614D879D319366EDE477D6 /* model */ = {isa = PBXFileReference; lastKnownFileType = folder; name = model; path = Food1/Services/FastVLM/model; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -23,17 +34,32 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DC5B52C02EBBA3B500D0439E /* MLXLMCommon in Frameworks */,
+				DC5B52BC2EBBA3A900D0439E /* MLXFast in Frameworks */,
+				DC5B52C22EBBA3BC00D0439E /* MLXVLM in Frameworks */,
+				DC5B52BA2EBBA39900D0439E /* MLXNN in Frameworks */,
+				DC5B52B82EBBA39500D0439E /* MLX in Frameworks */,
+				DC5B52BE2EBBA3AE00D0439E /* MLXRandom in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		DC5B52B62EBBA39500D0439E /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		DC65CB782EB8EA5900B066D7 = {
 			isa = PBXGroup;
 			children = (
 				DC65CB832EB8EA5900B066D7 /* Food1 */,
 				DC65CB822EB8EA5900B066D7 /* Products */,
+				F8614D879D319366EDE477D6 /* model */,
+				DC5B52B62EBBA39500D0439E /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -65,6 +91,12 @@
 			);
 			name = Food1;
 			packageProductDependencies = (
+				DC5B52B72EBBA39500D0439E /* MLX */,
+				DC5B52B92EBBA39900D0439E /* MLXNN */,
+				DC5B52BB2EBBA3A900D0439E /* MLXFast */,
+				DC5B52BD2EBBA3AE00D0439E /* MLXRandom */,
+				DC5B52BF2EBBA3B500D0439E /* MLXLMCommon */,
+				DC5B52C12EBBA3BC00D0439E /* MLXVLM */,
 			);
 			productName = Food1;
 			productReference = DC65CB812EB8EA5900B066D7 /* Food1.app */;
@@ -94,6 +126,10 @@
 			);
 			mainGroup = DC65CB782EB8EA5900B066D7;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				DC5B51762EBB6C0A00D0439E /* XCRemoteSwiftPackageReference "mlx-swift" */,
+				DC5B51772EBB6C3600D0439E /* XCRemoteSwiftPackageReference "mlx-swift-examples" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = DC65CB822EB8EA5900B066D7 /* Products */;
 			projectDirPath = "";
@@ -109,6 +145,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				729E49CBB870FDEB64607121 /* model in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -253,6 +290,10 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = UJ4482ZF9C;
 				ENABLE_PREVIEWS = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(SRCROOT)/Food1/Services/FastVLM",
+					"$(inherited)",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "We need access to your camera to recognize food items and automatically log nutrition information.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "We need access to your photo library so you can select food photos for recognition.";
@@ -270,7 +311,6 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
@@ -287,6 +327,10 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = UJ4482ZF9C;
 				ENABLE_PREVIEWS = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(SRCROOT)/Food1/Services/FastVLM",
+					"$(inherited)",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "We need access to your camera to recognize food items and automatically log nutrition information.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "We need access to your photo library so you can select food photos for recognition.";
@@ -304,7 +348,6 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
@@ -334,6 +377,58 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		DC5B51762EBB6C0A00D0439E /* XCRemoteSwiftPackageReference "mlx-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ml-explore/mlx-swift";
+			requirement = {
+				kind = exactVersion;
+				version = 0.29.1;
+			};
+		};
+		DC5B51772EBB6C3600D0439E /* XCRemoteSwiftPackageReference "mlx-swift-examples" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/ml-explore/mlx-swift-examples";
+			requirement = {
+				kind = exactVersion;
+				version = 2.29.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		DC5B52B72EBBA39500D0439E /* MLX */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DC5B51762EBB6C0A00D0439E /* XCRemoteSwiftPackageReference "mlx-swift" */;
+			productName = MLX;
+		};
+		DC5B52B92EBBA39900D0439E /* MLXNN */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DC5B51762EBB6C0A00D0439E /* XCRemoteSwiftPackageReference "mlx-swift" */;
+			productName = MLXNN;
+		};
+		DC5B52BB2EBBA3A900D0439E /* MLXFast */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DC5B51762EBB6C0A00D0439E /* XCRemoteSwiftPackageReference "mlx-swift" */;
+			productName = MLXFast;
+		};
+		DC5B52BD2EBBA3AE00D0439E /* MLXRandom */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DC5B51762EBB6C0A00D0439E /* XCRemoteSwiftPackageReference "mlx-swift" */;
+			productName = MLXRandom;
+		};
+		DC5B52BF2EBBA3B500D0439E /* MLXLMCommon */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DC5B51772EBB6C3600D0439E /* XCRemoteSwiftPackageReference "mlx-swift-examples" */;
+			productName = MLXLMCommon;
+		};
+		DC5B52C12EBBA3BC00D0439E /* MLXVLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DC5B51772EBB6C3600D0439E /* XCRemoteSwiftPackageReference "mlx-swift-examples" */;
+			productName = MLXVLM;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = DC65CB792EB8EA5900B066D7 /* Project object */;
 }

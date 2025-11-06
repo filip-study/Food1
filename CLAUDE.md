@@ -2,15 +2,43 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## IMPORTANT: Maintenance Instructions for Claude Code
+
+**This project is built primarily via AI with minimal human intervention. Follow these rules:**
+
+1. **Keep CLAUDE.md Updated:**
+   - After ANY significant code changes, update relevant sections in this file
+   - Remove outdated instructions or references to removed features
+   - Add new sections for new features or architectural changes
+   - Keep examples current with actual code
+
+2. **Prevent Bloat:**
+   - Delete unused dependencies immediately
+   - Remove commented-out code blocks
+   - Clean up temporary files after tasks complete
+   - Don't create documentation files unless explicitly requested
+   - Consolidate similar functionality into single files
+
+3. **Git Commit Policy:**
+   - After major milestones (feature complete, significant refactor, etc.), ask user: "Should I commit these changes to git?"
+   - Wait for explicit confirmation before committing
+   - Use descriptive commit messages that explain WHY, not just WHAT
+   - NEVER commit secrets (APIConfig.swift, .env files, etc.)
+
+4. **Code Quality:**
+   - Keep files focused (one responsibility per file)
+   - Remove duplicate code
+   - Update stale comments
+   - Fix compiler warnings immediately
+
 ## Project Overview
 
-Food1 is an iOS nutrition tracking app with AI-powered food recognition. Users can log meals by taking photos (automatically recognized) or manual entry, track nutrition metrics, and view historical data.
+Food1 is an iOS nutrition tracking app with AI-powered food recognition. Users can log meals by taking photos (automatically recognized via GPT-4o), manual entry, track nutrition metrics, and view historical data.
 
 **Key Technologies:**
 - SwiftUI + SwiftData (iOS 26.0+)
-- Core ML + Vision framework for food recognition
-- USDA FoodData Central API for nutrition data
-- Python scripts for ML model conversion (CoreML)
+- OpenAI GPT-4o Vision API for food recognition (via secure Cloudflare Worker proxy)
+- URLSession for networking (no external dependencies)
 
 ## Build & Run Commands
 
@@ -22,31 +50,8 @@ xcodebuild -project Food1.xcodeproj -scheme Food1 -configuration Debug build
 # Clean build folder
 xcodebuild clean -project Food1.xcodeproj -scheme Food1
 
-# Run on simulator (requires Xcode CLI)
+# Run on simulator
 xcodebuild -project Food1.xcodeproj -scheme Food1 -destination 'platform=iOS Simulator,name=iPhone 15 Pro' test
-
-# Verify setup (check all components are in place)
-./verify_setup.sh
-```
-
-**Important:** Camera and photo recognition require a physical device. The simulator has limited camera functionality.
-
-### Python ML Model Conversion
-```bash
-# Setup virtual environment (one-time)
-cd model_conversion
-python3 -m venv mlenv
-source mlenv/bin/activate
-pip install coremltools torch torchvision transformers pillow
-
-# Check available models
-python check_models.py
-
-# Convert Swin Transformer to CoreML
-python convert_swin_to_coreml.py
-
-# Search for alternative models on Hugging Face
-python search_huggingface.py
 ```
 
 ## Architecture
@@ -59,17 +64,19 @@ python search_huggingface.py
 ### Service Layer
 
 **FoodRecognitionService** (Food1/Services/FoodRecognitionService.swift)
-- Core ML model integration via Vision framework
-- Currently configured for FoodSwin92 model (92.14% accuracy, 101 food categories)
-- Fallback to SeeFood model mentioned in setup docs (86.97% accuracy, 150+ dishes)
-- Returns top 5 predictions with confidence scores above 5%
-- Image preprocessing to 224x224 for optimal model input
+- Abstraction layer for AI vision-based food recognition
+- Delegates to OpenAIVisionService for GPT-4o Vision API calls
+- Returns FoodPrediction structs with food name, confidence, description, and nutrition data
+- Handles preprocessing and error handling
+- Easy to swap API providers (Claude, Gemini) by changing underlying service
 
-**USDANutritionService** (Food1/Services/USDANutritionService.swift)
-- Fetches nutrition data from USDA FoodData Central API
-- Uses DEMO_KEY (rate-limited) - production should use registered API key
-- Search foods by name, fetch detailed nutrition (calories, protein, carbs, fat, serving sizes)
-- API Base: https://api.nal.usda.gov/fdc/v1
+**OpenAIVisionService** (Food1/Services/OpenAIVisionService.swift)
+- URLSession-based client for GPT-4o Vision API
+- Communicates with secure Cloudflare Worker proxy (never exposes API key in iOS app)
+- Image encoding to base64 JPEG with compression (0.7 quality)
+- Automatic image resizing (max 2048px) for optimal processing
+- Structured JSON response parsing into FoodPrediction objects
+- Comprehensive error handling (rate limits, network errors, API errors)
 
 ### View Architecture
 
@@ -85,40 +92,20 @@ MainTabView (root)
 **Meal Input Flow:**
 ```
 TodayView FAB (+) → AddMealTabView
-  ├── Photo Tab (default)
-  │   └── CameraPicker → FoodRecognitionService → NutritionReviewView → Save
+  ├── Photo Tab (AI-powered recognition)
+  │   └── CameraPicker → FoodRecognitionService → GPT-4o Vision API → Predictions → NutritionReviewView → Save
   └── Manual Tab
       └── Form Entry → Save
 ```
 
 **Key Components:**
-- **AddMealTabView:** Tabbed interface with Photo recognition and Manual entry. Defaults to Photo for new meals, Manual when editing.
+- **AddMealTabView:** Tabbed interface with Photo recognition and Manual entry. Photo recognition uses GPT-4o Vision API.
 - **CameraPicker:** UIImagePickerController wrapper supporting camera and photo library
-- **NutritionReviewView:** Review and edit recognized food nutrition before saving
+- **NutritionReviewView:** Review and edit AI-generated nutrition data before saving. Supports serving size multiplier.
 - **MealCard:** Displays meal summary with emoji, name, calories, and macros
 - **MetricsDashboardView:** Progress rings showing daily nutrition vs goals
 - **DateNavigationHeader:** Date picker in toolbar for viewing different days
-
-### ML Model Integration
-
-**Current Model:** FoodSwin92.mlpackage (Swin Transformer)
-- Location: Food1/FoodSwin92.mlpackage
-- Accuracy: 92.14% Top-1 on Food-101 dataset
-- Categories: 101 food classes
-- Input: 224x224 RGB image
-- Output: Classification predictions with confidence scores
-
-**Model Loading Pattern:**
-1. Bundle.main.url(forResource: "FoodSwin92", withExtension: "mlmodelc")
-2. MLModel(contentsOf: modelURL)
-3. VNCoreMLModel(for: mlModel)
-4. VNCoreMLRequest performs inference
-
-**Adding New Models:**
-1. Convert to CoreML format using Python scripts in model_conversion/
-2. Add .mlpackage or .mlmodel to Xcode project
-3. Update FoodRecognitionService.swift model loading logic (line 52)
-4. Test recognition accuracy with representative food images
+- **PredictionRow:** Displays AI prediction with confidence score, description, and nutrition summary
 
 ## Development Patterns
 
@@ -143,10 +130,10 @@ Required in Info.plist (already configured in project.pbxproj):
 - NSPhotoLibraryUsageDescription: "We need access to your photo library..."
 
 ### Async/Await Pattern
-All ML and API operations use async/await:
+Service operations use async/await:
 ```swift
-let predictions = await recognitionService.recognizeFood(in: image)
-let nutrition = try await nutritionService.searchAndGetNutrition(query: "apple")
+let predictions = await recognitionService.recognizeFood(in: image)  // Currently returns []
+// Future: API calls will use async/await for vision model requests
 ```
 
 ## File Organization
@@ -161,8 +148,11 @@ Food1/
 │   ├── UserProfile.swift         - User settings enums (Gender, ActivityLevel, etc.)
 │   └── AppSettings.swift         - App configuration
 ├── Services/
-│   ├── FoodRecognitionService.swift  - Core ML food recognition
-│   └── USDANutritionService.swift    - USDA API client
+│   ├── FoodRecognitionService.swift  - Abstraction layer for AI vision
+│   └── OpenAIVisionService.swift     - GPT-4o Vision API client
+├── Config/
+│   ├── APIConfig.swift               - API endpoint & auth token (gitignored)
+│   └── APIConfig.swift.example       - Template for developers
 ├── Views/
 │   ├── Today/                    - Daily meal logging
 │   ├── History/                  - Historical data
@@ -172,41 +162,87 @@ Food1/
 │   └── Components/               - Reusable UI components
 ├── Utilities/
 │   └── PreviewContainer.swift    - SwiftData preview helper
-├── Data/
-│   └── MockData.swift            - Sample data for previews
-├── FoodSwin92.mlpackage/         - Current ML model (92.14% accuracy)
-└── SeeFood.mlmodel               - Alternative model (86.97% accuracy)
+└── Data/
+    └── MockData.swift            - Sample data for previews
 ```
 
 ## Common Tasks
 
-### Testing Food Recognition
-1. Run on physical device (camera required)
-2. Tap purple FAB (+) button
-3. Photo tab opens automatically
-4. Take photo or select from library
-5. Review predictions (top 5 with confidence %)
-6. Select correct match → proceeds to nutrition review
-7. Edit nutrition if needed → Save
+### Adding Meals via Photo Recognition
+1. Tap purple FAB (+) button on TodayView
+2. **Photo tab** opens automatically
+3. Take photo or select from library
+4. AI analyzes image and returns predictions with confidence scores
+5. Select the correct food item from predictions
+6. Review and edit nutrition data if needed
+7. Adjust serving size multiplier if needed
+8. Save meal
 
-### Debugging Model Issues
-- Check Xcode console for model loading: "✅ Food recognition model loaded successfully"
-- Verify .mlpackage is in Copy Bundle Resources build phase
-- Ensure model file is not corrupted (check file size)
-- Test with well-lit, single-item food photos first
+### Adding Meals Manually
+1. Tap purple FAB (+) button on TodayView
+2. Switch to **Manual tab**
+3. Enter meal name, select emoji
+4. Enter nutrition values (calories, protein, carbs, fat)
+5. Add optional notes
+6. Save meal
 
-### Switching ML Models
-1. Add new .mlmodel or .mlpackage to Xcode project
-2. Update FoodRecognitionService.swift:
-   - Line 52: Change "FoodSwin92" to new model name
-   - Line 59: Update accuracy/category count in log message
-3. Adjust preprocessing if needed (target size, normalization)
-4. Test with Food-101 dataset images if available
+### GPT-4o Vision API Setup
 
-### API Configuration
-**USDA API Key:** Currently using "DEMO_KEY" with rate limits. For production:
-1. Register at https://fdc.nal.usda.gov/api-key-signup.html
-2. Update USDANutritionService.swift line 35: `private let apiKey = "YOUR_KEY"`
+**Prerequisites:**
+1. OpenAI API key: https://platform.openai.com/api-keys
+2. Cloudflare account (free): https://dash.cloudflare.com/sign-up
+
+**Setup Steps:**
+
+1. **Deploy Cloudflare Worker Proxy:**
+   ```bash
+   cd proxy/food-vision-api
+   npm install
+   npx wrangler login
+   npx wrangler secret put OPENAI_API_KEY  # Paste your OpenAI key
+   npx wrangler secret put AUTH_TOKEN      # Generate random UUID
+   npx wrangler deploy
+   ```
+
+   Or use dashboard: See `proxy/food-vision-api/README.md` for detailed instructions
+
+2. **Configure iOS App:**
+   ```bash
+   cd Food1/Config
+   cp APIConfig.swift.example APIConfig.swift
+   # Edit APIConfig.swift and add:
+   # - Your Cloudflare Worker URL (e.g., https://food-vision-api.YOUR_USERNAME.workers.dev/analyze)
+   # - Your AUTH_TOKEN (same as Cloudflare secret)
+   ```
+
+3. **Build and Test:**
+   ```bash
+   xcodebuild -project Food1.xcodeproj -scheme Food1 build
+   ```
+
+   Test on device or simulator:
+   - Take photo of food
+   - Verify predictions appear
+   - Check nutrition data accuracy
+   - Review Xcode console logs for debugging
+
+**Cost Estimation:**
+- OpenAI GPT-4o: ~$0.01 per image analysis
+- Cloudflare Worker: Free (100k requests/day)
+- Total: $1 per 100 food scans
+
+**Troubleshooting:**
+
+- **"Unauthorized" error:** Check APIConfig.swift matches Cloudflare AUTH_TOKEN
+- **"Rate limit exceeded":** OpenAI tier limits reached. Check https://platform.openai.com/account/limits
+- **No predictions:** Try better lighting, clearer food photos, closer crop
+- **Wrong food identified:** Select different prediction or use Manual tab
+- **Slow response:** Network latency or OpenAI API load. Normal: 2-5 seconds
+
+**Monitoring:**
+- Cloudflare: https://dash.cloudflare.com → Workers → food-vision-api → Analytics
+- OpenAI: https://platform.openai.com/usage
+- iOS logs: Check Xcode console for "📸", "🌐", "✅", "❌" emoji logs
 
 ## Project Specifics
 

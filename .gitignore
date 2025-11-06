@@ -39,6 +39,19 @@ __pycache__/
 dist/
 build/
 
+# API Configuration (DO NOT COMMIT SECRETS!)
+Food1/Config/APIConfig.swift
+*.xcconfig
+proxy/food-vision-api/.env
+proxy/food-vision-api/node_modules/
+
+# Large ML Model Files (DO NOT COMMIT TO GIT!)
+Food1/Services/FastVLM/model/
+*.mlpackage/
+*.mlmodel
+*.safetensors
+*.safetensors.index.json
+
 # macOS
 .DS_Store
 .AppleDouble
