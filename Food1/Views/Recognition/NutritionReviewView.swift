@@ -24,6 +24,7 @@ struct NutritionReviewView: View {
 
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
+    @AppStorage("nutritionUnit") private var nutritionUnit: NutritionUnit = .metric
 
     let selectedDate: Date
     let foodName: String
@@ -152,7 +153,7 @@ struct NutritionReviewView: View {
                     }
 
                     HStack {
-                        Text("Protein (g)")
+                        Text("Protein (\(NutritionFormatter.unitLabel(nutritionUnit)))")
                         Spacer()
                         TextField("0", text: $protein)
                             .keyboardType(.decimalPad)
@@ -160,7 +161,7 @@ struct NutritionReviewView: View {
                     }
 
                     HStack {
-                        Text("Carbs (g)")
+                        Text("Carbs (\(NutritionFormatter.unitLabel(nutritionUnit)))")
                         Spacer()
                         TextField("0", text: $carbs)
                             .keyboardType(.decimalPad)
@@ -168,7 +169,7 @@ struct NutritionReviewView: View {
                     }
 
                     HStack {
-                        Text("Fat (g)")
+                        Text("Fat (\(NutritionFormatter.unitLabel(nutritionUnit)))")
                         Spacer()
                         TextField("0", text: $fat)
                             .keyboardType(.decimalPad)
@@ -215,12 +216,12 @@ struct NutritionReviewView: View {
            let carb = prefilledCarbs,
            let fat = prefilledFat {
 
-            // Use prefilled nutrition data directly
+            // Use prefilled nutrition data and convert to user's unit
             mealName = foodName
             self.calories = String(format: "%.0f", cals)
-            self.protein = String(format: "%.1f", prot)
-            self.carbs = String(format: "%.1f", carb)
-            self.fat = String(format: "%.1f", fat)
+            self.protein = NutritionFormatter.formatValue(prot, unit: nutritionUnit)
+            self.carbs = NutritionFormatter.formatValue(carb, unit: nutritionUnit)
+            self.fat = NutritionFormatter.formatValue(fat, unit: nutritionUnit)
 
             // Create a base nutrition entry for serving size adjustment
             baseNutrition = NutritionData(
@@ -250,21 +251,27 @@ struct NutritionReviewView: View {
             return
         }
 
+        // Apply multiplier and convert to user's unit
         calories = String(format: "%.0f", nutrition.calories * multiplier)
-        protein = String(format: "%.1f", nutrition.protein * multiplier)
-        carbs = String(format: "%.1f", nutrition.carbs * multiplier)
-        fat = String(format: "%.1f", nutrition.fat * multiplier)
+        protein = NutritionFormatter.formatValue(nutrition.protein * multiplier, unit: nutritionUnit)
+        carbs = NutritionFormatter.formatValue(nutrition.carbs * multiplier, unit: nutritionUnit)
+        fat = NutritionFormatter.formatValue(nutrition.fat * multiplier, unit: nutritionUnit)
     }
 
     private func saveMeal() {
+        // Convert user input back to metric (grams) for storage
+        let proteinValue = NutritionFormatter.toGrams(value: Double(protein) ?? 0, from: nutritionUnit)
+        let carbsValue = NutritionFormatter.toGrams(value: Double(carbs) ?? 0, from: nutritionUnit)
+        let fatValue = NutritionFormatter.toGrams(value: Double(fat) ?? 0, from: nutritionUnit)
+
         let newMeal = Meal(
             name: mealName,
             emoji: selectedEmoji,
             timestamp: selectedDate,
             calories: Double(calories) ?? 0,
-            protein: Double(protein) ?? 0,
-            carbs: Double(carbs) ?? 0,
-            fat: Double(fat) ?? 0,
+            protein: proteinValue,
+            carbs: carbsValue,
+            fat: fatValue,
             notes: notes.isEmpty ? nil : notes
         )
 

@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct MealCard: View {
+    @AppStorage("nutritionUnit") private var nutritionUnit: NutritionUnit = .metric
+
     let meal: Meal
 
     private var timeString: String {
@@ -44,27 +46,31 @@ struct MealCard: View {
                 // Macros
                 HStack(spacing: 16) {
                     MacroTag(
-                        value: Int(meal.calories),
+                        value: meal.calories,
                         unit: "cal",
-                        color: .purple
+                        color: .purple,
+                        nutritionUnit: nil // Calories don't convert
                     )
 
                     MacroTag(
-                        value: Int(meal.protein),
+                        value: meal.protein,
                         unit: "P",
-                        color: .blue
+                        color: .blue,
+                        nutritionUnit: nutritionUnit
                     )
 
                     MacroTag(
-                        value: Int(meal.carbs),
+                        value: meal.carbs,
                         unit: "C",
-                        color: .green
+                        color: .green,
+                        nutritionUnit: nutritionUnit
                     )
 
                     MacroTag(
-                        value: Int(meal.fat),
+                        value: meal.fat,
                         unit: "F",
-                        color: .orange
+                        color: .orange,
+                        nutritionUnit: nutritionUnit
                     )
 
                     Spacer()
@@ -82,13 +88,24 @@ struct MealCard: View {
 }
 
 struct MacroTag: View {
-    let value: Int
+    let value: Double
     let unit: String
     let color: Color
+    let nutritionUnit: NutritionUnit?
+
+    private var displayValue: String {
+        guard let nutritionUnit = nutritionUnit else {
+            // No conversion (calories)
+            return "\(Int(value.rounded()))"
+        }
+
+        // Convert and format
+        return NutritionFormatter.formatValue(value, unit: nutritionUnit, decimals: 1)
+    }
 
     var body: some View {
         HStack(spacing: 3) {
-            Text("\(value)")
+            Text(displayValue)
                 .font(.system(size: 14, weight: .semibold, design: .rounded))
 
             Text(unit)

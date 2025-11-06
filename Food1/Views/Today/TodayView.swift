@@ -12,7 +12,8 @@ struct TodayView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Meal.timestamp, order: .reverse) private var allMeals: [Meal]
 
-    @State private var showingAddMeal = false
+    @State private var showingQuickCamera = false
+    @State private var showingManualEntry = false
     @State private var showingSettings = false
     @State private var selectedDate = Date()
     @State private var dragOffset: CGFloat = 0
@@ -42,7 +43,7 @@ struct TodayView: View {
                             currentCarbs: totals.carbs,
                             currentFat: totals.fat,
                             goals: .standard,
-                            onAddMeal: { showingAddMeal = true }
+                            onAddMeal: { showingQuickCamera = true }
                         )
 
                         // Meal timeline section
@@ -127,8 +128,11 @@ struct TodayView: View {
                         }
                 )
             .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showingAddMeal) {
-                AddMealTabView(selectedDate: selectedDate)
+            .fullScreenCover(isPresented: $showingQuickCamera) {
+                QuickAddMealView(selectedDate: selectedDate)
+            }
+            .sheet(isPresented: $showingManualEntry) {
+                ManualEntryView(selectedDate: selectedDate)
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView()

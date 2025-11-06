@@ -11,6 +11,7 @@ import SwiftData
 struct MealDetailView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
+    @AppStorage("nutritionUnit") private var nutritionUnit: NutritionUnit = .metric
 
     let meal: Meal
 
@@ -48,7 +49,7 @@ struct MealDetailView: View {
                         icon: "flame.fill",
                         label: "Calories",
                         value: "\(Int(meal.calories))",
-                        color: .purple
+                        color: .blue
                     )
 
                     Divider()
@@ -56,7 +57,7 @@ struct MealDetailView: View {
                     NutritionRow(
                         icon: "drop.fill",
                         label: "Protein",
-                        value: "\(Int(meal.protein))g",
+                        value: NutritionFormatter.format(meal.protein, unit: nutritionUnit),
                         color: .blue
                     )
 
@@ -65,7 +66,7 @@ struct MealDetailView: View {
                     NutritionRow(
                         icon: "leaf.fill",
                         label: "Carbs",
-                        value: "\(Int(meal.carbs))g",
+                        value: NutritionFormatter.format(meal.carbs, unit: nutritionUnit),
                         color: .green
                     )
 
@@ -74,7 +75,7 @@ struct MealDetailView: View {
                     NutritionRow(
                         icon: "circle.fill",
                         label: "Fat",
-                        value: "\(Int(meal.fat))g",
+                        value: NutritionFormatter.format(meal.fat, unit: nutritionUnit),
                         color: .orange
                     )
                 }
@@ -118,13 +119,7 @@ struct MealDetailView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(
-                            LinearGradient(
-                                colors: [.purple, .pink],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                        .background(Color.blue)
                         .cornerRadius(12)
                     }
 
@@ -151,7 +146,7 @@ struct MealDetailView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingEditSheet) {
-            AddMealTabView(selectedDate: meal.timestamp, editingMeal: meal)
+            ManualEntryView(selectedDate: meal.timestamp, editingMeal: meal)
         }
         .alert("Delete Meal", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) { }

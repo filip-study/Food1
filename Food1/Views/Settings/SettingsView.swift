@@ -18,6 +18,7 @@ struct SettingsView: View {
     @AppStorage("userActivityLevel") private var activityLevel: ActivityLevel = .moderatelyActive
     @AppStorage("weightUnit") private var weightUnit: WeightUnit = .kg
     @AppStorage("heightUnit") private var heightUnit: HeightUnit = .cm
+    @AppStorage("nutritionUnit") private var nutritionUnit: NutritionUnit = .metric
 
     @State private var showingProfileEditor = false
 
@@ -97,16 +98,33 @@ struct SettingsView: View {
 
                 // Nutrition Section
                 Section {
-                    HStack {
-                        Text("Daily Goals")
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Text("Coming soon")
-                            .foregroundStyle(.tertiary)
-                            .font(.system(size: 14))
+                    ForEach(NutritionUnit.allCases) { unit in
+                        Button(action: {
+                            nutritionUnit = unit
+                        }) {
+                            HStack {
+                                Image(systemName: "chart.bar.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(.blue)
+                                    .frame(width: 32)
+
+                                Text(unit.rawValue)
+                                    .foregroundColor(.primary)
+
+                                Spacer()
+
+                                if nutritionUnit == unit {
+                                    Image(systemName: "checkmark")
+                                        .foregroundColor(.blue)
+                                        .fontWeight(.semibold)
+                                }
+                            }
+                        }
                     }
                 } header: {
-                    Text("Nutrition")
+                    Text("Nutrition Units")
+                } footer: {
+                    Text("Choose how nutrition values are displayed throughout the app.")
                 }
 
                 // About Section

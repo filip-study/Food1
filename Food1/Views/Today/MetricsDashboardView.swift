@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct MetricsDashboardView: View {
+    @AppStorage("nutritionUnit") private var nutritionUnit: NutritionUnit = .metric
+
     let currentCalories: Double
     let currentProtein: Double
     let currentCarbs: Double
@@ -69,30 +71,11 @@ struct MetricsDashboardView: View {
 
                 Spacer()
 
-                // Add meal button
-                Button(action: onAddMeal) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 44))
-                        .foregroundColor(.blue)
-                }
-            }
-
-            // Simple calorie progress bar
-            VStack(alignment: .leading, spacing: 8) {
-                GeometryReader { geometry in
-                    ZStack(alignment: .leading) {
-                        // Background
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.blue.opacity(0.15))
-
-                        // Progress
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(calorieProgress > 1.05 ? Color.orange : Color.blue)
-                            .frame(width: geometry.size.width * min(calorieProgress, 1.0))
-                            .animation(.spring(response: 0.6, dampingFraction: 0.8), value: calorieProgress)
-                    }
-                }
-                .frame(height: 12)
+                // Add meal button with progress fill
+                WaterLevelAddButton(
+                    progress: calorieProgress,
+                    action: onAddMeal
+                )
             }
 
             // Macro bars
@@ -101,21 +84,24 @@ struct MetricsDashboardView: View {
                     name: "Protein",
                     current: currentProtein,
                     goal: goals.protein,
-                    color: .blue
+                    color: .blue,
+                    unit: nutritionUnit
                 )
 
                 MacroBar(
                     name: "Carbs",
                     current: currentCarbs,
                     goal: goals.carbs,
-                    color: .green
+                    color: .green,
+                    unit: nutritionUnit
                 )
 
                 MacroBar(
                     name: "Fat",
                     current: currentFat,
                     goal: goals.fat,
-                    color: .orange
+                    color: .orange,
+                    unit: nutritionUnit
                 )
             }
         }
@@ -129,11 +115,55 @@ struct MetricsDashboardView: View {
     }
 }
 
+struct WaterLevelAddButton: View {
+    let progress: Double
+    let action: () -> Void
+
+    private var fillColor: Color {
+        progress > 1.05 ? .orange : .blue
+    }
+
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                // Background circle
+                Circle()
+                    .fill(Color(.tertiarySystemBackground))
+                    .frame(width: 54, height: 54)
+
+                // Water level fill
+                Circle()
+                    .fill(fillColor.opacity(0.2))
+                    .frame(width: 54, height: 54)
+                    .mask {
+                        GeometryReader { geometry in
+                            Rectangle()
+                                .frame(height: geometry.size.height * min(progress, 1.0))
+                                .offset(y: geometry.size.height * (1 - min(progress, 1.0)))
+                        }
+                    }
+
+                // Border circle
+                Circle()
+                    .strokeBorder(fillColor, lineWidth: 2.5)
+                    .frame(width: 54, height: 54)
+
+                // Plus icon
+                Image(systemName: "plus")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundColor(fillColor)
+            }
+        }
+        .animation(.spring(response: 0.6, dampingFraction: 0.8), value: progress)
+    }
+}
+
 struct MacroBar: View {
     let name: String
     let current: Double
     let goal: Double
     let color: Color
+    let unit: NutritionUnit
 
     private var progress: Double {
         guard goal > 0 else { return 0 }
@@ -149,7 +179,7 @@ struct MacroBar: View {
 
                 Spacer()
 
-                Text("\(Int(current))g / \(Int(goal))g")
+                Text(NutritionFormatter.formatProgress(current: current, goal: goal, unit: unit))
                     .font(.system(size: 13, weight: .medium, design: .rounded))
                     .foregroundColor(.secondary)
             }
