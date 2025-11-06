@@ -13,6 +13,7 @@ struct TodayView: View {
     @Query(sort: \Meal.timestamp, order: .reverse) private var allMeals: [Meal]
 
     @State private var showingAddMeal = false
+    @State private var showingSettings = false
     @State private var selectedDate = Date()
     @State private var dragOffset: CGFloat = 0
 
@@ -32,8 +33,7 @@ struct TodayView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .bottomTrailing) {
-                ScrollView {
+            ScrollView {
                     VStack(spacing: 24) {
                         // Metrics dashboard
                         MetricsDashboardView(
@@ -41,21 +41,24 @@ struct TodayView: View {
                             currentProtein: totals.protein,
                             currentCarbs: totals.carbs,
                             currentFat: totals.fat,
-                            goals: .standard
+                            goals: .standard,
+                            onAddMeal: { showingAddMeal = true }
                         )
 
                         // Meal timeline section
                         VStack(alignment: .leading, spacing: 16) {
                             HStack {
-                                Text(isViewingToday ? "Today's Meals" : "Meals")
-                                    .font(.system(size: 24, weight: .bold))
-                                    .foregroundColor(.primary)
+                                DateNavigationHeader(selectedDate: $selectedDate)
 
                                 Spacer()
 
-                                Text("\(mealsForSelectedDate.count) meals")
-                                    .font(.system(size: 15, weight: .medium))
-                                    .foregroundColor(.secondary)
+                                Button(action: {
+                                    showingSettings = true
+                                }) {
+                                    Image(systemName: "gearshape")
+                                        .font(.system(size: 18))
+                                        .foregroundColor(.secondary)
+                                }
                             }
                             .padding(.horizontal)
 
@@ -93,7 +96,6 @@ struct TodayView: View {
                                 }
                             }
                         }
-                        .padding(.bottom, 80) // Space for FAB
                     }
                 }
                 .background(Color(.systemGroupedBackground))
@@ -124,53 +126,12 @@ struct TodayView: View {
                             }
                         }
                 )
-
-                // Quick add button (FAB)
-                Button(action: {
-                    showingAddMeal = true
-                }) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 24, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(width: 60, height: 60)
-                        .background(
-                            Circle()
-                                .fill(
-                                    LinearGradient(
-                                        colors: [.purple, .pink],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .shadow(color: .purple.opacity(0.4), radius: 12, x: 0, y: 6)
-                        )
-                }
-                .padding(.trailing, 24)
-                .padding(.bottom, 24)
-                .symbolEffect(.bounce, value: showingAddMeal)
-            }
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    DateNavigationHeader(selectedDate: $selectedDate)
-                }
-
-                ToolbarItem(placement: .primaryAction) {
-                    if !isViewingToday {
-                        Button(action: {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                selectedDate = Date()
-                            }
-                        }) {
-                            Image(systemName: "clock.arrow.circlepath")
-                                .foregroundColor(.purple)
-                                .symbolEffect(.bounce, value: isViewingToday)
-                        }
-                    }
-                }
-            }
             .sheet(isPresented: $showingAddMeal) {
                 AddMealTabView(selectedDate: selectedDate)
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
             }
         }
     }

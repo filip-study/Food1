@@ -82,7 +82,7 @@ struct NutritionReviewView: View {
                                         .frame(width: 50, height: 50)
                                         .background(
                                             Circle()
-                                                .fill(selectedEmoji == emoji ? Color.purple.opacity(0.2) : Color.gray.opacity(0.1))
+                                                .fill(selectedEmoji == emoji ? Color.blue.opacity(0.2) : Color.gray.opacity(0.1))
                                         )
                                 }
                             }

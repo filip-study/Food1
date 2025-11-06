@@ -81,8 +81,13 @@ struct PhotoRecognitionTab: View {
     @State private var capturedImage: UIImage?
     @State private var predictions: [FoodRecognitionService.FoodPrediction] = []
     @State private var selectedPrediction: FoodRecognitionService.FoodPrediction?
+    @State private var hasPackaging = false
 
     @State private var showingNutritionReview = false
+    @State private var showingPackagingAlert = false
+    @State private var showingLabelCamera = false
+    @State private var nutritionLabelImage: UIImage?
+    @State private var labelData: NutritionLabelData?
 
     var body: some View {
         ZStack {
@@ -122,13 +127,33 @@ struct PhotoRecognitionTab: View {
                     selectedDate: selectedDate,
                     foodName: prediction.displayName,
                     capturedImage: capturedImage,
-                    prefilledCalories: prediction.calories,
-                    prefilledProtein: prediction.protein,
-                    prefilledCarbs: prediction.carbs,
-                    prefilledFat: prediction.fat,
-                    prefilledServingSize: prediction.servingSize
+                    prefilledCalories: labelData?.nutrition.calories ?? prediction.calories,
+                    prefilledProtein: labelData?.nutrition.protein ?? prediction.protein,
+                    prefilledCarbs: labelData?.nutrition.carbs ?? prediction.carbs,
+                    prefilledFat: labelData?.nutrition.fat ?? prediction.fat,
+                    prefilledServingSize: labelData?.servingSize ?? prediction.servingSize
                 )
             }
+        }
+        .sheet(isPresented: $showingLabelCamera) {
+            CameraPicker(sourceType: .camera) { image in
+                nutritionLabelImage = image
+                Task {
+                    await analyzeNutritionLabel()
+                }
+            }
+        }
+        .alert("Packaged Food Detected", isPresented: $showingPackagingAlert) {
+            Button("Skip", role: .cancel) {
+                // User chooses not to scan label
+                showingPackagingAlert = false
+            }
+            Button("Scan Label") {
+                // User wants to scan nutrition label
+                showingLabelCamera = true
+            }
+        } message: {
+            Text("This appears to be packaged food. Would you like to take a photo of the nutrition label for more accurate data?")
         }
         .onAppear {
             if capturedImage == nil {
@@ -165,13 +190,7 @@ struct PhotoRecognitionTab: View {
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
-                .background(
-                    LinearGradient(
-                        colors: [.purple, .pink],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
+                .background(Color.blue)
                 .cornerRadius(12)
             }
             .padding(.horizontal, 40)
@@ -213,13 +232,7 @@ struct PhotoRecognitionTab: View {
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(
-                        LinearGradient(
-                            colors: [.purple, .pink],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
+                    .background(Color.blue)
                     .cornerRadius(12)
             }
             .padding(.horizontal, 24)
@@ -310,7 +323,31 @@ struct PhotoRecognitionTab: View {
         guard let image = capturedImage else { return }
 
         let processedImage = recognitionService.preprocessImage(image)
-        predictions = await recognitionService.recognizeFood(in: processedImage)
+        let (results, hasPackaging) = await recognitionService.recognizeFood(in: processedImage)
+
+        predictions = results
+        self.hasPackaging = hasPackaging
+
+        // Show packaging alert if packaging detected and we have predictions
+        if hasPackaging && !predictions.isEmpty {
+            showingPackagingAlert = true
+        }
+    }
+
+    private func analyzeNutritionLabel() async {
+        guard let labelImage = nutritionLabelImage else { return }
+
+        let extractedData = await recognitionService.analyzeNutritionLabel(in: labelImage)
+
+        if let data = extractedData {
+            labelData = data
+            print("✅ Successfully extracted label data: \(data.productName ?? "Unknown")")
+
+            // Update predictions with more accurate nutrition from label
+            // For now, the NutritionReviewView will use labelData if available
+        } else {
+            print("❌ Failed to extract label data")
+        }
     }
 }
 
@@ -426,13 +463,7 @@ struct ManualEntryTab: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(
-                            LinearGradient(
-                                colors: [.purple, .pink],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
+                        .background(Color.blue)
                         .cornerRadius(10)
                 }
                 .disabled(mealName.isEmpty || calories.isEmpty)

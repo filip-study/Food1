@@ -33,7 +33,7 @@ struct DateNavigationHeader: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 8) {
             // Previous day button
             Button(action: {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
@@ -41,38 +41,44 @@ struct DateNavigationHeader: View {
                 }
             }) {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.purple)
-                    .frame(width: 32, height: 32)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.blue)
+                    .frame(width: 28, height: 28)
             }
 
             // Date display with calendar button
             Button(action: {
                 showCalendar.toggle()
             }) {
-                HStack(spacing: 6) {
-                    Text(formattedDate)
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.primary)
-
-                    Image(systemName: "calendar")
-                        .font(.system(size: 14))
-                        .foregroundColor(.purple)
-                }
+                Text(formattedDate)
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(.primary)
             }
-            .popover(isPresented: $showCalendar) {
-                VStack(spacing: 0) {
-                    DatePicker(
-                        "",
-                        selection: $selectedDate,
-                        in: ...Date(),
-                        displayedComponents: .date
-                    )
-                    .datePickerStyle(.graphical)
-                    .padding()
+            .sheet(isPresented: $showCalendar) {
+                NavigationStack {
+                    VStack {
+                        DatePicker(
+                            "",
+                            selection: $selectedDate,
+                            in: ...Date(),
+                            displayedComponents: .date
+                        )
+                        .datePickerStyle(.graphical)
+                        .padding()
+
+                        Spacer()
+                    }
+                    .navigationTitle("Select Date")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") {
+                                showCalendar = false
+                            }
+                        }
+                    }
                 }
-                .presentationCompactAdaptation(.popover)
-                .frame(minWidth: 320, minHeight: 400)
+                .presentationDetents([.medium, .large])
             }
 
             // Next day button
@@ -82,9 +88,9 @@ struct DateNavigationHeader: View {
                 }
             }) {
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(canGoForward ? .purple : .gray.opacity(0.3))
-                    .frame(width: 32, height: 32)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(canGoForward ? .blue : .gray.opacity(0.3))
+                    .frame(width: 28, height: 28)
             }
             .disabled(!canGoForward)
         }

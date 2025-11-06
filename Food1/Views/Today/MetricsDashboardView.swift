@@ -13,6 +13,7 @@ struct MetricsDashboardView: View {
     let currentCarbs: Double
     let currentFat: Double
     let goals: DailyGoals
+    let onAddMeal: () -> Void
 
     private var calorieProgress: Double {
         guard goals.calories > 0 else { return 0 }
@@ -51,7 +52,7 @@ struct MetricsDashboardView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            // Mood indicator
+            // Mood indicator with add button
             HStack(spacing: 12) {
                 Text(moodEmoji)
                     .font(.system(size: 44))
@@ -67,6 +68,13 @@ struct MetricsDashboardView: View {
                 }
 
                 Spacer()
+
+                // Add meal button
+                Button(action: onAddMeal) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 44))
+                        .foregroundColor(.blue)
+                }
             }
 
             // Simple calorie progress bar
@@ -75,17 +83,11 @@ struct MetricsDashboardView: View {
                     ZStack(alignment: .leading) {
                         // Background
                         RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.purple.opacity(0.15))
+                            .fill(Color.blue.opacity(0.15))
 
                         // Progress
                         RoundedRectangle(cornerRadius: 8)
-                            .fill(
-                                LinearGradient(
-                                    colors: calorieProgress > 1.05 ? [.orange, .red] : [.purple, .pink],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
+                            .fill(calorieProgress > 1.05 ? Color.orange : Color.blue)
                             .frame(width: geometry.size.width * min(calorieProgress, 1.0))
                             .animation(.spring(response: 0.6, dampingFraction: 0.8), value: calorieProgress)
                     }
@@ -179,7 +181,8 @@ struct MacroBar: View {
                 currentProtein: 107,
                 currentCarbs: 186,
                 currentFat: 57,
-                goals: .standard
+                goals: .standard,
+                onAddMeal: {}
             )
 
             // Just started
@@ -188,7 +191,8 @@ struct MacroBar: View {
                 currentProtein: 15,
                 currentCarbs: 70,
                 currentFat: 29,
-                goals: .standard
+                goals: .standard,
+                onAddMeal: {}
             )
 
             // Over goal
@@ -197,7 +201,8 @@ struct MacroBar: View {
                 currentProtein: 160,
                 currentCarbs: 250,
                 currentFat: 85,
-                goals: .standard
+                goals: .standard,
+                onAddMeal: {}
             )
         }
         .padding(.vertical)

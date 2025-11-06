@@ -21,8 +21,9 @@ class OpenAIVisionService: ObservableObject {
     private let proxyEndpoint: String
     private let authToken: String
     private let session: URLSession
-    private let timeout: TimeInterval = 30.0 // 30 second timeout
-    private let imageCompressionQuality: CGFloat = 0.7 // Balance quality vs size
+    private let timeout: TimeInterval = 60.0 // 60 second timeout (increased for GPT-4o processing)
+    private let imageCompressionQuality: CGFloat = 0.4 // Optimized for speed (food photos compress well)
+    private let maxImageDimension: CGFloat = 768 // Reduced from 2048px for faster uploads & processing
 
     // MARK: - Initialization
     init(proxyEndpoint: String? = nil, authToken: String? = nil) {
@@ -38,11 +39,11 @@ class OpenAIVisionService: ObservableObject {
 
     // MARK: - Public API
 
-    /// Analyzes a food image and returns nutrition predictions
+    /// Analyzes a food image and returns nutrition predictions with packaging detection
     /// - Parameter image: The UIImage to analyze
-    /// - Returns: Array of FoodPrediction structs with nutrition data
+    /// - Returns: Tuple of (predictions array, hasPackaging flag)
     /// - Throws: OpenAIVisionError on failure
-    func analyzeFood(image: UIImage) async throws -> [FoodRecognitionService.FoodPrediction] {
+    func analyzeFood(image: UIImage) async throws -> (predictions: [FoodRecognitionService.FoodPrediction], hasPackaging: Bool) {
         isProcessing = true
         errorMessage = nil
 
@@ -88,14 +89,15 @@ class OpenAIVisionService: ObservableObject {
             }
 
             // Step 5: Parse response
-            let predictions = try parseResponse(data)
+            let (predictions, hasPackaging) = try parseResponse(data)
 
             print("🎯 Parsed \(predictions.count) predictions")
+            print("📦 Has packaging: \(hasPackaging)")
             predictions.forEach { pred in
                 print("  - \(pred.label): \(Int(pred.confidence * 100))% confidence")
             }
 
-            return predictions
+            return (predictions, hasPackaging)
 
         } catch let error as OpenAIVisionError {
             // Re-throw our custom errors
@@ -113,17 +115,23 @@ class OpenAIVisionService: ObservableObject {
 
     /// Encodes UIImage to base64 JPEG string with compression
     private func encodeImage(_ image: UIImage) -> String? {
-        // Resize if too large (max 2048px for fastest processing)
-        let resized = resizeImage(image, maxDimension: 2048)
+        // Resize for optimal speed/quality balance (food recognition doesn't need high res)
+        let resized = resizeImage(image, maxDimension: maxImageDimension)
 
-        // Convert to JPEG with compression
+        // Convert to JPEG with aggressive compression (food photos compress well)
         guard let imageData = resized.jpegData(compressionQuality: imageCompressionQuality) else {
             return nil
         }
 
         let base64 = imageData.base64EncodedString()
-        let sizeMB = Double(imageData.count) / 1_048_576.0
-        print("📦 Image size: \(String(format: "%.2f", sizeMB))MB")
+        let sizeKB = Double(imageData.count) / 1024.0
+        let sizeMB = sizeKB / 1024.0
+
+        if sizeMB >= 1.0 {
+            print("📦 Image size: \(String(format: "%.2f", sizeMB))MB (\(Int(resized.size.width))x\(Int(resized.size.height)))")
+        } else {
+            print("📦 Image size: \(String(format: "%.0f", sizeKB))KB (\(Int(resized.size.width))x\(Int(resized.size.height)))")
+        }
 
         return base64
     }
@@ -171,8 +179,94 @@ class OpenAIVisionService: ObservableObject {
         return request
     }
 
+    /// Builds URLRequest for nutrition label endpoint
+    private func buildLabelRequest(base64Image: String) throws -> URLRequest {
+        // Use label endpoint (replace /analyze with /analyze-label)
+        let labelEndpoint = proxyEndpoint.replacingOccurrences(of: "/analyze", with: "/analyze-label")
+
+        guard let url = URL(string: labelEndpoint) else {
+            throw OpenAIVisionError.invalidEndpoint
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = timeout
+
+        // Build request body
+        let requestBody: [String: Any] = [
+            "image": "data:image/jpeg;base64,\(base64Image)",
+            "userId": "ios-app-user"
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+
+        return request
+    }
+
+    /// Analyzes a nutrition label image and returns extracted data
+    /// - Parameter image: The UIImage of nutrition label
+    /// - Returns: NutritionLabelData with extracted information
+    /// - Throws: OpenAIVisionError on failure
+    func analyzeNutritionLabel(image: UIImage) async throws -> NutritionLabelData {
+        isProcessing = true
+        errorMessage = nil
+
+        defer {
+            isProcessing = false
+        }
+
+        do {
+            // Step 1: Encode image to base64
+            guard let base64Image = encodeImage(image) else {
+                throw OpenAIVisionError.encodingFailed
+            }
+
+            print("📋 Analyzing nutrition label...")
+
+            // Step 2: Build API request for label endpoint
+            let request = try buildLabelRequest(base64Image: base64Image)
+
+            // Step 3: Make network request
+            let (data, response) = try await session.data(for: request)
+
+            // Step 4: Validate HTTP response
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw OpenAIVisionError.invalidResponse
+            }
+
+            print("✅ Received label response: HTTP \(httpResponse.statusCode)")
+
+            // Handle error responses
+            if httpResponse.statusCode != 200 {
+                let errorResponse = try? JSONDecoder().decode(ProxyErrorResponse.self, from: data)
+                let errorMsg = errorResponse?.error ?? "Request failed with status \(httpResponse.statusCode)"
+                throw OpenAIVisionError.apiError(errorMsg)
+            }
+
+            // Step 5: Parse label response
+            let labelData = try parseLabelResponse(data)
+
+            print("📊 Extracted label data: \(labelData.productName ?? "Unknown")")
+            print("   Calories: \(labelData.nutrition.calories), Protein: \(labelData.nutrition.protein)g")
+
+            return labelData
+
+        } catch let error as OpenAIVisionError {
+            errorMessage = error.localizedDescription
+            throw error
+        } catch {
+            errorMessage = "Unexpected error: \(error.localizedDescription)"
+            print("❌ Label analysis error: \(error)")
+            throw OpenAIVisionError.networkError(error)
+        }
+    }
+
+    // MARK: - Private Methods
+
     /// Parses proxy response into FoodPrediction structs
-    private func parseResponse(_ data: Data) throws -> [FoodRecognitionService.FoodPrediction] {
+    private func parseResponse(_ data: Data) throws -> (predictions: [FoodRecognitionService.FoodPrediction], hasPackaging: Bool) {
         // Decode proxy response
         let decoder = JSONDecoder()
         let proxyResponse = try decoder.decode(ProxyResponse.self, from: data)
@@ -180,6 +274,9 @@ class OpenAIVisionService: ObservableObject {
         guard proxyResponse.success else {
             throw OpenAIVisionError.apiError("Analysis failed")
         }
+
+        // Extract hasPackaging flag
+        let hasPackaging = proxyResponse.data.hasPackaging ?? false
 
         // Convert proxy data to FoodPrediction structs
         let predictions = proxyResponse.data.predictions.map { predData in
@@ -192,12 +289,26 @@ class OpenAIVisionService: ObservableObject {
                 protein: predData.nutrition?.protein,
                 carbs: predData.nutrition?.carbs,
                 fat: predData.nutrition?.fat,
-                servingSize: predData.nutrition?.servingSize
+                servingSize: predData.nutrition?.servingSize,
+                hasPackaging: hasPackaging
             )
         }
 
         // Filter out low-confidence predictions (< 30%)
-        return predictions.filter { $0.confidence >= 0.3 }
+        return (predictions.filter { $0.confidence >= 0.3 }, hasPackaging)
+    }
+
+    /// Parses nutrition label response
+    private func parseLabelResponse(_ data: Data) throws -> NutritionLabelData {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let response = try decoder.decode(LabelProxyResponse.self, from: data)
+
+        guard response.success else {
+            throw OpenAIVisionError.apiError("Label analysis failed")
+        }
+
+        return response.data
     }
 }
 
@@ -244,7 +355,13 @@ private struct ProxyResponse: Decodable {
     let usage: UsageInfo?
 
     struct AnalysisData: Decodable {
+        let hasPackaging: Bool?
         let predictions: [PredictionData]
+
+        enum CodingKeys: String, CodingKey {
+            case hasPackaging = "has_packaging"
+            case predictions
+        }
     }
 
     struct PredictionData: Decodable {
@@ -285,4 +402,31 @@ private struct ProxyErrorResponse: Decodable {
     let error: String
     let details: String?
     let message: String?
+}
+
+/// Response from nutrition label analysis endpoint
+private struct LabelProxyResponse: Decodable {
+    let success: Bool
+    let data: NutritionLabelData
+    let usage: ProxyResponse.UsageInfo?
+}
+
+/// Nutrition label data extracted from image
+struct NutritionLabelData: Codable {
+    let productName: String?
+    let brand: String?
+    let servingSize: String
+    let servingsPerContainer: Double?
+    let nutrition: NutritionInfo
+    let confidence: Double
+
+    struct NutritionInfo: Codable {
+        let calories: Double
+        let protein: Double
+        let carbs: Double
+        let fat: Double
+        let fiber: Double?
+        let sugar: Double?
+        let sodium: Double?
+    }
 }

@@ -19,25 +19,13 @@ struct MainTabView: View {
                 }
                 .tag(0)
 
-            HistoryView()
-                .tabItem {
-                    Label("History", systemImage: "calendar")
-                }
-                .tag(1)
-
             StatsView()
                 .tabItem {
                     Label("Stats", systemImage: "chart.line.uptrend.xyaxis")
                 }
-                .tag(2)
-
-            SettingsView()
-                .tabItem {
-                    Label("Settings", systemImage: "gearshape.fill")
-                }
-                .tag(3)
+                .tag(1)
         }
-        .tint(.purple) // Tab bar accent color
+        .tint(.blue) // Tab bar accent color
         .preferredColorScheme(selectedTheme.colorScheme)
     }
 }

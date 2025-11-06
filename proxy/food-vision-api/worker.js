@@ -21,20 +21,43 @@ export default {
       return jsonResponse({ error: 'Method not allowed' }, 405);
     }
 
-    // Verify request path
-    if (!request.url.endsWith('/analyze')) {
-      return jsonResponse({ error: 'Not found' }, 404);
-    }
-
     try {
+      // Route to appropriate handler
+      const url = new URL(request.url);
+
+      if (url.pathname.endsWith('/analyze')) {
+        return await handleFoodAnalysis(request, env);
+      } else if (url.pathname.endsWith('/analyze-label')) {
+        return await handleNutritionLabel(request, env);
+      } else {
+        return jsonResponse({ error: 'Not found' }, 404);
+      }
+    } catch (error) {
+      console.error('Routing error:', error);
+      return jsonResponse({
+        error: 'Internal server error',
+        message: error.message
+      }, 500);
+    }
+  }
+};
+
+/**
+ * Handle food recognition from image
+ */
+async function handleFoodAnalysis(request, env) {
+  try {
       // Verify authentication token
       const authToken = request.headers.get('Authorization');
       if (!authToken || authToken !== `Bearer ${env.AUTH_TOKEN}`) {
         return jsonResponse({ error: 'Unauthorized' }, 401);
       }
 
-      // Rate limiting check (optional - implement with Cloudflare KV if needed)
-      // For now, rely on OpenAI's rate limits
+      // Verify OpenAI API key is configured
+      if (!env.OPENAI_API_KEY) {
+        console.error('OPENAI_API_KEY not configured');
+        return jsonResponse({ error: 'Server configuration error' }, 500);
+      }
 
       // Parse request body
       const body = await request.json();
@@ -44,7 +67,12 @@ export default {
         return jsonResponse({ error: 'Missing image data' }, 400);
       }
 
-      // Build OpenAI API request
+      // Log request details for debugging
+      console.log('=== Food Analysis Request ===');
+      console.log('Image size:', image.length, 'chars');
+      console.log('Image prefix:', image.substring(0, 50));
+
+      // Build OpenAI API request (optimized for speed)
       const openaiRequest = {
         model: 'gpt-4o',
         messages: [
@@ -53,15 +81,16 @@ export default {
             content: [
               {
                 type: 'text',
-                text: `Analyze this food image and provide nutrition information in JSON format.
+                text: `Identify this food and return JSON with nutrition data.
 
-Return a JSON object with the following structure:
+Format:
 {
+  "has_packaging": false,
   "predictions": [
     {
-      "label": "food name",
+      "label": "food name (be specific)",
       "confidence": 0.95,
-      "description": "brief 1-sentence description of the food",
+      "description": "brief description",
       "nutrition": {
         "calories": 250,
         "protein": 20.0,
@@ -73,30 +102,32 @@ Return a JSON object with the following structure:
   ]
 }
 
-Guidelines:
-- Provide up to 5 possible food items if multiple foods are visible
-- Order by confidence (0.0 to 1.0, where 1.0 is certain)
-- Be specific with food names (e.g., "Grilled chicken breast" not "chicken")
-- Estimate realistic portion sizes based on visual cues
-- If you cannot identify food with reasonable confidence (>0.3), return empty predictions array
-- For nutrition values, provide per-serving estimates based on typical portions
+Rules:
+- Set has_packaging to true if food is in package/wrapper/box/container (unopened or partially opened)
+- Set has_packaging to false for fresh/prepared food on plates/bowls
+- Up to 5 predictions if multiple foods visible
+- Order by confidence (0.0-1.0)
+- Empty array if confidence <0.3
+- Per-serving nutrition estimates
 
-Return ONLY the JSON object, no additional text.`
+Return ONLY JSON.`
               },
               {
                 type: 'image_url',
                 image_url: {
-                  url: image.startsWith('data:') ? image : `data:image/jpeg;base64,${image}`
+                  url: image.startsWith('data:') ? image : `data:image/jpeg;base64,${image}`,
+                  detail: 'low'  // Use low-detail mode for 3-5x faster processing (sufficient for food recognition)
                 }
               }
             ]
           }
         ],
-        max_tokens: 800,
+        max_tokens: 600,  // Reduced from 800 for faster responses
         response_format: { type: 'json_object' }
       };
 
       // Forward to OpenAI
+      console.log('Sending request to OpenAI...');
       const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -105,6 +136,8 @@ Return ONLY the JSON object, no additional text.`
         },
         body: JSON.stringify(openaiRequest)
       });
+
+      console.log('OpenAI response status:', openaiResponse.status);
 
       if (!openaiResponse.ok) {
         const error = await openaiResponse.json();
@@ -126,10 +159,17 @@ Return ONLY the JSON object, no additional text.`
 
       // Parse OpenAI response
       const data = await openaiResponse.json();
-      const content = data.choices[0]?.message?.content;
+      console.log('OpenAI response:', JSON.stringify(data));
+
+      const content = data.choices?.[0]?.message?.content;
 
       if (!content) {
-        return jsonResponse({ error: 'No response from AI' }, 500);
+        console.error('No content in OpenAI response. Full response:', JSON.stringify(data));
+        return jsonResponse({
+          error: 'No response from AI',
+          details: 'OpenAI returned empty content',
+          rawResponse: data
+        }, 500);
       }
 
       // Parse JSON response from GPT-4o
@@ -155,15 +195,152 @@ Return ONLY the JSON object, no additional text.`
         }
       });
 
-    } catch (error) {
-      console.error('Proxy error:', error);
+  } catch (error) {
+    console.error('Food analysis error:', error);
+    return jsonResponse({
+      error: 'Internal server error',
+      message: error.message
+    }, 500);
+  }
+}
+
+/**
+ * Handle nutrition label extraction from image
+ */
+async function handleNutritionLabel(request, env) {
+  try {
+    // Verify authentication token
+    const authToken = request.headers.get('Authorization');
+    if (!authToken || authToken !== `Bearer ${env.AUTH_TOKEN}`) {
+      return jsonResponse({ error: 'Unauthorized' }, 401);
+    }
+
+    // Parse request body
+    const body = await request.json();
+    const { image, userId } = body;
+
+    if (!image) {
+      return jsonResponse({ error: 'Missing image data' }, 400);
+    }
+
+    // Build OpenAI API request for nutrition label extraction
+    const openaiRequest = {
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: `Extract nutrition information from this food label and return JSON.
+
+Format:
+{
+  "product_name": "product name from label",
+  "brand": "brand name if visible",
+  "serving_size": "1 container (150g)",
+  "servings_per_container": 1,
+  "nutrition": {
+    "calories": 250,
+    "protein": 20.0,
+    "carbs": 30.0,
+    "fat": 10.0,
+    "fiber": 5.0,
+    "sugar": 10.0,
+    "sodium": 300
+  },
+  "confidence": 0.95
+}
+
+Rules:
+- Extract exact values from nutrition facts label
+- All nutrition values in grams except sodium (mg)
+- Set confidence based on label clarity (0.0-1.0)
+- Return null values if information not visible
+- Include fiber, sugar, sodium if available
+
+Return ONLY JSON.`
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: image.startsWith('data:') ? image : `data:image/jpeg;base64,${image}`,
+                detail: 'high'  // Use high-detail for accurate label reading
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 500,
+      response_format: { type: 'json_object' }
+    };
+
+    // Forward to OpenAI
+    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${env.OPENAI_API_KEY}`
+      },
+      body: JSON.stringify(openaiRequest)
+    });
+
+    if (!openaiResponse.ok) {
+      const error = await openaiResponse.json();
+      console.error('OpenAI API error:', error);
+
+      if (openaiResponse.status === 429) {
+        return jsonResponse({ error: 'Rate limit exceeded. Please try again later.' }, 429);
+      }
+      if (openaiResponse.status === 401) {
+        return jsonResponse({ error: 'API authentication failed' }, 500);
+      }
+
       return jsonResponse({
-        error: 'Internal server error',
-        message: error.message
+        error: 'Failed to analyze nutrition label',
+        details: error.error?.message
+      }, openaiResponse.status);
+    }
+
+    // Parse OpenAI response
+    const data = await openaiResponse.json();
+    const content = data.choices[0]?.message?.content;
+
+    if (!content) {
+      return jsonResponse({ error: 'No response from AI' }, 500);
+    }
+
+    // Parse JSON response from GPT-4o
+    let labelData;
+    try {
+      labelData = JSON.parse(content);
+    } catch (e) {
+      console.error('Failed to parse AI response:', content);
+      return jsonResponse({
+        error: 'Invalid response format from AI',
+        raw: content
       }, 500);
     }
+
+    // Return structured response
+    return jsonResponse({
+      success: true,
+      data: labelData,
+      usage: {
+        promptTokens: data.usage?.prompt_tokens,
+        completionTokens: data.usage?.completion_tokens,
+        totalTokens: data.usage?.total_tokens
+      }
+    });
+
+  } catch (error) {
+    console.error('Label analysis error:', error);
+    return jsonResponse({
+      error: 'Internal server error',
+      message: error.message
+    }, 500);
   }
-};
+}
 
 /**
  * Helper function to return JSON responses with CORS headers

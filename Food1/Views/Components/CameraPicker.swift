@@ -63,7 +63,7 @@ struct PhotoSourcePicker: View {
                     HStack {
                         Image(systemName: "camera.fill")
                             .font(.system(size: 24))
-                            .foregroundColor(.purple)
+                            .foregroundColor(.blue)
                             .frame(width: 40)
 
                         VStack(alignment: .leading, spacing: 4) {

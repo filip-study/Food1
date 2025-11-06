@@ -30,12 +30,15 @@ class FoodRecognitionService: ObservableObject {
         let description: String?
         let fullDescription: String?
 
-        // Nutrition data (will come from API in future)
+        // Nutrition data from AI or nutrition label
         let calories: Double?
         let protein: Double?
         let carbs: Double?
         let fat: Double?
         let servingSize: String?
+
+        // Packaging detection
+        let hasPackaging: Bool
 
         var confidencePercentage: Int {
             Int(confidence * 100)
@@ -55,8 +58,8 @@ class FoodRecognitionService: ObservableObject {
     // MARK: - Food Recognition
     /// Recognizes food items in the provided image using GPT-4o Vision API
     /// - Parameter image: The image to analyze
-    /// - Returns: Array of food predictions with confidence scores and nutrition data
-    func recognizeFood(in image: UIImage) async -> [FoodPrediction] {
+    /// - Returns: Tuple of (predictions array, hasPackaging flag)
+    func recognizeFood(in image: UIImage) async -> (predictions: [FoodPrediction], hasPackaging: Bool) {
         isProcessing = true
         errorMessage = nil
 
@@ -71,28 +74,65 @@ class FoodRecognitionService: ObservableObject {
             print("🔍 Analyzing food image with GPT-4o...")
 
             // Call OpenAI Vision API via proxy
-            let predictions = try await visionService.analyzeFood(image: processedImage)
+            let (predictions, hasPackaging) = try await visionService.analyzeFood(image: processedImage)
 
             if predictions.isEmpty {
                 print("⚠️ No food detected in image")
                 errorMessage = "Could not identify any food in this image. Try taking another photo with better lighting."
             } else {
                 print("✅ Found \(predictions.count) food predictions")
+                if hasPackaging {
+                    print("📦 Packaging detected - nutrition label can improve accuracy")
+                }
             }
 
-            return predictions
+            return (predictions, hasPackaging)
 
         } catch let error as OpenAIVisionError {
             // Handle specific vision API errors
             errorMessage = error.localizedDescription
             print("❌ Vision API error: \(error.localizedDescription)")
-            return []
+            return ([], false)
 
         } catch {
             // Handle unexpected errors
             errorMessage = "An unexpected error occurred. Please try again."
             print("❌ Unexpected error: \(error)")
-            return []
+            return ([], false)
+        }
+    }
+
+    /// Analyzes nutrition label and returns extracted data
+    /// - Parameter image: The image of nutrition label
+    /// - Returns: NutritionLabelData or nil on failure
+    func analyzeNutritionLabel(in image: UIImage) async -> NutritionLabelData? {
+        isProcessing = true
+        errorMessage = nil
+
+        defer {
+            isProcessing = false
+        }
+
+        do {
+            let processedImage = preprocessImage(image)
+
+            print("📋 Analyzing nutrition label...")
+
+            let labelData = try await visionService.analyzeNutritionLabel(image: processedImage)
+
+            print("✅ Successfully extracted nutrition label data")
+
+            return labelData
+
+        } catch let error as OpenAIVisionError {
+            errorMessage = error.localizedDescription
+            print("❌ Label analysis error: \(error.localizedDescription)")
+            return nil
+
+        } catch {
+            errorMessage = "Failed to read nutrition label. Please try again."
+            print("❌ Unexpected error: \(error)")
+            return nil
         }
     }
 

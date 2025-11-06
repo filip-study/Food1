@@ -11,6 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - Remove outdated instructions or references to removed features
    - Add new sections for new features or architectural changes
    - Keep examples current with actual code
+   - **CRITICAL:** Continuously update the "Project Goals & User Preferences" section as you learn more about the user's preferences, goals, and approaches
 
 2. **Prevent Bloat:**
    - Delete unused dependencies immediately
@@ -31,6 +32,61 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - Update stale comments
    - Fix compiler warnings immediately
 
+## Project Goals & User Preferences
+
+**Project Vision:**
+- Build a practical, fast, AI-powered nutrition tracking iOS app
+- Minimize user friction: photo → instant nutrition data → save
+- Prioritize speed and accuracy over feature complexity
+- Use API-based AI (GPT-4o) instead of on-device models for flexibility and accuracy
+
+**User's Development Preferences:**
+
+*Communication Style:*
+- Prefer concise, direct communication - avoid excessive explanations
+- Show results, not just plans
+- Use TodoWrite to track progress transparently
+- Provide clear summaries of what was done after completing work
+- When errors occur, fix them immediately without asking permission
+
+*Technical Approach:*
+- **Performance is critical:** Users complained about timeouts → led to aggressive optimization (0.4 compression, 768px, low-detail mode)
+- **Practical features over theoretical perfection:** User requested packaging detection + label scanning as real-world improvement
+- **API-first architecture:** Switched from local ML models (FastVLM, USDA) to GPT-4o API for better accuracy and flexibility
+- **Security matters:** Use Cloudflare Worker proxy to protect API keys, never expose secrets in iOS app
+- **No external dependencies:** Prefer URLSession over third-party networking libraries
+- **Minimal, focused UI:** Remove unused features (History tab), move non-essential UI elements (Settings) to less prominent positions
+- **Clean design preferences:** User dislikes "disgusting" UI elements (chevron indicators, popovers). Prefers clean, simple interactions and neutral colors (blue over purple/pink)
+
+*Workflow Preferences:*
+- Use TodoWrite tool to track all multi-step tasks
+- Mark todos as completed immediately after finishing each step
+- When building iOS app, ALWAYS use `DEVELOPER_DIR` environment variable and `-destination` flag (see Build & Run Commands section)
+- Deploy changes immediately when working on backend (Cloudflare Worker)
+- Update CLAUDE.md continuously as you learn new information
+
+*Decision-Making:*
+- User prefers fast iteration over asking clarifying questions
+- When user says "improve latency", investigate and implement comprehensive optimizations without asking for permission on each change
+- When user reports issues (like timeouts), implement solutions proactively
+
+**Feature Evolution:**
+1. **Initial State (2025-11-04):** Local ML models (FastVLM, FoodSwin92) + USDA API
+2. **Phase 1 Cleanup (2025-11-06):** Removed FastVLM (~1.8GB), USDA service (never worked)
+3. **Phase 2 API Integration (2025-11-06):** Added GPT-4o Vision API via Cloudflare Worker proxy
+4. **Phase 3 Performance (2025-11-06):** Optimized for speed (0.4 compression, 768px, low-detail mode, 60s timeout)
+5. **Phase 4 Packaging Detection (2025-11-06):** Added automatic packaging detection + optional nutrition label scanning
+6. **Bug Fix (2025-11-06):** Fixed LaunchServices errors and photo library lag by adding NSPhotoLibraryAddUsageDescription permission
+7. **UI Simplification (2025-11-06):** Removed History tab, moved Settings to less obtrusive toolbar icon in TodayView
+8. **Date Picker Redesign (2025-11-06):** Moved date picker from toolbar to inline section header with left/right arrows, calendar opens as sheet
+9. **Theme Change (2025-11-06):** Changed from purple/pink gradient to neutral blue accent color per user feedback
+10. **Add Meal Button Relocated (2025-11-06):** Moved FAB from bottom-right to top-right toolbar for cleaner layout
+
+**Future Considerations:**
+- User is open to switching APIs (OpenAI → Claude/Gemini) if better accuracy/cost
+- Abstraction layer (FoodRecognitionService) designed for easy API swapping
+- May want to add more practical features like barcode scanning, meal templates, or nutrition goals customization
+
 ## Project Overview
 
 Food1 is an iOS nutrition tracking app with AI-powered food recognition. Users can log meals by taking photos (automatically recognized via GPT-4o), manual entry, track nutrition metrics, and view historical data.
@@ -43,16 +99,32 @@ Food1 is an iOS nutrition tracking app with AI-powered food recognition. Users c
 ## Build & Run Commands
 
 ### iOS App (Xcode)
+
+**IMPORTANT: This project requires Xcode 26.0+ and MUST use DEVELOPER_DIR environment variable.**
+
 ```bash
-# Build the project
-xcodebuild -project Food1.xcodeproj -scheme Food1 -configuration Debug build
+# Set Xcode path (REQUIRED - Xcode 26.0.1 is installed)
+export DEVELOPER_DIR=/Applications/Xcode-26.0.1.app/Contents/Developer
+
+# Build for iOS Simulator (ALWAYS use -destination)
+xcodebuild -project Food1.xcodeproj -scheme Food1 -configuration Debug \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+  build
 
 # Clean build folder
-xcodebuild clean -project Food1.xcodeproj -scheme Food1
+xcodebuild -project Food1.xcodeproj -scheme Food1 clean
 
-# Run on simulator
-xcodebuild -project Food1.xcodeproj -scheme Food1 -destination 'platform=iOS Simulator,name=iPhone 15 Pro' test
+# Open in Xcode (preferred for development)
+open Food1.xcodeproj
 ```
+
+**CRITICAL BUILD RULES:**
+1. **ALWAYS** set `DEVELOPER_DIR=/Applications/Xcode-26.0.1.app/Contents/Developer` before xcodebuild
+2. **ALWAYS** specify `-destination` when building (don't build without it)
+3. **NEVER** build without destination - causes provisioning profile errors
+4. For simulator builds: Use `-destination 'platform=iOS Simulator,name=iPhone 17 Pro'`
+5. For device builds: Use `-destination 'platform=iOS,id=<device-id>'`
+6. Command line tools alone won't work - full Xcode required
 
 ## Architecture
 
@@ -73,9 +145,13 @@ xcodebuild -project Food1.xcodeproj -scheme Food1 -destination 'platform=iOS Sim
 **OpenAIVisionService** (Food1/Services/OpenAIVisionService.swift)
 - URLSession-based client for GPT-4o Vision API
 - Communicates with secure Cloudflare Worker proxy (never exposes API key in iOS app)
-- Image encoding to base64 JPEG with compression (0.7 quality)
-- Automatic image resizing (max 2048px) for optimal processing
-- Structured JSON response parsing into FoodPrediction objects
+- Two endpoints:
+  - `/analyze`: Food recognition with packaging detection (low-detail mode, fast)
+  - `/analyze-label`: Nutrition label OCR extraction (high-detail mode, accurate)
+- Image encoding to base64 JPEG with compression (0.4 quality, optimized for speed)
+- Automatic image resizing (max 768px) for fast uploads and processing
+- 60-second timeout for GPT-4o processing
+- Structured JSON response parsing into FoodPrediction objects and NutritionLabelData
 - Comprehensive error handling (rate limits, network errors, API errors)
 
 ### View Architecture
@@ -84,14 +160,15 @@ xcodebuild -project Food1.xcodeproj -scheme Food1 -destination 'platform=iOS Sim
 ```
 MainTabView (root)
 ├── TodayView (tab 0) - Daily meal log with date navigation
-├── HistoryView (tab 1) - Historical meal data
-├── StatsView (tab 2) - Analytics and trends
-└── SettingsView (tab 3) - User preferences
+│   └── Settings button in toolbar (leading position, gear icon)
+└── StatsView (tab 1) - Analytics and trends
+
+SettingsView - Accessed via gear icon in TodayView toolbar (sheet presentation)
 ```
 
 **Meal Input Flow:**
 ```
-TodayView FAB (+) → AddMealTabView
+TodayView + button (toolbar) → AddMealTabView
   ├── Photo Tab (AI-powered recognition)
   │   └── CameraPicker → FoodRecognitionService → GPT-4o Vision API → Predictions → NutritionReviewView → Save
   └── Manual Tab
@@ -99,13 +176,20 @@ TodayView FAB (+) → AddMealTabView
 ```
 
 **Key Components:**
-- **AddMealTabView:** Tabbed interface with Photo recognition and Manual entry. Photo recognition uses GPT-4o Vision API.
+- **AddMealTabView:** Tabbed interface with Photo recognition and Manual entry. Photo recognition uses GPT-4o Vision API with automatic packaging detection.
 - **CameraPicker:** UIImagePickerController wrapper supporting camera and photo library
-- **NutritionReviewView:** Review and edit AI-generated nutrition data before saving. Supports serving size multiplier.
+- **NutritionReviewView:** Review and edit AI-generated nutrition data before saving. Supports serving size multiplier and nutrition label data.
 - **MealCard:** Displays meal summary with emoji, name, calories, and macros
 - **MetricsDashboardView:** Progress rings showing daily nutrition vs goals
-- **DateNavigationHeader:** Date picker in toolbar for viewing different days
+- **DateNavigationHeader:** Inline date picker with left/right arrows. Shows "Today" for current date, "Yesterday", or formatted date. Click to open calendar popover.
 - **PredictionRow:** Displays AI prediction with confidence score, description, and nutrition summary
+
+**Packaging Detection & Nutrition Label Scanning:**
+- GPT-4o automatically detects if food is in packaging (unopened or partially opened)
+- When packaging detected, user is prompted to optionally scan nutrition label
+- Nutrition label endpoint (/analyze-label) uses high-detail mode for accurate OCR
+- Label data automatically merged with food recognition results
+- Flow: Food photo → Packaging detection → Optional label scan → Merged nutrition data
 
 ## Development Patterns
 
@@ -124,10 +208,11 @@ modelContext.insert(newMeal)
 existingMeal.name = "Updated Name"
 ```
 
-### Camera Permissions
-Required in Info.plist (already configured in project.pbxproj):
-- NSCameraUsageDescription: "We need access to your camera to recognize food items..."
-- NSPhotoLibraryUsageDescription: "We need access to your photo library..."
+### Camera & Photo Library Permissions
+Required in Info.plist (configured in project.pbxproj):
+- NSCameraUsageDescription: "We need access to your camera to recognize food items and automatically log nutrition information."
+- NSPhotoLibraryUsageDescription: "We need access to your photo library so you can select food photos for recognition."
+- NSPhotoLibraryAddUsageDescription: "We need permission to save photos you capture for meal logging." (Required for iOS 11+, prevents LaunchServices errors)
 
 ### Async/Await Pattern
 Service operations use async/await:
@@ -244,6 +329,80 @@ Food1/
 - OpenAI: https://platform.openai.com/usage
 - iOS logs: Check Xcode console for "📸", "🌐", "✅", "❌" emoji logs
 
+**Debugging API Issues:**
+
+To monitor requests/responses in real-time:
+
+1. **Live Cloudflare Worker Logs:**
+   ```bash
+   cd proxy/food-vision-api
+   npx wrangler tail
+   ```
+   Shows:
+   - Image size being sent
+   - OpenAI response status
+   - Full error messages
+   - Request/response data
+
+2. **Cloudflare Dashboard Logs:**
+   - Go to https://dash.cloudflare.com
+   - Navigate to: Workers & Pages → food-vision-api → Logs (Real-time)
+   - View console.log output from worker
+
+3. **OpenAI Platform:**
+   - Usage: https://platform.openai.com/usage (shows call count, costs, tokens)
+   - API Keys: https://platform.openai.com/api-keys (shows last usage time)
+   - NOTE: OpenAI does NOT show actual prompts/images for privacy
+
+4. **iOS App Logs:**
+   - Run app in Xcode
+   - Watch Console for detailed logs:
+     - `📦 Image size: XXkB (WxH)` - Image preprocessing
+     - `🌐 Sending request to proxy` - Network request
+     - `✅ Received response: HTTP 200` - Success
+     - `❌ Vision API error: ...` - Error details
+
+**Common Issues:**
+- HTTP 500 + "No response from AI": OpenAI returned empty content (check logs)
+- HTTP 401: AUTH_TOKEN mismatch between iOS and Worker
+- HTTP 429: OpenAI rate limit exceeded
+- Timeout: Image too large or network slow (check image size in logs)
+
+**Performance Optimization:**
+
+The app is optimized for fast GPT-4o Vision API responses (typically 2-5 seconds):
+
+**Client-side optimizations (OpenAIVisionService.swift):**
+- **Image compression:** 0.4 quality (40%) for JPEG encoding
+  - Food photos compress well, minimal quality loss
+  - Reduces upload time significantly
+- **Image resizing:** Max 768px dimension (down from 2048px)
+  - 768px sufficient for food recognition accuracy
+  - ~85% reduction in file size
+- **Timeout:** 60 seconds for GPT-4o processing
+  - Handles network variability and API processing time
+
+**Server-side optimizations (proxy/food-vision-api/worker.js):**
+- **Low-detail mode:** `detail: 'low'` on GPT-4o Vision API
+  - 3-5x faster processing than high-detail mode
+  - Food recognition doesn't require high-res analysis
+- **Optimized prompt:** Concise instructions for faster token generation
+- **Reduced tokens:** 600 max_tokens (down from 800)
+  - Faster responses, lower costs
+  - Still sufficient for 5 food predictions with nutrition
+
+**If experiencing timeout issues:**
+1. Check image size in Xcode console logs ("📦 Image size: XXkB")
+2. Verify Cloudflare Worker is deployed with latest code (low-detail mode)
+3. Test with smaller/simpler food photos first
+4. Check OpenAI API status: https://status.openai.com
+5. Monitor Cloudflare Worker logs for errors
+
+**To further optimize if needed:**
+- Reduce compression quality: 0.4 → 0.3 (line 25 in OpenAIVisionService.swift)
+- Reduce max dimension: 768px → 512px (line 26 in OpenAIVisionService.swift)
+- Reduce max_tokens: 600 → 400 (line 94 in worker.js)
+
 ## Project Specifics
 
 ### Date Navigation
@@ -268,4 +427,4 @@ AppTheme enum (referenced in MainTabView) supports system/light/dark modes via @
 - Minimum iOS version: 26.0 (IPHONEOS_DEPLOYMENT_TARGET)
 - Development Team: UJ4482ZF9C (for code signing)
 - Bundle ID: com.filipolszak.Food1
-- Purple/pink gradient is the app's primary branding color scheme
+- Blue is the app's primary accent color (changed from purple/pink gradient per user preference)
