@@ -32,6 +32,20 @@ struct TodayView: View {
         Calendar.current.isDateInToday(selectedDate)
     }
 
+    private var emptyStateContent: (emoji: String, title: String, subtitle: String) {
+        let hour = Calendar.current.component(.hour, from: selectedDate)
+        switch hour {
+        case 5..<11:
+            return ("☕", "Good morning!", "Start your day by logging breakfast")
+        case 11..<16:
+            return ("🥗", "Lunchtime fuel", "Keep your nutrition streak going")
+        case 16..<21:
+            return ("🍽️", "Dinner awaits", "Log your evening meal")
+        default:
+            return ("🌙", "Late night snack?", "Every meal counts")
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -64,23 +78,8 @@ struct TodayView: View {
                             .padding(.horizontal)
 
                             if mealsForSelectedDate.isEmpty {
-                                // Empty state
-                                VStack(spacing: 16) {
-                                    Image(systemName: "fork.knife.circle")
-                                        .font(.system(size: 60))
-                                        .foregroundStyle(.gray.opacity(0.5))
-
-                                    Text("No meals logged yet")
-                                        .font(.system(size: 18, weight: .semibold))
-                                        .foregroundColor(.secondary)
-
-                                    Text("Tap the + button to add your first meal")
-                                        .font(.system(size: 15))
-                                        .foregroundStyle(.tertiary)
-                                        .multilineTextAlignment(.center)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 60)
+                                // Empty state with time-based content
+                                EmptyStateView(content: emptyStateContent)
                             } else {
                                 // Meal cards
                                 LazyVStack(spacing: 12) {
@@ -89,6 +88,11 @@ struct TodayView: View {
                                             MealCard(meal: meal)
                                         }
                                         .buttonStyle(PlainButtonStyle())
+                                        .simultaneousGesture(
+                                            TapGesture().onEnded {
+                                                HapticManager.light()
+                                            }
+                                        )
                                         .transition(.asymmetric(
                                             insertion: .scale.combined(with: .opacity),
                                             removal: .opacity
@@ -115,11 +119,13 @@ struct TodayView: View {
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                                 if value.translation.width > threshold {
                                     // Swipe right - previous day
+                                    HapticManager.light()
                                     selectedDate = Calendar.current.date(byAdding: .day, value: -1, to: selectedDate)!
                                 } else if value.translation.width < -threshold {
                                     // Swipe left - next day (only if not future)
                                     let nextDay = Calendar.current.date(byAdding: .day, value: 1, to: selectedDate)!
                                     if nextDay <= Date() {
+                                        HapticManager.light()
                                         selectedDate = nextDay
                                     }
                                 }
@@ -138,6 +144,43 @@ struct TodayView: View {
                 SettingsView()
             }
         }
+    }
+}
+
+// MARK: - Empty State Component
+struct EmptyStateView: View {
+    let content: (emoji: String, title: String, subtitle: String)
+
+    @State private var isAnimating = false
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Text(content.emoji)
+                .font(.system(size: 72))
+                .scaleEffect(isAnimating ? 1.0 : 0.95)
+                .animation(
+                    .easeInOut(duration: 1.5)
+                        .repeatForever(autoreverses: true),
+                    value: isAnimating
+                )
+                .onAppear {
+                    isAnimating = true
+                }
+
+            VStack(spacing: 8) {
+                Text(content.title)
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(.primary)
+
+                Text(content.subtitle)
+                    .font(.system(size: 16))
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 60)
     }
 }
 

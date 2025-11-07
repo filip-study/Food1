@@ -74,6 +74,11 @@ class OpenAIVisionService: ObservableObject {
 
             print("✅ Received response: HTTP \(httpResponse.statusCode)")
 
+            // Debug: Log raw response
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("📄 Raw API response: \(responseString.prefix(500))...")
+            }
+
             // Handle error responses
             if httpResponse.statusCode != 200 {
                 let errorResponse = try? JSONDecoder().decode(ProxyErrorResponse.self, from: data)
@@ -95,6 +100,11 @@ class OpenAIVisionService: ObservableObject {
             print("📦 Has packaging: \(hasPackaging)")
             predictions.forEach { pred in
                 print("  - \(pred.label): \(Int(pred.confidence * 100))% confidence")
+                if let cals = pred.calories, let prot = pred.protein, let carbs = pred.carbs, let fat = pred.fat {
+                    print("    Nutrition: \(Int(cals)) cal, \(String(format: "%.1f", prot))g protein, \(String(format: "%.1f", carbs))g carbs, \(String(format: "%.1f", fat))g fat, ~\(Int(pred.estimatedGrams))g")
+                } else {
+                    print("    ⚠️ Nutrition data: calories=\(pred.calories?.description ?? "nil"), protein=\(pred.protein?.description ?? "nil"), carbs=\(pred.carbs?.description ?? "nil"), fat=\(pred.fat?.description ?? "nil")")
+                }
             }
 
             return (predictions, hasPackaging)
@@ -289,7 +299,7 @@ class OpenAIVisionService: ObservableObject {
                 protein: predData.nutrition?.protein,
                 carbs: predData.nutrition?.carbs,
                 fat: predData.nutrition?.fat,
-                servingSize: predData.nutrition?.servingSize,
+                estimatedGrams: predData.nutrition?.estimatedGrams ?? 100.0,
                 hasPackaging: hasPackaging
             )
         }
@@ -376,11 +386,11 @@ private struct ProxyResponse: Decodable {
         let protein: Double
         let carbs: Double
         let fat: Double
-        let servingSize: String
+        let estimatedGrams: Double
 
         enum CodingKeys: String, CodingKey {
             case calories, protein, carbs, fat
-            case servingSize = "serving_size"
+            case estimatedGrams = "estimated_grams"
         }
     }
 
@@ -417,6 +427,7 @@ struct NutritionLabelData: Codable {
     let brand: String?
     let servingSize: String
     let servingsPerContainer: Double?
+    let estimatedGrams: Double?
     let nutrition: NutritionInfo
     let confidence: Double
 

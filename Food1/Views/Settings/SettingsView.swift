@@ -30,35 +30,32 @@ struct SettingsView: View {
                     Button(action: {
                         showingProfileEditor = true
                     }) {
-                        HStack {
+                        HStack(spacing: 16) {
                             Image(systemName: "person.circle.fill")
-                                .font(.system(size: 20))
-                                .foregroundColor(.purple)
-                                .frame(width: 32)
+                                .font(.system(size: 24))
+                                .foregroundColor(.blue)
 
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Your Profile")
                                     .foregroundColor(.primary)
-                                    .font(.system(size: 16))
+                                    .font(.system(size: 17, weight: .semibold))
 
                                 if age > 0 && weight > 0 {
                                     Text("\(age) years • \(String(format: "%.1f", weight)) \(weightUnit.rawValue) • \(activityLevel.rawValue)")
-                                        .font(.system(size: 13))
+                                        .font(.system(size: 14))
                                         .foregroundColor(.secondary)
                                 } else {
-                                    Text("Tap to set up your profile")
-                                        .font(.system(size: 13))
+                                    Text("\(age) years • \(String(format: "%.1f", weight)) \(weightUnit.rawValue) • \(activityLevel.rawValue)")
+                                        .font(.system(size: 14))
                                         .foregroundColor(.secondary)
                                 }
                             }
 
                             Spacer()
-
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.secondary)
                         }
+                        .padding(.vertical, 4)
                     }
+                    .buttonStyle(PlainButtonStyle())
                 } header: {
                     Text("Profile")
                 } footer: {
@@ -67,29 +64,12 @@ struct SettingsView: View {
 
                 // Appearance Section
                 Section {
-                    ForEach(AppTheme.allCases) { theme in
-                        Button(action: {
-                            selectedTheme = theme
-                        }) {
-                            HStack {
-                                Image(systemName: theme.icon)
-                                    .font(.system(size: 20))
-                                    .foregroundColor(getThemeColor(for: theme))
-                                    .frame(width: 32)
-
-                                Text(theme.rawValue)
-                                    .foregroundColor(.primary)
-
-                                Spacer()
-
-                                if selectedTheme == theme {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(.purple)
-                                        .fontWeight(.semibold)
-                                }
-                            }
+                    Picker("Appearance", selection: $selectedTheme) {
+                        ForEach(AppTheme.allCases) { theme in
+                            Text(theme.rawValue).tag(theme)
                         }
                     }
+                    .pickerStyle(.segmented)
                 } header: {
                     Text("Appearance")
                 } footer: {
@@ -98,29 +78,12 @@ struct SettingsView: View {
 
                 // Nutrition Section
                 Section {
-                    ForEach(NutritionUnit.allCases) { unit in
-                        Button(action: {
-                            nutritionUnit = unit
-                        }) {
-                            HStack {
-                                Image(systemName: "chart.bar.fill")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(.blue)
-                                    .frame(width: 32)
-
-                                Text(unit.rawValue)
-                                    .foregroundColor(.primary)
-
-                                Spacer()
-
-                                if nutritionUnit == unit {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(.blue)
-                                        .fontWeight(.semibold)
-                                }
-                            }
+                    Picker("Units", selection: $nutritionUnit) {
+                        ForEach(NutritionUnit.allCases) { unit in
+                            Text(unit.rawValue).tag(unit)
                         }
                     }
+                    .pickerStyle(.segmented)
                 } header: {
                     Text("Nutrition Units")
                 } footer: {
@@ -152,17 +115,6 @@ struct SettingsView: View {
                     heightUnit: $heightUnit
                 )
             }
-        }
-    }
-
-    private func getThemeColor(for theme: AppTheme) -> Color {
-        switch theme {
-        case .system:
-            return .purple
-        case .light:
-            return .orange
-        case .dark:
-            return .indigo
         }
     }
 }

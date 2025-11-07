@@ -35,7 +35,7 @@ class FoodRecognitionService: ObservableObject {
         let protein: Double?
         let carbs: Double?
         let fat: Double?
-        let servingSize: String?
+        let estimatedGrams: Double  // Weight in grams of food visible in photo
 
         // Packaging detection
         let hasPackaging: Bool

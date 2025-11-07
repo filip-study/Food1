@@ -81,9 +81,10 @@ async function handleFoodAnalysis(request, env) {
             content: [
               {
                 type: 'text',
-                text: `Identify this food and return JSON with nutrition data.
+                text: `I'm using a nutrition tracking app to log my meals. This photo shows food I'm about to eat, and I need to track its nutritional content for my health goals.
 
-Format:
+Please help me by analyzing what food items are visible in this photo and providing their estimated nutrition information. Return the results in this JSON format:
+
 {
   "has_packaging": false,
   "predictions": [
@@ -96,21 +97,23 @@ Format:
         "protein": 20.0,
         "carbs": 30.0,
         "fat": 10.0,
-        "serving_size": "1 cup (150g)"
+        "estimated_grams": 150
       }
     }
   ]
 }
 
-Rules:
-- Set has_packaging to true if food is in package/wrapper/box/container (unopened or partially opened)
+Guidelines for your analysis:
+- Set has_packaging to true if the food is in packaging/wrapper/box/container (unopened or partially opened)
 - Set has_packaging to false for fresh/prepared food on plates/bowls
-- Up to 5 predictions if multiple foods visible
-- Order by confidence (0.0-1.0)
-- Empty array if confidence <0.3
-- Per-serving nutrition estimates
+- Include up to 5 predictions if multiple food items are visible
+- Order predictions by confidence (0.0-1.0)
+- Use empty array if confidence is below 0.3
+- For estimated_grams: estimate the weight in grams of the food VISIBLE IN THE PHOTO (not a standard serving)
+- Nutrition values should reflect the entire amount of food visible in the photo (based on estimated_grams)
+- Use realistic portion sizes (e.g., apple: 150-200g, chicken breast: 150-250g, bowl of pasta: 200-300g)
 
-Return ONLY JSON.`
+Return ONLY the JSON object, no additional text.`
               },
               {
                 type: 'image_url',
@@ -161,7 +164,19 @@ Return ONLY JSON.`
       const data = await openaiResponse.json();
       console.log('OpenAI response:', JSON.stringify(data));
 
-      const content = data.choices?.[0]?.message?.content;
+      const message = data.choices?.[0]?.message;
+      const content = message?.content;
+      const refusal = message?.refusal;
+
+      // Check for refusal first
+      if (refusal) {
+        console.error('GPT-4o refused to analyze:', refusal);
+        return jsonResponse({
+          error: 'AI refused to analyze image',
+          details: refusal,
+          rawResponse: data
+        }, 500);
+      }
 
       if (!content) {
         console.error('No content in OpenAI response. Full response:', JSON.stringify(data));
@@ -232,14 +247,16 @@ async function handleNutritionLabel(request, env) {
           content: [
             {
               type: 'text',
-              text: `Extract nutrition information from this food label and return JSON.
+              text: `I'm using a nutrition tracking app and need to log a packaged food item. This photo shows the nutrition facts label on the package. Please help me by extracting the nutrition information from this label so I can accurately track my intake.
 
-Format:
+Return the extracted information in this JSON format:
+
 {
   "product_name": "product name from label",
   "brand": "brand name if visible",
   "serving_size": "1 container (150g)",
   "servings_per_container": 1,
+  "estimated_grams": 150,
   "nutrition": {
     "calories": 250,
     "protein": 20.0,
@@ -252,14 +269,15 @@ Format:
   "confidence": 0.95
 }
 
-Rules:
-- Extract exact values from nutrition facts label
-- All nutrition values in grams except sodium (mg)
+Guidelines for extraction:
+- Extract exact values from the nutrition facts label
+- All nutrition values should be in grams except sodium (which is in mg)
+- For estimated_grams: extract the serving size weight from the label (e.g., "1 container (150g)" → 150)
 - Set confidence based on label clarity (0.0-1.0)
-- Return null values if information not visible
-- Include fiber, sugar, sodium if available
+- Use null values if information is not visible or unclear
+- Include fiber, sugar, and sodium if they're shown on the label
 
-Return ONLY JSON.`
+Return ONLY the JSON object, no additional text.`
             },
             {
               type: 'image_url',

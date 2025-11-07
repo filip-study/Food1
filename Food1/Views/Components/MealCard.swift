@@ -18,106 +18,55 @@ struct MealCard: View {
         return formatter.string(from: meal.timestamp)
     }
 
+    private var macroString: String {
+        let protein = NutritionFormatter.formatValue(meal.protein, unit: nutritionUnit, decimals: 0)
+        let carbs = NutritionFormatter.formatValue(meal.carbs, unit: nutritionUnit, decimals: 0)
+        let fat = NutritionFormatter.formatValue(meal.fat, unit: nutritionUnit, decimals: 0)
+
+        return "\(Int(meal.calories))cal  •  \(protein)P  •  \(carbs)C  •  \(fat)F"
+    }
+
     var body: some View {
         HStack(spacing: 16) {
             // Emoji
             Text(meal.emoji)
-                .font(.system(size: 44))
-                .frame(width: 60, height: 60)
+                .font(.system(size: 40))
+                .frame(width: 56, height: 56)
                 .background(
                     Circle()
                         .fill(Color(.systemGray6))
                 )
 
             // Meal info
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Text(meal.name)
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.primary)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(meal.name)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.primary)
 
-                    Spacer()
+                Text(timeString)
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
 
-                    Text(timeString)
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.secondary)
-                }
-
-                // Macros
-                HStack(spacing: 16) {
-                    MacroTag(
-                        value: meal.calories,
-                        unit: "cal",
-                        color: .purple,
-                        nutritionUnit: nil // Calories don't convert
-                    )
-
-                    MacroTag(
-                        value: meal.protein,
-                        unit: "P",
-                        color: .blue,
-                        nutritionUnit: nutritionUnit
-                    )
-
-                    MacroTag(
-                        value: meal.carbs,
-                        unit: "C",
-                        color: .green,
-                        nutritionUnit: nutritionUnit
-                    )
-
-                    MacroTag(
-                        value: meal.fat,
-                        unit: "F",
-                        color: .orange,
-                        nutritionUnit: nutritionUnit
-                    )
-
-                    Spacer()
-                }
+                Text(macroString)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.secondary)
+                    .padding(.top, 2)
             }
+
+            Spacer()
+
+            // Subtle arrow indicator
+            Image(systemName: "arrow.forward.circle.fill")
+                .font(.system(size: 20))
+                .foregroundColor(.blue.opacity(0.3))
         }
-        .padding(16)
+        .padding(18)
         .background(
             RoundedRectangle(cornerRadius: 16)
                 .fill(Color(.secondarySystemBackground))
                 .shadow(color: Color.primary.opacity(0.06), radius: 10, x: 0, y: 4)
         )
         .padding(.horizontal)
-    }
-}
-
-struct MacroTag: View {
-    let value: Double
-    let unit: String
-    let color: Color
-    let nutritionUnit: NutritionUnit?
-
-    private var displayValue: String {
-        guard let nutritionUnit = nutritionUnit else {
-            // No conversion (calories)
-            return "\(Int(value.rounded()))"
-        }
-
-        // Convert and format
-        return NutritionFormatter.formatValue(value, unit: nutritionUnit, decimals: 1)
-    }
-
-    var body: some View {
-        HStack(spacing: 3) {
-            Text(displayValue)
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
-
-            Text(unit)
-                .font(.system(size: 11, weight: .medium))
-        }
-        .foregroundColor(color)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(
-            Capsule()
-                .fill(color.opacity(0.12))
-        )
     }
 }
 

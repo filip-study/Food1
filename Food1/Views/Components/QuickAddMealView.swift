@@ -22,16 +22,16 @@ struct QuickAddMealView: View {
     // Navigation state
     @State private var showingGallery = false
     @State private var showingManualEntry = false
+    @State private var showingPackagingPrompt = false
     @State private var showingPredictions = false
-    @State private var showingNutritionReview = false
     @State private var showingNoFoodAlert = false
+    @State private var nutritionReviewPrediction: FoodRecognitionService.FoodPrediction? = nil
 
     // Recognition data
     @State private var capturedImage: UIImage?
     @State private var predictions: [FoodRecognitionService.FoodPrediction] = []
     @State private var selectedPrediction: FoodRecognitionService.FoodPrediction?
     @State private var hasPackaging = false
-    @State private var showingPackagingAlert = false
     @State private var showingLabelCamera = false
     @State private var nutritionLabelImage: UIImage?
     @State private var labelData: NutritionLabelData?
@@ -69,6 +69,19 @@ struct QuickAddMealView: View {
                     dismiss()
                 }
         }
+        .sheet(isPresented: $showingPackagingPrompt) {
+            if let image = capturedImage {
+                PackagingPromptView(
+                    capturedImage: image,
+                    onScanLabel: {
+                        showingLabelCamera = true
+                    },
+                    onSkipToAI: {
+                        showingPredictions = true
+                    }
+                )
+            }
+        }
         .sheet(isPresented: $showingPredictions) {
             if let image = capturedImage {
                 PredictionsView(
@@ -77,13 +90,8 @@ struct QuickAddMealView: View {
                     onPredictionSelected: { prediction in
                         selectedPrediction = prediction
                         showingPredictions = false
-
-                        // Check if we should prompt for label scan
-                        if hasPackaging {
-                            showingPackagingAlert = true
-                        } else {
-                            showingNutritionReview = true
-                        }
+                        // Set the prediction for sheet presentation
+                        nutritionReviewPrediction = prediction
                     },
                     onRetry: {
                         showingPredictions = false
@@ -95,22 +103,34 @@ struct QuickAddMealView: View {
                 )
             }
         }
-        .sheet(isPresented: $showingNutritionReview) {
-            if let prediction = selectedPrediction {
-                NutritionReviewView(
-                    selectedDate: selectedDate,
-                    foodName: prediction.displayName,
-                    capturedImage: capturedImage,
-                    prefilledCalories: labelData?.nutrition.calories ?? prediction.calories,
-                    prefilledProtein: labelData?.nutrition.protein ?? prediction.protein,
-                    prefilledCarbs: labelData?.nutrition.carbs ?? prediction.carbs,
-                    prefilledFat: labelData?.nutrition.fat ?? prediction.fat,
-                    prefilledServingSize: labelData?.servingSize ?? prediction.servingSize
-                )
-                .onDisappear {
-                    // Close the entire flow when meal is saved
-                    dismiss()
+        .sheet(item: $nutritionReviewPrediction) { prediction in
+            let _ = {
+                print("🍽️ Opening NutritionReviewView for: \(prediction.displayName)")
+                print("   Prediction nutrition: cals=\(prediction.calories?.description ?? "nil"), prot=\(prediction.protein?.description ?? "nil"), carbs=\(prediction.carbs?.description ?? "nil"), fat=\(prediction.fat?.description ?? "nil"), grams=\(prediction.estimatedGrams)")
+                if let label = labelData {
+                    print("   Label data nutrition: cals=\(label.nutrition.calories), prot=\(label.nutrition.protein), carbs=\(label.nutrition.carbs), fat=\(label.nutrition.fat), grams=\(label.estimatedGrams?.description ?? "nil")")
                 }
+                let prefillCals = labelData?.nutrition.calories ?? prediction.calories
+                let prefillProt = labelData?.nutrition.protein ?? prediction.protein
+                let prefillCarbs = labelData?.nutrition.carbs ?? prediction.carbs
+                let prefillFat = labelData?.nutrition.fat ?? prediction.fat
+                let prefillGrams = labelData?.estimatedGrams ?? prediction.estimatedGrams
+                print("   Passing to NutritionReviewView: cals=\(prefillCals?.description ?? "nil"), prot=\(prefillProt?.description ?? "nil"), carbs=\(prefillCarbs?.description ?? "nil"), fat=\(prefillFat?.description ?? "nil"), grams=\(prefillGrams)")
+            }()
+
+            NutritionReviewView(
+                selectedDate: selectedDate,
+                foodName: prediction.displayName,
+                capturedImage: capturedImage,
+                prefilledCalories: labelData?.nutrition.calories ?? prediction.calories,
+                prefilledProtein: labelData?.nutrition.protein ?? prediction.protein,
+                prefilledCarbs: labelData?.nutrition.carbs ?? prediction.carbs,
+                prefilledFat: labelData?.nutrition.fat ?? prediction.fat,
+                prefilledEstimatedGrams: labelData?.estimatedGrams ?? prediction.estimatedGrams
+            )
+            .onDisappear {
+                // Close the entire flow when meal is saved
+                dismiss()
             }
         }
         .sheet(isPresented: $showingLabelCamera) {
@@ -131,21 +151,11 @@ struct QuickAddMealView: View {
                 }
             )
             .onDisappear {
-                // If label scanning dismissed without capture, show nutrition review anyway
-                if !showingNutritionReview && selectedPrediction != nil {
-                    showingNutritionReview = true
+                // If label scanning dismissed without capture, show predictions list
+                if nutritionLabelImage == nil && !predictions.isEmpty && !showingPredictions && nutritionReviewPrediction == nil {
+                    showingPredictions = true
                 }
             }
-        }
-        .alert("Packaged Food Detected", isPresented: $showingPackagingAlert) {
-            Button("Skip", role: .cancel) {
-                showingNutritionReview = true
-            }
-            Button("Scan Label") {
-                showingLabelCamera = true
-            }
-        } message: {
-            Text("This appears to be packaged food. Would you like to take a photo of the nutrition label for more accurate data?")
         }
         .alert("No Food Detected", isPresented: $showingNoFoodAlert) {
             Button("Try Again", role: .cancel) {
@@ -196,6 +206,12 @@ struct QuickAddMealView: View {
     private func handlePhotoCaptured(_ image: UIImage) {
         capturedImage = image
 
+        // Clear previous state when starting new recognition
+        labelData = nil
+        selectedPrediction = nil
+
+        print("📸 New photo captured - cleared previous state")
+
         Task {
             let processedImage = recognitionService.preprocessImage(image)
             let (results, hasPackaging) = await recognitionService.recognizeFood(in: processedImage)
@@ -207,8 +223,12 @@ struct QuickAddMealView: View {
                 // Show error - no predictions
                 print("❌ No predictions found")
                 showingNoFoodAlert = true
+            } else if hasPackaging {
+                // Show packaging prompt IMMEDIATELY before predictions
+                print("📦 Package detected - showing prompt")
+                showingPackagingPrompt = true
             } else {
-                // Show predictions sheet
+                // No packaging, go straight to predictions
                 showingPredictions = true
             }
         }
@@ -222,12 +242,15 @@ struct QuickAddMealView: View {
         if let data = extractedData {
             labelData = data
             print("✅ Successfully extracted label data: \(data.productName ?? "Unknown")")
+            HapticManager.success()
         } else {
             print("❌ Failed to extract label data")
+            HapticManager.error()
         }
 
-        // Show nutrition review with or without label data
-        showingNutritionReview = true
+        // After label scan, show predictions list so user can select food
+        // NutritionReviewView requires selectedPrediction to be set first
+        showingPredictions = true
     }
 }
 
@@ -367,7 +390,10 @@ struct PredictionRow: View {
     }
 
     var body: some View {
-        Button(action: onTap) {
+        Button(action: {
+            HapticManager.medium()
+            onTap()
+        }) {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {

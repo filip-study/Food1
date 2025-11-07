@@ -18,8 +18,7 @@ struct NutritionReviewView: View {
         let protein: Double
         let carbs: Double
         let fat: Double
-        let servingSize: String
-        let servingSizeGrams: Double
+        let estimatedGrams: Double
     }
 
     @Environment(\.dismiss) var dismiss
@@ -30,12 +29,12 @@ struct NutritionReviewView: View {
     let foodName: String
     let capturedImage: UIImage?
 
-    // Optional prefilled nutrition from FastVLM
+    // Optional prefilled nutrition from AI
     let prefilledCalories: Double?
     let prefilledProtein: Double?
     let prefilledCarbs: Double?
     let prefilledFat: Double?
-    let prefilledServingSize: String?
+    let prefilledEstimatedGrams: Double?
 
     @State private var mealName = ""
     @State private var selectedEmoji = "🍽️"
@@ -43,7 +42,8 @@ struct NutritionReviewView: View {
     @State private var protein = ""
     @State private var carbs = ""
     @State private var fat = ""
-    @State private var servingMultiplier = "1.0"
+    @State private var servingCount = 1
+    @State private var gramsPerServing = 0.0
     @State private var notes = ""
 
     @State private var isLoadingNutrition = true
@@ -101,48 +101,31 @@ struct NutritionReviewView: View {
                                 .foregroundColor(.secondary)
                         }
                     }
-                } else if let error = errorMessage {
+                } else if baseNutrition != nil {
+                    ServingSizeAdjustmentView(
+                        servingCount: $servingCount,
+                        gramsPerServing: $gramsPerServing
+                    )
+                    .onChange(of: servingCount) { _, _ in
+                        updateNutritionValues()
+                    }
+                    .onChange(of: gramsPerServing) { _, _ in
+                        updateNutritionValues()
+                    }
+                } else {
+                    // No nutrition data available - show info message
                     Section {
                         VStack(alignment: .leading, spacing: 8) {
-                            Label("Could not fetch nutrition data", systemImage: "exclamationmark.triangle")
-                                .foregroundColor(.orange)
-                            Text(error)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text("You can enter the nutrition information manually below.")
+                            Label("AI couldn't estimate nutrition", systemImage: "info.circle")
+                                .foregroundColor(.blue)
+                            Text("Please enter the nutrition information manually below.")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
-                    }
-                } else if let nutrition = baseNutrition {
-                    Section {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Serving Size: \(nutrition.servingSize)")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-
-                            HStack {
-                                Text("Amount")
-                                Spacer()
-                                TextField("1.0", text: $servingMultiplier)
-                                    .keyboardType(.decimalPad)
-                                    .multilineTextAlignment(.trailing)
-                                    .frame(width: 80)
-                                    .onChange(of: servingMultiplier) { _, newValue in
-                                        updateNutritionValues()
-                                    }
-                                Text("×")
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    } header: {
-                        Text("Serving Size")
-                    } footer: {
-                        Text("Adjust the amount to match your portion. Nutrition values will update automatically.")
                     }
                 }
 
-                // Nutrition values
+                // Nutrition values (all in grams)
                 Section("Nutrition (editable)") {
                     HStack {
                         Text("Calories")
@@ -153,7 +136,7 @@ struct NutritionReviewView: View {
                     }
 
                     HStack {
-                        Text("Protein (\(NutritionFormatter.unitLabel(nutritionUnit)))")
+                        Text("Protein (g)")
                         Spacer()
                         TextField("0", text: $protein)
                             .keyboardType(.decimalPad)
@@ -161,7 +144,7 @@ struct NutritionReviewView: View {
                     }
 
                     HStack {
-                        Text("Carbs (\(NutritionFormatter.unitLabel(nutritionUnit)))")
+                        Text("Carbs (g)")
                         Spacer()
                         TextField("0", text: $carbs)
                             .keyboardType(.decimalPad)
@@ -169,7 +152,7 @@ struct NutritionReviewView: View {
                     }
 
                     HStack {
-                        Text("Fat (\(NutritionFormatter.unitLabel(nutritionUnit)))")
+                        Text("Fat (g)")
                         Spacer()
                         TextField("0", text: $fat)
                             .keyboardType(.decimalPad)
@@ -207,6 +190,9 @@ struct NutritionReviewView: View {
 
     // MARK: - Actions
     private func fetchNutritionData() async {
+        print("📋 NutritionReviewView.fetchNutritionData() called")
+        print("   Received prefills: cals=\(prefilledCalories?.description ?? "nil"), prot=\(prefilledProtein?.description ?? "nil"), carbs=\(prefilledCarbs?.description ?? "nil"), fat=\(prefilledFat?.description ?? "nil"), grams=\(prefilledEstimatedGrams?.description ?? "nil")")
+
         isLoadingNutrition = true
         errorMessage = nil
 
@@ -214,14 +200,15 @@ struct NutritionReviewView: View {
         if let cals = prefilledCalories,
            let prot = prefilledProtein,
            let carb = prefilledCarbs,
-           let fat = prefilledFat {
+           let fat = prefilledFat,
+           let estimatedGrams = prefilledEstimatedGrams {
+
+            print("   ✅ All nutrition fields present, creating baseNutrition")
 
             // Use prefilled nutrition data and convert to user's unit
             mealName = foodName
-            self.calories = String(format: "%.0f", cals)
-            self.protein = NutritionFormatter.formatValue(prot, unit: nutritionUnit)
-            self.carbs = NutritionFormatter.formatValue(carb, unit: nutritionUnit)
-            self.fat = NutritionFormatter.formatValue(fat, unit: nutritionUnit)
+            gramsPerServing = estimatedGrams
+            servingCount = 1
 
             // Create a base nutrition entry for serving size adjustment
             baseNutrition = NutritionData(
@@ -230,39 +217,51 @@ struct NutritionReviewView: View {
                 protein: prot,
                 carbs: carb,
                 fat: fat,
-                servingSize: prefilledServingSize ?? "1 serving",
-                servingSizeGrams: 100.0  // Default to 100g
+                estimatedGrams: estimatedGrams
             )
 
-            print("✅ Using prefilled nutrition data")
+            // Calculate initial nutrition values
+            updateNutritionValues()
+
+            print("   ✅ Using prefilled nutrition data (\(Int(estimatedGrams))g)")
+            print("   Field values set: calories=\(calories), protein=\(protein), carbs=\(carbs), fat=\(fat)")
         } else {
             // No nutrition data provided
+            print("   ⚠️ Missing nutrition fields - using defaults for manual entry")
             mealName = foodName
-            errorMessage = "Nutrition data not available. Please enter manually."
-            print("⚠️ No nutrition data provided")
+            // Don't set error message - just leave fields empty for manual entry
+            // This prevents the black screen issue
+            calories = ""
+            protein = ""
+            carbs = ""
+            fat = ""
+            print("   ⚠️ No nutrition data provided - fields left empty for manual entry")
         }
 
         isLoadingNutrition = false
+        print("   📋 fetchNutritionData() complete. isLoadingNutrition=\(isLoadingNutrition), errorMessage=\(errorMessage ?? "nil"), baseNutrition=\(baseNutrition != nil ? "set" : "nil")")
     }
 
     private func updateNutritionValues() {
-        guard let nutrition = baseNutrition,
-              let multiplier = Double(servingMultiplier) else {
+        guard let nutrition = baseNutrition else {
             return
         }
 
-        // Apply multiplier and convert to user's unit
+        let totalGrams = Double(servingCount) * gramsPerServing
+        let multiplier = totalGrams / nutrition.estimatedGrams
+
+        // Apply multiplier - values already in grams (no unit conversion needed)
         calories = String(format: "%.0f", nutrition.calories * multiplier)
-        protein = NutritionFormatter.formatValue(nutrition.protein * multiplier, unit: nutritionUnit)
-        carbs = NutritionFormatter.formatValue(nutrition.carbs * multiplier, unit: nutritionUnit)
-        fat = NutritionFormatter.formatValue(nutrition.fat * multiplier, unit: nutritionUnit)
+        protein = String(format: "%.1f", nutrition.protein * multiplier)
+        carbs = String(format: "%.1f", nutrition.carbs * multiplier)
+        fat = String(format: "%.1f", nutrition.fat * multiplier)
     }
 
     private func saveMeal() {
-        // Convert user input back to metric (grams) for storage
-        let proteinValue = NutritionFormatter.toGrams(value: Double(protein) ?? 0, from: nutritionUnit)
-        let carbsValue = NutritionFormatter.toGrams(value: Double(carbs) ?? 0, from: nutritionUnit)
-        let fatValue = NutritionFormatter.toGrams(value: Double(fat) ?? 0, from: nutritionUnit)
+        // Values are already in grams (no conversion needed)
+        let proteinValue = Double(protein) ?? 0
+        let carbsValue = Double(carbs) ?? 0
+        let fatValue = Double(fat) ?? 0
 
         let newMeal = Meal(
             name: mealName,
@@ -291,11 +290,11 @@ struct NutritionReviewView: View {
         selectedDate: Date(),
         foodName: "Grilled Chicken Salad",
         capturedImage: nil,
-        prefilledCalories: nil,
-        prefilledProtein: nil,
-        prefilledCarbs: nil,
-        prefilledFat: nil,
-        prefilledServingSize: nil
+        prefilledCalories: 350.0,
+        prefilledProtein: 30.0,
+        prefilledCarbs: 25.0,
+        prefilledFat: 15.0,
+        prefilledEstimatedGrams: 250.0
     )
     .modelContainer(PreviewContainer().container)
 }

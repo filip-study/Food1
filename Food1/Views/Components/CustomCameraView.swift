@@ -87,21 +87,16 @@ struct CustomCameraView: View {
 
                     // Bottom controls
                     VStack(spacing: 24) {
-                        // Instructions
-                        VStack(spacing: 8) {
-                            Text("Center your food in the frame")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.white)
-                            Text("Make sure it's well lit and in focus")
-                                .font(.system(size: 14))
-                                .foregroundColor(.white.opacity(0.8))
-                        }
-                        .padding(.horizontal, 32)
-                        .padding(.vertical, 12)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color.black.opacity(0.6))
-                        )
+                        // Simplified instruction - single line
+                        Text("Center your food in the frame")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 10)
+                            .background(
+                                Capsule()
+                                    .fill(Color.black.opacity(0.5))
+                            )
 
                         // Action buttons
                         HStack(spacing: 40) {
@@ -187,15 +182,15 @@ struct CustomCameraView: View {
     // MARK: - Subviews
 
     private var loadingView: some View {
-        VStack(spacing: 16) {
-            ProgressView()
-                .scaleEffect(1.5)
-                .tint(.white)
-
-            Text("Initializing camera...")
-                .font(.system(size: 17, weight: .medium))
-                .foregroundColor(.white)
-        }
+        // Minimal loading state - just black screen with subtle spinner
+        // Only shows if camera takes >500ms to initialize
+        Color.black
+            .ignoresSafeArea()
+            .overlay {
+                ProgressView()
+                    .tint(.white.opacity(0.6))
+                    .scaleEffect(0.8)
+            }
     }
 
     private var permissionDeniedView: some View {

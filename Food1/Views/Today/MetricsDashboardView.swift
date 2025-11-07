@@ -17,6 +17,8 @@ struct MetricsDashboardView: View {
     let goals: DailyGoals
     let onAddMeal: () -> Void
 
+    @State private var isBreathing = false
+
     private var calorieProgress: Double {
         guard goals.calories > 0 else { return 0 }
         return currentCalories / goals.calories
@@ -71,8 +73,8 @@ struct MetricsDashboardView: View {
 
                 Spacer()
 
-                // Add meal button with progress fill
-                WaterLevelAddButton(
+                // Add meal button with circular progress ring
+                CircularProgressRing(
                     progress: calorieProgress,
                     action: onAddMeal
                 )
@@ -108,53 +110,83 @@ struct MetricsDashboardView: View {
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 20)
-                .fill(Color(.secondarySystemBackground))
-                .shadow(color: Color.primary.opacity(0.06), radius: 10, x: 0, y: 4)
+                .fill(Color(.tertiarySystemBackground))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
+                )
+                .shadow(color: Color.primary.opacity(0.08), radius: 16, x: 0, y: 4)
         )
         .padding(.horizontal)
+        .scaleEffect(isBreathing ? 1.0 : 0.98)
+        .animation(
+            calorieProgress < 0.3 ? .easeInOut(duration: 2.5).repeatForever(autoreverses: true) : .default,
+            value: isBreathing
+        )
+        .onAppear {
+            if calorieProgress < 0.3 {
+                isBreathing = true
+            }
+        }
+        .onChange(of: calorieProgress) { oldValue, newValue in
+            if newValue < 0.3 && !isBreathing {
+                isBreathing = true
+            } else if newValue >= 0.3 && isBreathing {
+                isBreathing = false
+            }
+        }
     }
 }
 
-struct WaterLevelAddButton: View {
+struct CircularProgressRing: View {
     let progress: Double
     let action: () -> Void
 
-    private var fillColor: Color {
-        progress > 1.05 ? .orange : .blue
+    private var strokeColors: [Color] {
+        if progress > 1.05 {
+            return [.orange, .red]
+        } else if progress >= 0.95 {
+            return [.green, .mint]
+        } else if progress >= 0.7 {
+            return [.blue, .cyan]
+        } else {
+            return [.blue.opacity(0.7), .blue]
+        }
     }
 
     var body: some View {
-        Button(action: action) {
+        Button(action: {
+            HapticManager.medium()
+            action()
+        }) {
             ZStack {
-                // Background circle
+                // Background ring
                 Circle()
-                    .fill(Color(.tertiarySystemBackground))
-                    .frame(width: 54, height: 54)
+                    .stroke(Color(.systemGray5), lineWidth: 6)
+                    .frame(width: 64, height: 64)
 
-                // Water level fill
+                // Progress ring with gradient
                 Circle()
-                    .fill(fillColor.opacity(0.2))
-                    .frame(width: 54, height: 54)
-                    .mask {
-                        GeometryReader { geometry in
-                            Rectangle()
-                                .frame(height: geometry.size.height * min(progress, 1.0))
-                                .offset(y: geometry.size.height * (1 - min(progress, 1.0)))
-                        }
-                    }
+                    .trim(from: 0, to: min(progress, 1.0))
+                    .stroke(
+                        AngularGradient(
+                            colors: strokeColors,
+                            center: .center,
+                            startAngle: .degrees(0),
+                            endAngle: .degrees(360)
+                        ),
+                        style: StrokeStyle(lineWidth: 6, lineCap: .round)
+                    )
+                    .frame(width: 64, height: 64)
+                    .rotationEffect(.degrees(-90))
+                    .animation(.spring(response: 1.2, dampingFraction: 0.7), value: progress)
 
-                // Border circle
-                Circle()
-                    .strokeBorder(fillColor, lineWidth: 2.5)
-                    .frame(width: 54, height: 54)
-
-                // Plus icon
+                // Plus icon in center
                 Image(systemName: "plus")
-                    .font(.system(size: 22, weight: .semibold))
-                    .foregroundColor(fillColor)
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundColor(.blue)
             }
         }
-        .animation(.spring(response: 0.6, dampingFraction: 0.8), value: progress)
     }
 }
 
