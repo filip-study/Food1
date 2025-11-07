@@ -28,37 +28,60 @@ struct MealCard: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            // Emoji
-            Text(meal.emoji)
-                .font(.system(size: 40))
-                .frame(width: 56, height: 56)
-                .background(
-                    Circle()
-                        .fill(Color(.systemGray6))
-                )
-
-            // Meal info
-            VStack(alignment: .leading, spacing: 4) {
-                Text(meal.name)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.primary)
-
-                Text(timeString)
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
-
-                Text(macroString)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.secondary)
-                    .padding(.top, 2)
+            // Photo or Emoji
+            Group {
+                if let imageData = meal.photoData,
+                   let uiImage = UIImage(data: imageData) {
+                    // Show captured food photo
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 60, height: 60)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .strokeBorder(Color(.separator).opacity(0.3), lineWidth: 0.5)
+                        )
+                } else {
+                    // Fallback to emoji
+                    Text(meal.emoji)
+                        .font(.system(size: 36))
+                        .frame(width: 60, height: 60)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color(.systemGray6))
+                        )
+                }
             }
 
-            Spacer()
+            // Meal info
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text(meal.name)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
 
-            // Subtle arrow indicator
-            Image(systemName: "arrow.forward.circle.fill")
-                .font(.system(size: 20))
-                .foregroundColor(.blue.opacity(0.3))
+                    Spacer()
+
+                    Text(timeString)
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                }
+
+                Text("\(Int(meal.calories)) cal")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(.primary)
+
+                // Improved macro display with color dots
+                HStack(spacing: 8) {
+                    MacroLabel(value: meal.protein, color: .blue, label: "P")
+                    MacroLabel(value: meal.carbs, color: .orange, label: "C")
+                    MacroLabel(value: meal.fat, color: .green, label: "F")
+                }
+            }
+
+            Spacer(minLength: 0)
         }
         .padding(18)
         .background(
@@ -67,6 +90,24 @@ struct MealCard: View {
                 .shadow(color: Color.primary.opacity(0.06), radius: 10, x: 0, y: 4)
         )
         .padding(.horizontal)
+    }
+}
+
+/// Color-coded macro label component
+struct MacroLabel: View {
+    let value: Double
+    let color: Color
+    let label: String
+
+    var body: some View {
+        HStack(spacing: 3) {
+            Circle()
+                .fill(color)
+                .frame(width: 6, height: 6)
+            Text("\(Int(value))g")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.secondary)
+        }
     }
 }
 

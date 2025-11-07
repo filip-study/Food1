@@ -42,7 +42,7 @@ struct NutritionReviewView: View {
     @State private var protein = ""
     @State private var carbs = ""
     @State private var fat = ""
-    @State private var servingCount = 1
+    @State private var servingCount = 1.0
     @State private var gramsPerServing = 0.0
     @State private var notes = ""
 
@@ -247,7 +247,7 @@ struct NutritionReviewView: View {
             return
         }
 
-        let totalGrams = Double(servingCount) * gramsPerServing
+        let totalGrams = servingCount * gramsPerServing
         let multiplier = totalGrams / nutrition.estimatedGrams
 
         // Apply multiplier - values already in grams (no unit conversion needed)
@@ -263,6 +263,9 @@ struct NutritionReviewView: View {
         let carbsValue = Double(carbs) ?? 0
         let fatValue = Double(fat) ?? 0
 
+        // Convert photo to JPEG data if available (0.8 quality for good balance of size/quality)
+        let photoData: Data? = capturedImage?.jpegData(compressionQuality: 0.8)
+
         let newMeal = Meal(
             name: mealName,
             emoji: selectedEmoji,
@@ -271,7 +274,8 @@ struct NutritionReviewView: View {
             protein: proteinValue,
             carbs: carbsValue,
             fat: fatValue,
-            notes: notes.isEmpty ? nil : notes
+            notes: notes.isEmpty ? nil : notes,
+            photoData: photoData
         )
 
         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {

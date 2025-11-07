@@ -9,13 +9,90 @@ import SwiftUI
 
 /// Interactive serving size adjustment component with +/- buttons and gram calculation
 /// Shows: servings × grams/serving = total grams
+/// Supports fractional servings (0.25, 0.5, 0.75) when below 1.0
 struct ServingSizeAdjustmentView: View {
-    @Binding var servingCount: Int
+    @Binding var servingCount: Double
     @Binding var gramsPerServing: Double
     @FocusState private var isEditingGrams: Bool
 
     private var totalGrams: Double {
-        Double(servingCount) * gramsPerServing
+        servingCount * gramsPerServing
+    }
+
+    // Smart display: "1" for whole numbers, "0.5" for fractions
+    private var servingCountText: String {
+        if servingCount.truncatingRemainder(dividingBy: 1) == 0 {
+            return "\(Int(servingCount))"
+        } else {
+            // Format fractional values, removing trailing zeros
+            let formatted = String(format: "%.2f", servingCount)
+            return formatted.replacingOccurrences(of: #"\.?0+$"#, with: "", options: .regularExpression)
+        }
+    }
+
+    // Natural language for servings
+    private var servingLabel: String {
+        if servingCount == 0.25 {
+            return "quarter serving"
+        } else if servingCount == 0.5 {
+            return "half serving"
+        } else if servingCount == 0.75 {
+            return "three-quarter serving"
+        } else if servingCount == 1.0 {
+            return "serving"
+        } else {
+            return "servings"
+        }
+    }
+
+    // Helper for floating-point comparison with epsilon tolerance
+    private func isApproximately(_ value: Double) -> Bool {
+        abs(servingCount - value) < 0.01
+    }
+
+    // Determine if we can decrease
+    private var canDecrease: Bool {
+        servingCount > 0.24  // Use 0.24 to handle floating-point precision
+    }
+
+    // Determine if we can increase
+    private var canIncrease: Bool {
+        servingCount < 10.0
+    }
+
+    // Smart decrement logic
+    private func decrementServing() {
+        if servingCount > 1.0 {
+            // Whole number mode: decrement by 1
+            servingCount -= 1
+        } else if isApproximately(1.0) {
+            // Transition to fractional: 1 → 0.75
+            servingCount = 0.75
+        } else if isApproximately(0.75) {
+            servingCount = 0.5
+        } else if isApproximately(0.5) {
+            servingCount = 0.25
+        }
+        // Stop at 0.25
+        HapticManager.light()
+    }
+
+    // Smart increment logic
+    private func incrementServing() {
+        if servingCount < 1.0 {
+            // Fractional mode: follow sequence
+            if isApproximately(0.25) {
+                servingCount = 0.5
+            } else if isApproximately(0.5) {
+                servingCount = 0.75
+            } else if isApproximately(0.75) {
+                servingCount = 1.0
+            }
+        } else {
+            // Whole number mode: increment by 1
+            servingCount += 1
+        }
+        HapticManager.light()
     }
 
     var body: some View {
@@ -31,40 +108,34 @@ struct ServingSizeAdjustmentView: View {
                 HStack(spacing: 20) {
                     // Minus button
                     Button {
-                        if servingCount > 1 {
-                            servingCount -= 1
-                            HapticManager.light()
-                        }
+                        decrementServing()
                     } label: {
                         Image(systemName: "minus.circle.fill")
                             .font(.title)
-                            .foregroundStyle(servingCount > 1 ? .blue : .gray.opacity(0.3))
+                            .foregroundStyle(canDecrease ? .blue : .gray.opacity(0.3))
                     }
-                    .disabled(servingCount <= 1)
+                    .disabled(!canDecrease)
 
                     // Count display
                     VStack(spacing: 4) {
-                        Text("\(servingCount)")
+                        Text(servingCountText)
                             .font(.system(size: 36, weight: .semibold, design: .rounded))
                             .contentTransition(.numericText())
-                        Text(servingCount == 1 ? "serving" : "servings")
+                        Text(servingLabel)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    .frame(minWidth: 100)
+                    .frame(minWidth: 120)
 
                     // Plus button
                     Button {
-                        if servingCount < 10 {
-                            servingCount += 1
-                            HapticManager.light()
-                        }
+                        incrementServing()
                     } label: {
                         Image(systemName: "plus.circle.fill")
                             .font(.title)
-                            .foregroundStyle(servingCount < 10 ? .blue : .gray.opacity(0.3))
+                            .foregroundStyle(canIncrease ? .blue : .gray.opacity(0.3))
                     }
-                    .disabled(servingCount >= 10)
+                    .disabled(!canIncrease)
                 }
                 .padding(.vertical, 8)
 
@@ -88,7 +159,7 @@ struct ServingSizeAdjustmentView: View {
                             .foregroundStyle(.secondary)
                             .font(.system(size: 14))
 
-                        Text("\(servingCount)")
+                        Text(servingCountText)
                             .font(.system(size: 17, weight: .medium, design: .rounded))
 
                         Text("=")
@@ -129,7 +200,7 @@ struct ServingSizeAdjustmentView: View {
 #Preview {
     Form {
         ServingSizeAdjustmentView(
-            servingCount: .constant(2),
+            servingCount: .constant(1.0),
             gramsPerServing: .constant(175.0)
         )
     }

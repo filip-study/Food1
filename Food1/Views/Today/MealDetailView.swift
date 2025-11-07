@@ -28,10 +28,29 @@ struct MealDetailView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                // Header with emoji
+                // Header with photo or emoji
                 VStack(spacing: 12) {
-                    Text(meal.emoji)
-                        .font(.system(size: 80))
+                    // Photo or Emoji
+                    Group {
+                        if let imageData = meal.photoData,
+                           let uiImage = UIImage(data: imageData) {
+                            // Show captured food photo
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 120, height: 120)
+                                .clipShape(RoundedRectangle(cornerRadius: 20))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 20)
+                                        .strokeBorder(Color(.separator).opacity(0.3), lineWidth: 1)
+                                )
+                                .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+                        } else {
+                            // Fallback to emoji
+                            Text(meal.emoji)
+                                .font(.system(size: 80))
+                        }
+                    }
 
                     Text(meal.name)
                         .font(.system(size: 28, weight: .bold))

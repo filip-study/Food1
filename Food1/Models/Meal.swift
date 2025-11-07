@@ -19,6 +19,7 @@ final class Meal {
     var carbs: Double
     var fat: Double
     var notes: String?
+    var photoData: Data?  // Stores JPEG image data when meal logged via photo recognition
 
     init(
         id: UUID = UUID(),
@@ -29,7 +30,8 @@ final class Meal {
         protein: Double,
         carbs: Double,
         fat: Double,
-        notes: String? = nil
+        notes: String? = nil,
+        photoData: Data? = nil
     ) {
         self.id = id
         self.name = name
@@ -40,6 +42,7 @@ final class Meal {
         self.carbs = carbs
         self.fat = fat
         self.notes = notes
+        self.photoData = photoData
     }
 
     // Static helper method for calculating totals
