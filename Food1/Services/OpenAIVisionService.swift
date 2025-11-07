@@ -22,8 +22,8 @@ class OpenAIVisionService: ObservableObject {
     private let authToken: String
     private let session: URLSession
     private let timeout: TimeInterval = 60.0 // 60 second timeout (increased for GPT-4o processing)
-    private let imageCompressionQuality: CGFloat = 0.4 // Optimized for speed (food photos compress well)
-    private let maxImageDimension: CGFloat = 768 // Reduced from 2048px for faster uploads & processing
+    private let imageCompressionQuality: CGFloat = 0.3 // Aggressive compression for speed (0.3 = 30% quality)
+    private let maxImageDimension: CGFloat = 512 // Further reduced for faster uploads & lower API costs
 
     // MARK: - Initialization
     init(proxyEndpoint: String? = nil, authToken: String? = nil) {
@@ -291,7 +291,7 @@ class OpenAIVisionService: ObservableObject {
         // Convert proxy data to FoodPrediction structs
         let predictions = proxyResponse.data.predictions.map { predData in
             FoodRecognitionService.FoodPrediction(
-                label: predData.label,
+                label: predData.label.displayName,  // Safety net: truncates at 45 chars if GPT-4o exceeds 40
                 confidence: Float(predData.confidence),
                 description: predData.description,
                 fullDescription: nil,
@@ -430,6 +430,11 @@ struct NutritionLabelData: Codable {
     let estimatedGrams: Double?
     let nutrition: NutritionInfo
     let confidence: Double
+
+    /// Product name truncated to fit in UI (30 char safety net)
+    var displayName: String? {
+        productName?.displayName
+    }
 
     struct NutritionInfo: Codable {
         let calories: Double

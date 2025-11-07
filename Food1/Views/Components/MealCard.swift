@@ -56,22 +56,27 @@ struct MealCard: View {
 
             // Meal info
             VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Text(meal.name)
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
+                // Food name (up to 2 lines)
+                Text(meal.name)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.primary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                    Spacer()
-
+                // Time + Calories combined
+                HStack(spacing: 4) {
                     Text(timeString)
                         .font(.system(size: 13))
                         .foregroundColor(.secondary)
-                }
 
-                Text("\(Int(meal.calories)) cal")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(.primary)
+                    Text("•")
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+
+                    Text("\(Int(meal.calories)) cal")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(.primary)
+                }
 
                 // Improved macro display with color dots
                 HStack(spacing: 8) {
@@ -113,9 +118,10 @@ struct MacroLabel: View {
 
 #Preview {
     VStack(spacing: 16) {
+        // Test with longer name (2 lines)
         MealCard(
             meal: Meal(
-                name: "Grilled Chicken Salad",
+                name: "Grilled Chicken Caesar Salad Bowl",
                 emoji: "🥗",
                 timestamp: Date(),
                 calories: 420,
@@ -125,6 +131,7 @@ struct MacroLabel: View {
             )
         )
 
+        // Test with medium name (1 line)
         MealCard(
             meal: Meal(
                 name: "Oatmeal with Berries",
@@ -137,6 +144,7 @@ struct MacroLabel: View {
             )
         )
 
+        // Test with short name (1 line)
         MealCard(
             meal: Meal(
                 name: "Salmon with Quinoa",

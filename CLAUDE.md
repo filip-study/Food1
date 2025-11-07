@@ -32,6 +32,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - Update stale comments
    - Fix compiler warnings immediately
 
+5. **Architectural Decisions:**
+   - **ALWAYS reference existing documentation** (`docs/` folder and CLAUDE.md) when making architectural decisions
+   - When invoking specialized agents (production-architect, debugging-engineer, etc.), explicitly instruct them to consult CLAUDE.md and existing docs
+   - Maintain consistency with established patterns and user preferences documented in this file
+   - Don't reinvent or contradict existing architectural decisions without user approval
+   - New agents should be given context from CLAUDE.md to align with project goals
+
 ## Project Goals & User Preferences
 
 **Project Vision:**
@@ -81,6 +88,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 8. **Date Picker Redesign (2025-11-06):** Moved date picker from toolbar to inline section header with left/right arrows, calendar opens as sheet
 9. **Theme Change (2025-11-06):** Changed from purple/pink gradient to neutral blue accent color per user feedback
 10. **Add Meal Button Relocated (2025-11-06):** Moved FAB from bottom-right to top-right toolbar for cleaner layout
+11. **Performance Optimization (2025-11-07):** Further reduced image size (0.3 compression, 512px) for faster uploads and lower API costs
+12. **UI Bug Fixes (2025-11-07):** Fixed serving size picker buttons not responding (added .borderless button style)
+13. **Character Limit Enforcement (2025-11-07):** Implemented 25-character limit for AI-generated food names to prevent UI truncation
+14. **Character Limit Increase + MealCard Redesign (2025-11-07):** Increased limit to 40 chars for more descriptive names, redesigned MealCard with 2-line name support and time+calories combined
+15. **Loading State Redesign - Phase 1 (2025-11-07):** Replaced camera background with blurred captured photo during food recognition, added smooth fade transitions, implemented 800ms minimum display time to prevent flashing
 
 **Future Considerations:**
 - User is open to switching APIs (OpenAI → Claude/Gemini) if better accuracy/cost
@@ -191,6 +203,51 @@ TodayView + button (toolbar) → AddMealTabView
 - Label data automatically merged with food recognition results
 - Flow: Food photo → Packaging detection → Optional label scan → Merged nutrition data
 
+**Food Name Character Limit:**
+- **Evolution:** Initially limited to 25 chars (time inline with name), increased to 40 chars (2025-11-07)
+- **Problem:** 25-char limit made names too concise ("Chicken" vs "Grilled Chicken Breast")
+- **Solution:** Multi-layered approach with UI redesign
+  - **API Layer (Primary):** GPT-4o prompt instructs 40-character limit with emphasis on descriptiveness (worker.js:92, 257)
+    - Instruction: "Keep food names under 40 characters but be descriptive"
+    - Example: "Grilled Chicken Caesar Salad" (good) vs "Grilled Chicken Caesar Salad Bowl with Extra Dressing" (too long)
+    - Removed "be concise" to encourage clarity within the limit
+  - **UI Redesign:** MealCard.swift layout changed to accommodate longer names
+    - Food name: `.lineLimit(2)` allows up to 2 lines (was 1 line)
+    - Time moved below name and combined with calories (was inline with name)
+    - New layout: Name (2 lines) → Time • Calories → Macros
+    - Available space increased from ~208px to ~278px (+34%)
+  - **Client Layer (Safety Net):** Smart truncation at 45 chars for edge cases (StringExtensions.swift)
+    - Truncates at word boundaries (not mid-word)
+    - Applied in OpenAIVisionService.swift:294
+    - Handles rare cases where GPT-4o exceeds 40 chars
+- **Benefits:**
+  - More descriptive names: "Grilled Chicken Caesar Salad" (35 chars) vs "Chicken Salad" (13 chars)
+  - Better UX: Natural reading flow (what → when+how much → details)
+  - Backward compatible: Existing 25-char names still display correctly
+  - Consistent card heights: lineLimit(2) prevents runaway expansion
+
+**Food Recognition Loading State:**
+- **Problem:** Camera viewfinder visible in background during API call (2-5s wait) - user found this unappealing
+- **Solution - Phase 1 (Shipped 2025-11-07):**
+  - **Blurred Photo Background:** Shows captured photo with 40pt blur + dark overlay instead of camera view
+    - Provides visual context (user sees what's being analyzed)
+    - Hides distracting camera viewfinder
+    - Smooth transition from capture to analysis
+  - **Improved Messaging:** Changed from "Recognizing food..." to "Analyzing nutrition" + "Identifying ingredients and portions"
+  - **Smooth Transitions:** Added .opacity fade in/out (0.3s easeInOut)
+  - **Minimum Display Time:** 800ms minimum prevents jarring flash on quick API responses (<1s)
+    - Uses parallel Task with async/await for clean state management
+    - Waits for both API completion AND minimum time before showing results
+- **Technical Implementation:** QuickAddMealView.swift (lines 175-217)
+  - Uses blurred UIImage with `.blur(radius: 40, opaque: true)` for performance
+  - SwiftUI transitions with animation binding to `isProcessing` state
+  - Async/await pattern prevents memory leaks (automatic Task cancellation)
+- **Future Enhancement Options (Phase 2 - Optional):**
+  - Custom animated indicator (rotating SF Symbol with blue theme)
+  - Rotating status messages (changes every 2s during wait)
+  - Photo thumbnail in corner for additional context
+  - Reduced motion support (accessibility)
+
 ## Development Patterns
 
 ### SwiftData Queries
@@ -246,7 +303,10 @@ Food1/
 │   ├── Recognition/              - Nutrition review after recognition
 │   └── Components/               - Reusable UI components
 ├── Utilities/
-│   └── PreviewContainer.swift    - SwiftData preview helper
+│   ├── PreviewContainer.swift       - SwiftData preview helper
+│   ├── StringExtensions.swift       - String truncation utilities (character limit handling)
+│   ├── HapticManager.swift          - Centralized haptic feedback
+│   └── NutritionFormatter.swift     - Nutrition value formatting
 └── Data/
     └── MockData.swift            - Sample data for previews
 ```
@@ -373,12 +433,14 @@ To monitor requests/responses in real-time:
 The app is optimized for fast GPT-4o Vision API responses (typically 2-5 seconds):
 
 **Client-side optimizations (OpenAIVisionService.swift):**
-- **Image compression:** 0.4 quality (40%) for JPEG encoding
-  - Food photos compress well, minimal quality loss
-  - Reduces upload time significantly
-- **Image resizing:** Max 768px dimension (down from 2048px)
-  - 768px sufficient for food recognition accuracy
-  - ~85% reduction in file size
+- **Image compression:** 0.3 quality (30%) for JPEG encoding
+  - Aggressive compression for maximum speed
+  - Food photos still recognizable at this quality level
+  - Significantly reduces upload time and API costs
+- **Image resizing:** Max 512px dimension (down from 768px → 2048px)
+  - 512px sufficient for food recognition accuracy
+  - ~90% reduction in file size vs original
+  - Faster uploads and lower token costs
 - **Timeout:** 60 seconds for GPT-4o processing
   - Handles network variability and API processing time
 
@@ -398,10 +460,7 @@ The app is optimized for fast GPT-4o Vision API responses (typically 2-5 seconds
 4. Check OpenAI API status: https://status.openai.com
 5. Monitor Cloudflare Worker logs for errors
 
-**To further optimize if needed:**
-- Reduce compression quality: 0.4 → 0.3 (line 25 in OpenAIVisionService.swift)
-- Reduce max dimension: 768px → 512px (line 26 in OpenAIVisionService.swift)
-- Reduce max_tokens: 600 → 400 (line 94 in worker.js)
+**Note:** Image optimization is already aggressive (0.3 quality, 512px max). Further reduction may impact recognition accuracy.
 
 ## Project Specifics
 
@@ -428,3 +487,6 @@ AppTheme enum (referenced in MainTabView) supports system/light/dark modes via @
 - Development Team: UJ4482ZF9C (for code signing)
 - Bundle ID: com.filipolszak.Food1
 - Blue is the app's primary accent color (changed from purple/pink gradient per user preference)
+- dont fucking commit and push if i havent confirmed it works after ur fix
+- dont just make up stuff about what features you plan to add. its my call what features to add. you can include RECOMMENDATIONS but it should be clearly stated they are comming from you as AI agent and I need to sign off on them and i may have a different opinion. it should be clear. technical improvements that dont affect functionality much is a different story and i can be a bit less involved
+- our software architects should reference existing docs and the CLAUDE.md file whenever making decisions

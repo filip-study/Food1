@@ -35,6 +35,7 @@ struct QuickAddMealView: View {
     @State private var showingLabelCamera = false
     @State private var nutritionLabelImage: UIImage?
     @State private var labelData: NutritionLabelData?
+    @State private var minimumLoadingDisplayed = false  // Prevents flash on quick API responses
 
     var body: some View {
         ZStack {
@@ -174,31 +175,46 @@ struct QuickAddMealView: View {
 
     private var recognitionLoadingOverlay: some View {
         ZStack {
-            Color.black.opacity(0.5)
-                .ignoresSafeArea()
+            // Blurred captured photo background (instead of camera view)
+            if let image = capturedImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .ignoresSafeArea()
+                    .blur(radius: 40, opaque: true)
+                    .overlay(Color.black.opacity(0.4))
+            } else {
+                // Fallback to solid color if no image
+                Color.black.opacity(0.5)
+                    .ignoresSafeArea()
+            }
 
+            // Loading indicator card
             VStack(spacing: 20) {
                 ProgressView()
                     .scaleEffect(1.5)
                     .tint(.white)
 
                 VStack(spacing: 8) {
-                    Text("Recognizing food...")
-                        .font(.system(size: 18, weight: .semibold))
+                    Text("Analyzing nutrition")
+                        .font(.system(size: 18, weight: .semibold, design: .rounded))
                         .foregroundColor(.white)
 
-                    Text("This may take a few seconds")
+                    Text("Identifying ingredients and portions")
                         .font(.system(size: 15))
                         .foregroundColor(.white.opacity(0.8))
+                        .multilineTextAlignment(.center)
                 }
             }
             .padding(40)
             .background(
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(Color(.systemBackground))
+                    .fill(Color(.systemBackground).opacity(0.95))
             )
             .shadow(color: .black.opacity(0.3), radius: 30)
         }
+        .transition(.opacity)
+        .animation(.easeInOut(duration: 0.3), value: recognitionService.isProcessing)
     }
 
     // MARK: - Actions
@@ -209,15 +225,28 @@ struct QuickAddMealView: View {
         // Clear previous state when starting new recognition
         labelData = nil
         selectedPrediction = nil
+        minimumLoadingDisplayed = false
 
         print("📸 New photo captured - cleared previous state")
 
         Task {
+            // Start minimum display timer (prevents flash on quick responses)
+            Task {
+                try? await Task.sleep(nanoseconds: 800_000_000)  // 800ms
+                minimumLoadingDisplayed = true
+            }
+
+            // Start recognition
             let processedImage = recognitionService.preprocessImage(image)
             let (results, hasPackaging) = await recognitionService.recognizeFood(in: processedImage)
 
             predictions = results
             self.hasPackaging = hasPackaging
+
+            // Wait for minimum loading time before showing results
+            while !minimumLoadingDisplayed {
+                try? await Task.sleep(nanoseconds: 50_000_000)  // Check every 50ms
+            }
 
             if results.isEmpty {
                 // Show error - no predictions

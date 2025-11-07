@@ -114,6 +114,7 @@ struct ServingSizeAdjustmentView: View {
                             .font(.title)
                             .foregroundStyle(canDecrease ? .blue : .gray.opacity(0.3))
                     }
+                    .buttonStyle(.borderless)
                     .disabled(!canDecrease)
 
                     // Count display
@@ -135,6 +136,7 @@ struct ServingSizeAdjustmentView: View {
                             .font(.title)
                             .foregroundStyle(canIncrease ? .blue : .gray.opacity(0.3))
                     }
+                    .buttonStyle(.borderless)
                     .disabled(!canIncrease)
                 }
                 .padding(.vertical, 8)

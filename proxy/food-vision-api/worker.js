@@ -89,7 +89,7 @@ Please help me by analyzing what food items are visible in this photo and provid
   "has_packaging": false,
   "predictions": [
     {
-      "label": "food name (be specific)",
+      "label": "food name (max 40 chars, descriptive)",
       "confidence": 0.95,
       "description": "brief description",
       "nutrition": {
@@ -104,6 +104,8 @@ Please help me by analyzing what food items are visible in this photo and provid
 }
 
 Guidelines for your analysis:
+- CRITICAL: Keep food names under 40 characters but be descriptive (e.g., "Grilled Chicken Caesar Salad" is good, "Grilled Chicken Caesar Salad Bowl with Extra Dressing" is too long)
+- Use specific, natural names that clearly identify the food and cooking method when space allows
 - Set has_packaging to true if the food is in packaging/wrapper/box/container (unopened or partially opened)
 - Set has_packaging to false for fresh/prepared food on plates/bowls
 - Include up to 5 predictions if multiple food items are visible
@@ -252,7 +254,7 @@ async function handleNutritionLabel(request, env) {
 Return the extracted information in this JSON format:
 
 {
-  "product_name": "product name from label",
+  "product_name": "product name (max 40 chars, descriptive)",
   "brand": "brand name if visible",
   "serving_size": "1 container (150g)",
   "servings_per_container": 1,
@@ -270,6 +272,7 @@ Return the extracted information in this JSON format:
 }
 
 Guidelines for extraction:
+- CRITICAL: Keep product_name under 40 characters but be descriptive (include brand and product type when space allows)
 - Extract exact values from the nutrition facts label
 - All nutrition values should be in grams except sodium (which is in mg)
 - For estimated_grams: extract the serving size weight from the label (e.g., "1 container (150g)" → 150)
