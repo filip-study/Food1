@@ -28,6 +28,7 @@ struct NutritionReviewView: View {
     let selectedDate: Date
     let foodName: String
     let capturedImage: UIImage?
+    let prediction: FoodRecognitionService.FoodPrediction
 
     // Optional prefilled nutrition from AI
     let prefilledCalories: Double?
@@ -45,6 +46,9 @@ struct NutritionReviewView: View {
     @State private var servingCount = 1.0
     @State private var gramsPerServing = 0.0
     @State private var notes = ""
+
+    // Ingredient editing
+    @State private var ingredients: [IngredientRowData] = []
 
     @State private var isLoadingNutrition = true
     @State private var errorMessage: String?
@@ -160,6 +164,9 @@ struct NutritionReviewView: View {
                     }
                 }
 
+                // Ingredients (editable)
+                IngredientListView(ingredients: $ingredients)
+
                 Section("Notes (Optional)") {
                     TextField("Add any notes...", text: $notes, axis: .vertical)
                         .lineLimit(3...6)
@@ -184,6 +191,11 @@ struct NutritionReviewView: View {
             }
             .task {
                 await fetchNutritionData()
+
+                // Initialize ingredients from prediction
+                if let predictionIngredients = prediction.ingredients {
+                    ingredients = predictionIngredients.map { IngredientRowData(from: $0) }
+                }
             }
         }
     }
@@ -266,6 +278,14 @@ struct NutritionReviewView: View {
         // Convert photo to JPEG data if available (0.8 quality for good balance of size/quality)
         let photoData: Data? = capturedImage?.jpegData(compressionQuality: 0.8)
 
+        // Convert ingredients from edited state to MealIngredient models
+        let mealIngredients = ingredients.isEmpty ? nil : ingredients.map { ingredientData in
+            MealIngredient(
+                name: ingredientData.name,
+                grams: ingredientData.grams
+            )
+        }
+
         let newMeal = Meal(
             name: mealName,
             emoji: selectedEmoji,
@@ -275,7 +295,8 @@ struct NutritionReviewView: View {
             carbs: carbsValue,
             fat: fatValue,
             notes: notes.isEmpty ? nil : notes,
-            photoData: photoData
+            photoData: photoData,
+            ingredients: mealIngredients
         )
 
         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
@@ -290,10 +311,29 @@ struct NutritionReviewView: View {
 }
 
 #Preview {
-    NutritionReviewView(
+    let mockPrediction = FoodRecognitionService.FoodPrediction(
+        label: "Grilled Chicken Salad",
+        confidence: 0.95,
+        description: "A healthy salad with grilled chicken",
+        fullDescription: nil,
+        calories: 350.0,
+        protein: 30.0,
+        carbs: 25.0,
+        fat: 15.0,
+        estimatedGrams: 250.0,
+        hasPackaging: false,
+        ingredients: [
+            FoodRecognitionService.IngredientData(name: "Chicken breast, grilled", grams: 150),
+            FoodRecognitionService.IngredientData(name: "Lettuce, romaine", grams: 50),
+            FoodRecognitionService.IngredientData(name: "Tomatoes, cherry", grams: 30)
+        ]
+    )
+
+    return NutritionReviewView(
         selectedDate: Date(),
         foodName: "Grilled Chicken Salad",
         capturedImage: nil,
+        prediction: mockPrediction,
         prefilledCalories: 350.0,
         prefilledProtein: 30.0,
         prefilledCarbs: 25.0,

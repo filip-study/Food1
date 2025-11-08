@@ -36,22 +36,36 @@ struct QuickAddMealView: View {
     @State private var nutritionLabelImage: UIImage?
     @State private var labelData: NutritionLabelData?
     @State private var minimumLoadingDisplayed = false  // Prevents flash on quick API responses
+    @State private var currentMessageIndex = 0  // For rotating loading messages
+    @State private var rotationAngle: Double = 0  // For custom spinner animation
+
+    // Accessibility
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
 
     var body: some View {
         ZStack {
-            // Main custom camera view
-            CustomCameraView(
-                selectedDate: selectedDate,
-                onPhotoCaptured: { image in
-                    handlePhotoCaptured(image)
-                },
-                onGalleryTap: {
-                    showingGallery = true
-                },
-                onManualTap: {
-                    showingManualEntry = true
-                }
-            )
+            // Show camera only if we haven't captured a photo yet
+            if capturedImage == nil {
+                CustomCameraView(
+                    selectedDate: selectedDate,
+                    onPhotoCaptured: { image in
+                        handlePhotoCaptured(image)
+                    },
+                    onGalleryTap: {
+                        showingGallery = true
+                    },
+                    onManualTap: {
+                        showingManualEntry = true
+                    }
+                )
+            } else {
+                // Show captured photo as static background once captured
+                // This prevents camera from showing during sheet dismissals
+                Image(uiImage: capturedImage!)
+                    .resizable()
+                    .scaledToFill()
+                    .ignoresSafeArea()
+            }
 
             // Loading overlay during recognition
             if recognitionService.isProcessing {
@@ -123,6 +137,7 @@ struct QuickAddMealView: View {
                 selectedDate: selectedDate,
                 foodName: prediction.displayName,
                 capturedImage: capturedImage,
+                prediction: prediction,
                 prefilledCalories: labelData?.nutrition.calories ?? prediction.calories,
                 prefilledProtein: labelData?.nutrition.protein ?? prediction.protein,
                 prefilledCarbs: labelData?.nutrition.carbs ?? prediction.carbs,
@@ -189,21 +204,65 @@ struct QuickAddMealView: View {
                     .ignoresSafeArea()
             }
 
+            // Photo thumbnail in top-right corner
+            if let image = capturedImage {
+                VStack {
+                    HStack {
+                        Spacer()
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 80, height: 80)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.white.opacity(0.3), lineWidth: 2)
+                            )
+                            .shadow(color: .black.opacity(0.3), radius: 10)
+                            .padding(.top, 60)
+                            .padding(.trailing, 20)
+                    }
+                    Spacer()
+                }
+            }
+
             // Loading indicator card
-            VStack(spacing: 20) {
-                ProgressView()
-                    .scaleEffect(1.5)
-                    .tint(.white)
+            VStack(spacing: 24) {
+                // Custom rotating sparkles indicator
+                ZStack {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 50))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.blue, .cyan],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .rotationEffect(.degrees(reduceMotion ? 0 : rotationAngle))
+                        .onAppear {
+                            if !reduceMotion {
+                                withAnimation(.linear(duration: 2).repeatForever(autoreverses: false)) {
+                                    rotationAngle = 360
+                                }
+                            }
+                        }
+                }
+                .frame(height: 60)
 
-                VStack(spacing: 8) {
-                    Text("Analyzing nutrition")
+                VStack(spacing: 12) {
+                    Text(loadingMessages[currentMessageIndex].title)
                         .font(.system(size: 18, weight: .semibold, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
+                        .id(currentMessageIndex)
+                        .transition(.opacity)
 
-                    Text("Identifying ingredients and portions")
+                    Text(loadingMessages[currentMessageIndex].subtitle)
                         .font(.system(size: 15))
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
+                        .id("subtitle-\(currentMessageIndex)")
+                        .transition(.opacity)
                 }
             }
             .padding(40)
@@ -212,12 +271,40 @@ struct QuickAddMealView: View {
                     .fill(Color(.systemBackground).opacity(0.95))
             )
             .shadow(color: .black.opacity(0.3), radius: 30)
+            .onAppear {
+                startMessageRotation()
+            }
         }
         .transition(.opacity)
         .animation(.easeInOut(duration: 0.3), value: recognitionService.isProcessing)
     }
 
+    // Loading messages that rotate every 2 seconds
+    private let loadingMessages: [(title: String, subtitle: String)] = [
+        ("Analyzing nutrition", "Identifying ingredients and portions"),
+        ("Reading the image", "Detecting food items and preparation"),
+        ("Calculating macros", "Estimating calories, protein, carbs, and fat"),
+        ("Almost there", "Finalizing nutrition breakdown")
+    ]
+
     // MARK: - Actions
+
+    /// Cycles through loading messages every 2 seconds for engaging UX
+    private func startMessageRotation() {
+        currentMessageIndex = 0
+
+        Task {
+            while recognitionService.isProcessing {
+                try? await Task.sleep(nanoseconds: 2_000_000_000)  // 2 seconds
+
+                if recognitionService.isProcessing {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        currentMessageIndex = (currentMessageIndex + 1) % loadingMessages.count
+                    }
+                }
+            }
+        }
+    }
 
     private func handlePhotoCaptured(_ image: UIImage) {
         capturedImage = image
@@ -226,6 +313,7 @@ struct QuickAddMealView: View {
         labelData = nil
         selectedPrediction = nil
         minimumLoadingDisplayed = false
+        currentMessageIndex = 0  // Reset message rotation
 
         print("📸 New photo captured - cleared previous state")
 

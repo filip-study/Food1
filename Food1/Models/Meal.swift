@@ -21,6 +21,12 @@ final class Meal {
     var notes: String?
     var photoData: Data?  // Stores JPEG image data when meal logged via photo recognition
 
+    // Micronutrient tracking: Ingredient breakdown with USDA matching
+    @Relationship(deleteRule: .cascade) var ingredients: [MealIngredient]?
+
+    // Matched cartoon icon name (for UI display)
+    var matchedIconName: String?
+
     init(
         id: UUID = UUID(),
         name: String,
@@ -31,7 +37,9 @@ final class Meal {
         carbs: Double,
         fat: Double,
         notes: String? = nil,
-        photoData: Data? = nil
+        photoData: Data? = nil,
+        ingredients: [MealIngredient]? = nil,
+        matchedIconName: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -43,6 +51,64 @@ final class Meal {
         self.fat = fat
         self.notes = notes
         self.photoData = photoData
+        self.ingredients = ingredients
+        self.matchedIconName = matchedIconName
+    }
+
+    // MARK: - Computed Properties
+
+    /// Check if meal has ingredients with micronutrient data
+    var hasMicronutrients: Bool {
+        guard let ingredients = ingredients, !ingredients.isEmpty else {
+            return false
+        }
+        return ingredients.contains { $0.hasUSDAData }
+    }
+
+    /// Aggregate micronutrients across all ingredients
+    var micronutrients: [Micronutrient] {
+        guard let ingredients = ingredients, !ingredients.isEmpty else {
+            return []
+        }
+
+        var profile = MicronutrientProfile()
+
+        for ingredient in ingredients {
+            guard let nutrients = ingredient.micronutrients else { continue }
+
+            for nutrient in nutrients {
+                switch nutrient.name {
+                case "Calcium":
+                    profile.calcium += nutrient.amount
+                case "Iron":
+                    profile.iron += nutrient.amount
+                case "Magnesium":
+                    profile.magnesium += nutrient.amount
+                case "Potassium":
+                    profile.potassium += nutrient.amount
+                case "Zinc":
+                    profile.zinc += nutrient.amount
+                case "Vitamin A":
+                    profile.vitaminA += nutrient.amount
+                case "Vitamin C":
+                    profile.vitaminC += nutrient.amount
+                case "Vitamin D":
+                    profile.vitaminD += nutrient.amount
+                case "Vitamin E":
+                    profile.vitaminE += nutrient.amount
+                case "Vitamin B12":
+                    profile.vitaminB12 += nutrient.amount
+                case "Folate":
+                    profile.folate += nutrient.amount
+                case "Sodium":
+                    profile.sodium += nutrient.amount
+                default:
+                    break
+                }
+            }
+        }
+
+        return profile.toMicronutrients()
     }
 
     // Static helper method for calculating totals

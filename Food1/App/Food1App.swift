@@ -14,7 +14,10 @@ struct Food1App: App {
 
     init() {
         do {
-            let schema = Schema([Meal.self])
+            let schema = Schema([
+                Meal.self,
+                MealIngredient.self
+            ])
             let modelConfiguration = ModelConfiguration(
                 schema: schema,
                 isStoredInMemoryOnly: false

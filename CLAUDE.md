@@ -93,6 +93,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 13. **Character Limit Enforcement (2025-11-07):** Implemented 25-character limit for AI-generated food names to prevent UI truncation
 14. **Character Limit Increase + MealCard Redesign (2025-11-07):** Increased limit to 40 chars for more descriptive names, redesigned MealCard with 2-line name support and time+calories combined
 15. **Loading State Redesign - Phase 1 (2025-11-07):** Replaced camera background with blurred captured photo during food recognition, added smooth fade transitions, implemented 800ms minimum display time to prevent flashing
+16. **Camera Dismissal Fix (2025-11-07):** Fixed camera briefly visible during meal save dismissal by hiding camera once photo captured and showing static photo background instead
+17. **Loading State Phase 2 (2025-11-07):** Added engaging loading experience with rotating blue sparkles indicator, rotating status messages (4 messages every 2s), photo thumbnail in corner, and reduced motion accessibility support
+18. **Macro Color Standardization (2025-11-07):** Fixed inconsistent macro colors across views - standardized to Protein=Blue, Carbs=Orange, Fat=Green everywhere
 
 **Future Considerations:**
 - User is open to switching APIs (OpenAI → Claude/Gemini) if better accuracy/cost
@@ -191,7 +194,7 @@ TodayView + button (toolbar) → AddMealTabView
 - **AddMealTabView:** Tabbed interface with Photo recognition and Manual entry. Photo recognition uses GPT-4o Vision API with automatic packaging detection.
 - **CameraPicker:** UIImagePickerController wrapper supporting camera and photo library
 - **NutritionReviewView:** Review and edit AI-generated nutrition data before saving. Supports serving size multiplier and nutrition label data.
-- **MealCard:** Displays meal summary with emoji, name, calories, and macros
+- **MealCard:** Displays meal summary with photo or emoji, name, calories, and macros.
 - **MetricsDashboardView:** Progress rings showing daily nutrition vs goals
 - **DateNavigationHeader:** Inline date picker with left/right arrows. Shows "Today" for current date, "Yesterday", or formatted date. Click to open calendar popover.
 - **PredictionRow:** Displays AI prediction with confidence score, description, and nutrition summary
@@ -238,15 +241,26 @@ TodayView + button (toolbar) → AddMealTabView
   - **Minimum Display Time:** 800ms minimum prevents jarring flash on quick API responses (<1s)
     - Uses parallel Task with async/await for clean state management
     - Waits for both API completion AND minimum time before showing results
-- **Technical Implementation:** QuickAddMealView.swift (lines 175-217)
-  - Uses blurred UIImage with `.blur(radius: 40, opaque: true)` for performance
-  - SwiftUI transitions with animation binding to `isProcessing` state
+- **Solution - Phase 2 (Shipped 2025-11-07):**
+  - **Rotating Sparkles Indicator:** Custom SF Symbol "sparkles" with blue-cyan gradient, 2s rotation animation
+    - Replaces generic ProgressView with branded, themed indicator
+    - Respects `accessibilityReduceMotion` - no rotation if user has this enabled
+  - **Dynamic Status Messages:** 4 messages rotate every 2 seconds during wait
+    - "Analyzing nutrition" → "Reading the image" → "Calculating macros" → "Almost there"
+    - Smooth opacity transitions between messages (0.3s easeInOut)
+    - Makes wait feel shorter and more engaging
+  - **Photo Thumbnail:** 80x80 thumbnail in top-right corner with rounded corners, white border, shadow
+    - Additional visual context during analysis
+    - User can see what photo is being analyzed
+  - **Camera Dismissal Fix:** Camera hidden once photo captured, replaced with static photo background
+    - Prevents camera flash during sheet dismissals
+    - Cleaner UX when saving meals
+- **Technical Implementation:** QuickAddMealView.swift (lines 39-287)
+  - Custom rotating animation: `.rotationEffect(.degrees(rotationAngle))` with `withAnimation(.linear(duration: 2).repeatForever())`
+  - Message rotation: Task loop with 2s sleep + modulo cycling through array
+  - Accessibility: `@Environment(\.accessibilityReduceMotion)` integration
+  - Camera hiding: Conditional rendering based on `capturedImage == nil`
   - Async/await pattern prevents memory leaks (automatic Task cancellation)
-- **Future Enhancement Options (Phase 2 - Optional):**
-  - Custom animated indicator (rotating SF Symbol with blue theme)
-  - Rotating status messages (changes every 2s during wait)
-  - Photo thumbnail in corner for additional context
-  - Reduced motion support (accessibility)
 
 ## Development Patterns
 
@@ -291,7 +305,8 @@ Food1/
 │   └── AppSettings.swift         - App configuration
 ├── Services/
 │   ├── FoodRecognitionService.swift  - Abstraction layer for AI vision
-│   └── OpenAIVisionService.swift     - GPT-4o Vision API client
+│   ├── OpenAIVisionService.swift     - GPT-4o Vision API client
+│   └── FoodIconMapper.swift          - (Disabled) Maps meal names to cartoon icons
 ├── Config/
 │   ├── APIConfig.swift               - API endpoint & auth token (gitignored)
 │   └── APIConfig.swift.example       - Template for developers
@@ -464,6 +479,19 @@ The app is optimized for fast GPT-4o Vision API responses (typically 2-5 seconds
 
 ## Project Specifics
 
+### Macro Color Standards
+**IMPORTANT:** Use these colors consistently across ALL views for nutrition macros:
+- **Protein:** `.blue`
+- **Carbs:** `.orange`
+- **Fat:** `.green`
+
+These colors are used in:
+- MealCard.swift (macro dots below meal cards)
+- MetricsDashboardView.swift (progress bars on Today tab)
+- MealDetailView.swift (nutrition rows in detail view)
+
+**DO NOT** use different colors for macros in any new views or features. Consistency is critical for UX.
+
 ### Date Navigation
 TodayView supports:
 - Swipe right: Previous day
@@ -490,3 +518,4 @@ AppTheme enum (referenced in MainTabView) supports system/light/dark modes via @
 - dont fucking commit and push if i havent confirmed it works after ur fix
 - dont just make up stuff about what features you plan to add. its my call what features to add. you can include RECOMMENDATIONS but it should be clearly stated they are comming from you as AI agent and I need to sign off on them and i may have a different opinion. it should be clear. technical improvements that dont affect functionality much is a different story and i can be a bit less involved
 - our software architects should reference existing docs and the CLAUDE.md file whenever making decisions
+- dont over document things just for the sake of documenting ........ we are not creating ahistory book here

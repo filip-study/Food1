@@ -3,11 +3,31 @@
  *
  * This proxy:
  * - Securely stores OpenAI API key (never exposed to iOS app)
- * - Provides rate limiting (100 requests/hour per user)
  * - Handles CORS for iOS requests
  * - Forwards image analysis requests to OpenAI GPT-4o
  * - Returns structured JSON nutrition data
+ * - SMART ROUTING: Preemptively routes through AI Gateway for blocked regions
+ * - MONITORING: Logs metrics for observability
+ *
+ * Production improvements (2025-11-08):
+ * - Preemptive routing based on Worker COLO (eliminates retry latency)
+ * - Required CF_ACCOUNT_ID validation (fail fast)
+ * - Comprehensive error handling for all paths
+ * - Monitoring metrics for performance tracking
  */
+
+// Cloudflare data centers in OpenAI-blocked regions
+// Workers executing here will route through AI Gateway proactively
+const BLOCKED_COLOS = new Set([
+  // China
+  'PEK', 'SHA', 'SZX', 'HKG', 'TPE', 'CAN', 'HGH', 'CTU', 'WUH',
+  // Russia
+  'SVO', 'DME', 'LED',
+  // Iran
+  'THR', 'IKA',
+  // Other potentially blocked
+  'KHI'  // Pakistan (sometimes blocked)
+]);
 
 export default {
   async fetch(request, env, ctx) {
@@ -20,6 +40,10 @@ export default {
     if (request.method !== 'POST') {
       return jsonResponse({ error: 'Method not allowed' }, 405);
     }
+
+    // Log execution location for debugging
+    const colo = request.cf?.colo;
+    console.log(`📍 Worker executing in: ${colo || 'unknown'}`);
 
     try {
       // Route to appropriate handler
@@ -41,6 +65,102 @@ export default {
     }
   }
 };
+
+/**
+ * Shared function to call OpenAI API with smart geographic routing
+ *
+ * @param {Request} request - Original request (for COLO detection)
+ * @param {Object} env - Environment variables
+ * @param {Object} openaiRequest - OpenAI API request body
+ * @returns {Promise<{response: Response, colo: string, usedAIGateway: boolean, startTime: number}>}
+ */
+async function callOpenAI(request, env, openaiRequest) {
+  const startTime = Date.now();
+  const colo = request.cf?.colo || 'unknown';
+
+  // Validate required configuration
+  if (!env.CF_ACCOUNT_ID) {
+    console.error('❌ CF_ACCOUNT_ID not configured');
+    throw new Error('CF_ACCOUNT_ID environment variable is required for AI Gateway routing');
+  }
+
+  // Preemptive routing: use AI Gateway if Worker is in blocked region
+  const usedAIGateway = BLOCKED_COLOS.has(colo);
+
+  const endpoint = usedAIGateway
+    ? `https://gateway.ai.cloudflare.com/v1/${env.CF_ACCOUNT_ID}/food-vision/openai/chat/completions`
+    : 'https://api.openai.com/v1/chat/completions';
+
+  console.log(`🌍 COLO: ${colo}, Routing: ${usedAIGateway ? 'AI Gateway' : 'Direct'}`);
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${env.OPENAI_API_KEY}`
+      },
+      body: JSON.stringify(openaiRequest)
+    });
+
+    return { response, colo, usedAIGateway, startTime };
+
+  } catch (error) {
+    console.error('❌ Request failed:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Validate and handle OpenAI API response with comprehensive error handling
+ *
+ * @param {Response} response - OpenAI API response
+ * @param {string} colo - Cloudflare data center code
+ * @param {boolean} usedAIGateway - Whether AI Gateway was used
+ * @returns {Promise<Response>} - JSON response or throws error
+ */
+async function handleOpenAIResponse(response, colo, usedAIGateway) {
+  console.log(`✅ Response status: ${response.status} (${usedAIGateway ? 'AI Gateway' : 'Direct'})`);
+
+  if (!response.ok) {
+    const error = await response.json();
+    console.error('❌ OpenAI error:', error);
+
+    // Handle specific error codes
+    if (response.status === 429) {
+      return jsonResponse({
+        error: 'Rate limit exceeded. Please try again later.'
+      }, 429);
+    }
+
+    if (response.status === 401) {
+      return jsonResponse({
+        error: 'API authentication failed',
+        details: 'OpenAI API key is invalid or expired'
+      }, 500);
+    }
+
+    if (response.status === 403) {
+      // This shouldn't happen with preemptive routing, but log for monitoring
+      console.error(`⚠️ Geographic block despite routing logic. COLO: ${colo}, Gateway: ${usedAIGateway}`);
+      return jsonResponse({
+        error: 'Geographic restriction',
+        details: 'OpenAI API unavailable from this region. Please contact support.',
+        colo: colo,
+        debugInfo: `Routed via ${usedAIGateway ? 'AI Gateway' : 'Direct'}`
+      }, 503);
+    }
+
+    // Generic error
+    return jsonResponse({
+      error: 'AI service error',
+      details: error.error?.message || 'Unknown error',
+      status: response.status
+    }, response.status);
+  }
+
+  return null; // Success - no error response
+}
 
 /**
  * Handle food recognition from image
@@ -81,9 +201,11 @@ async function handleFoodAnalysis(request, env) {
             content: [
               {
                 type: 'text',
-                text: `I'm using a nutrition tracking app to log my meals. This photo shows food I'm about to eat, and I need to track its nutritional content for my health goals.
+                text: `IMPORTANT: I'm using a nutrition tracking app to log my meals. I need you to analyze ONLY the food items in this photo - ignore any people, hands, or faces visible in the image. I am NOT asking you to identify or describe any people. Focus exclusively on the food.
 
-Please help me by analyzing what food items are visible in this photo and providing their estimated nutrition information. Return the results in this JSON format:
+This photo shows food I'm about to eat, and I need to track its nutritional content and ingredients for my health goals.
+
+Please help me by analyzing what food items are visible in this photo and breaking down the key ingredients. Return the results in this JSON format:
 
 {
   "has_packaging": false,
@@ -98,7 +220,12 @@ Please help me by analyzing what food items are visible in this photo and provid
         "carbs": 30.0,
         "fat": 10.0,
         "estimated_grams": 150
-      }
+      },
+      "ingredients": [
+        {"name": "romaine lettuce", "grams": 127},
+        {"name": "grilled chicken breast", "grams": 102},
+        {"name": "cherry tomatoes", "grams": 68}
+      ]
     }
   ]
 }
@@ -114,6 +241,21 @@ Guidelines for your analysis:
 - For estimated_grams: estimate the weight in grams of the food VISIBLE IN THE PHOTO (not a standard serving)
 - Nutrition values should reflect the entire amount of food visible in the photo (based on estimated_grams)
 - Use realistic portion sizes (e.g., apple: 150-200g, chicken breast: 150-250g, bowl of pasta: 200-300g)
+
+INGREDIENT EXTRACTION:
+- CRITICAL: Use specific, USDA-matchable ingredient names (e.g., "Chicken breast, grilled" not just "chicken")
+- Break down composite meals into key ingredients with gram estimates
+- Apply 15% conservative reduction to all gram estimates (better to underestimate than overestimate)
+- List 3-8 main ingredients (don't list every tiny ingredient like spices)
+- Use generic ingredient names that match USDA database:
+  * "Chicken breast, grilled" or "Chicken breast, roasted" (specify cooking method)
+  * "Lettuce, romaine" or "Lettuce, iceberg" (specify variety)
+  * "Rice, brown" or "Rice, white" (specify type)
+  * "Olive oil" or "Butter" (use generic fat names)
+  * Avoid brand names, adjectives like "organic", "free-range"
+- For simple meals (like an apple or banana), use single ingredient: [{"name": "Apple, raw", "grams": 170}]
+- Ingredient grams should roughly sum to estimated_grams (within 10-20% variance for condiments/oils)
+- If a meal is too complex to break down confidently, use empty ingredients array []
 
 Return ONLY the JSON object, no additional text.`
               },
@@ -131,35 +273,13 @@ Return ONLY the JSON object, no additional text.`
         response_format: { type: 'json_object' }
       };
 
-      // Forward to OpenAI
-      console.log('Sending request to OpenAI...');
-      const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${env.OPENAI_API_KEY}`
-        },
-        body: JSON.stringify(openaiRequest)
-      });
+      // Call OpenAI API with smart geographic routing
+      const { response: openaiResponse, colo, usedAIGateway, startTime } = await callOpenAI(request, env, openaiRequest);
 
-      console.log('OpenAI response status:', openaiResponse.status);
-
-      if (!openaiResponse.ok) {
-        const error = await openaiResponse.json();
-        console.error('OpenAI API error:', error);
-
-        // Handle specific OpenAI errors
-        if (openaiResponse.status === 429) {
-          return jsonResponse({ error: 'Rate limit exceeded. Please try again later.' }, 429);
-        }
-        if (openaiResponse.status === 401) {
-          return jsonResponse({ error: 'API authentication failed' }, 500);
-        }
-
-        return jsonResponse({
-          error: 'Failed to analyze image',
-          details: error.error?.message
-        }, openaiResponse.status);
+      // Handle errors with comprehensive error handling
+      const errorResponse = await handleOpenAIResponse(openaiResponse, colo, usedAIGateway);
+      if (errorResponse) {
+        return errorResponse;
       }
 
       // Parse OpenAI response
@@ -200,6 +320,18 @@ Return ONLY the JSON object, no additional text.`
           raw: content
         }, 500);
       }
+
+      // Log monitoring metrics for observability
+      const latencyMs = Date.now() - startTime;
+      console.log(JSON.stringify({
+        event: 'food_recognition',
+        colo: colo,
+        routing: usedAIGateway ? 'ai_gateway' : 'direct',
+        status: 'success',
+        latency_ms: latencyMs,
+        tokens: data.usage?.total_tokens,
+        predictions: analysisResult.predictions?.length || 0
+      }));
 
       // Return structured response
       return jsonResponse({
@@ -249,7 +381,9 @@ async function handleNutritionLabel(request, env) {
           content: [
             {
               type: 'text',
-              text: `I'm using a nutrition tracking app and need to log a packaged food item. This photo shows the nutrition facts label on the package. Please help me by extracting the nutrition information from this label so I can accurately track my intake.
+              text: `IMPORTANT: I'm using a nutrition tracking app and need to log a packaged food item. I need you to analyze ONLY the nutrition facts label in this photo - ignore any people, hands, or faces visible in the image. I am NOT asking you to identify or describe any people. Focus exclusively on the nutrition label text.
+
+This photo shows the nutrition facts label on the package. Please help me by extracting the nutrition information from this label so I can accurately track my intake.
 
 Return the extracted information in this JSON format:
 
@@ -296,31 +430,13 @@ Return ONLY the JSON object, no additional text.`
       response_format: { type: 'json_object' }
     };
 
-    // Forward to OpenAI
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify(openaiRequest)
-    });
+    // Call OpenAI API with smart geographic routing
+    const { response: openaiResponse, colo, usedAIGateway, startTime } = await callOpenAI(request, env, openaiRequest);
 
-    if (!openaiResponse.ok) {
-      const error = await openaiResponse.json();
-      console.error('OpenAI API error:', error);
-
-      if (openaiResponse.status === 429) {
-        return jsonResponse({ error: 'Rate limit exceeded. Please try again later.' }, 429);
-      }
-      if (openaiResponse.status === 401) {
-        return jsonResponse({ error: 'API authentication failed' }, 500);
-      }
-
-      return jsonResponse({
-        error: 'Failed to analyze nutrition label',
-        details: error.error?.message
-      }, openaiResponse.status);
+    // Handle errors with comprehensive error handling
+    const errorResponse = await handleOpenAIResponse(openaiResponse, colo, usedAIGateway);
+    if (errorResponse) {
+      return errorResponse;
     }
 
     // Parse OpenAI response
@@ -342,6 +458,18 @@ Return ONLY the JSON object, no additional text.`
         raw: content
       }, 500);
     }
+
+    // Log monitoring metrics for observability
+    const latencyMs = Date.now() - startTime;
+    console.log(JSON.stringify({
+      event: 'nutrition_label',
+      colo: colo,
+      routing: usedAIGateway ? 'ai_gateway' : 'direct',
+      status: 'success',
+      latency_ms: latencyMs,
+      tokens: data.usage?.total_tokens,
+      confidence: labelData.confidence
+    }));
 
     // Return structured response
     return jsonResponse({
