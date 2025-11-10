@@ -18,6 +18,7 @@ final class Meal {
     var protein: Double
     var carbs: Double
     var fat: Double
+    var fiber: Double
     var notes: String?
     var photoData: Data?  // Stores JPEG image data when meal logged via photo recognition
 
@@ -36,6 +37,7 @@ final class Meal {
         protein: Double,
         carbs: Double,
         fat: Double,
+        fiber: Double = 0.0,
         notes: String? = nil,
         photoData: Data? = nil,
         ingredients: [MealIngredient]? = nil,
@@ -49,6 +51,7 @@ final class Meal {
         self.protein = protein
         self.carbs = carbs
         self.fat = fat
+        self.fiber = fiber
         self.notes = notes
         self.photoData = photoData
         self.ingredients = ingredients
@@ -109,6 +112,8 @@ final class Meal {
         }
 
         return profile.toMicronutrients()
+            .filter { $0.amount > 0.01 }  // Remove zero/trace amounts
+            .sorted { $0.rdaPercent > $1.rdaPercent }  // Sort by RDA % descending (highest first)
     }
 
     // Static helper method for calculating totals
