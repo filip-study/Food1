@@ -68,45 +68,107 @@ export default {
 
 /**
  * Shared function to call OpenAI API with smart geographic routing
+ * Routes requests through AWS proxy when executing in OpenAI-blocked regions
  *
  * @param {Request} request - Original request (for COLO detection)
  * @param {Object} env - Environment variables
  * @param {Object} openaiRequest - OpenAI API request body
- * @returns {Promise<{response: Response, colo: string, usedAIGateway: boolean, startTime: number}>}
+ * @returns {Promise<{response: Response, colo: string, usedProxy: boolean, startTime: number}>}
  */
 async function callOpenAI(request, env, openaiRequest) {
   const startTime = Date.now();
   const colo = request.cf?.colo || 'unknown';
+  const isBlockedRegion = BLOCKED_COLOS.has(colo);
 
-  // Validate required configuration
-  if (!env.CF_ACCOUNT_ID) {
-    console.error('❌ CF_ACCOUNT_ID not configured');
-    throw new Error('CF_ACCOUNT_ID environment variable is required for AI Gateway routing');
-  }
+  // Determine routing strategy
+  let targetUrl, headers, routingMethod;
 
-  // Preemptive routing: use AI Gateway if Worker is in blocked region
-  const usedAIGateway = BLOCKED_COLOS.has(colo);
+  if (isBlockedRegion) {
+    // SMART PLACEMENT TEACHING: Add large delay in blocked regions
+    // Goal: Teach Smart Placement to NEVER route through these regions
+    // Since we don't have AWS proxy yet, these fail anyway - might as well make them slow too
+    // Over 2-4 weeks, Smart Placement should learn to avoid HKG, China, Russia entirely
+    const teachingDelayMs = parseInt(env.SMART_PLACEMENT_PENALTY_MS || '3000');
+    if (teachingDelayMs > 0) {
+      console.log(`⏱️  Teaching penalty: Adding ${teachingDelayMs}ms delay in blocked region`);
+      await new Promise(resolve => setTimeout(resolve, teachingDelayMs));
+    }
 
-  const endpoint = usedAIGateway
-    ? `https://gateway.ai.cloudflare.com/v1/${env.CF_ACCOUNT_ID}/food-vision/openai/chat/completions`
-    : 'https://api.openai.com/v1/chat/completions';
+    if (env.PROXY_URL) {
+      // Route through AWS proxy if configured
+      console.log(`🌍 COLO: ${colo} (BLOCKED), Routing: AWS Proxy`);
 
-  console.log(`🌍 COLO: ${colo}, Routing: ${usedAIGateway ? 'AI Gateway' : 'Direct'}`);
+      // Parse proxy URL to extract credentials and base URL
+      const proxyUrlObj = new URL(env.PROXY_URL);
+      targetUrl = `${proxyUrlObj.origin}/v1/chat/completions`;
 
-  try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
+      headers = {
+        'Content-Type': 'application/json',
+        'X-OpenAI-API-Key': env.OPENAI_API_KEY  // Pass API key as custom header
+      };
+
+      // Add Basic Auth if proxy URL contains credentials
+      if (proxyUrlObj.username && proxyUrlObj.password) {
+        const auth = btoa(`${proxyUrlObj.username}:${proxyUrlObj.password}`);
+        headers['Authorization'] = `Basic ${auth}`;
+      }
+
+      routingMethod = 'proxy';
+    } else {
+      // No proxy configured - try direct (will likely fail with 403)
+      console.log(`🌍 COLO: ${colo} (BLOCKED), No proxy - attempting direct (will likely fail)`);
+      targetUrl = 'https://api.openai.com/v1/chat/completions';
+      headers = {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${env.OPENAI_API_KEY}`
-      },
+      };
+      routingMethod = 'direct-blocked';
+    }
+  } else {
+    // Direct connection to OpenAI (normal regions)
+    console.log(`🌍 COLO: ${colo}, Routing: Direct OpenAI`);
+    targetUrl = 'https://api.openai.com/v1/chat/completions';
+    headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${env.OPENAI_API_KEY}`
+    };
+    routingMethod = 'direct';
+  }
+
+  try {
+    const response = await fetch(targetUrl, {
+      method: 'POST',
+      headers,
       body: JSON.stringify(openaiRequest)
     });
 
-    return { response, colo, usedAIGateway, startTime };
+    console.log(`✅ ${routingMethod} request completed: HTTP ${response.status}`);
+    return { response, colo, usedProxy: routingMethod === 'proxy', startTime };
 
   } catch (error) {
-    console.error('❌ Request failed:', error.message);
+    console.error(`❌ ${routingMethod} request failed:`, error.message);
+
+    // Fallback: Try direct OpenAI if proxy fails and we haven't tried it yet
+    if (routingMethod === 'proxy') {
+      console.log('🔄 Proxy failed, attempting direct OpenAI as fallback...');
+      try {
+        const fallbackResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${env.OPENAI_API_KEY}`
+          },
+          body: JSON.stringify(openaiRequest)
+        });
+
+        console.log(`✅ Fallback successful: HTTP ${fallbackResponse.status}`);
+        return { response: fallbackResponse, colo, usedProxy: false, startTime };
+      } catch (fallbackError) {
+        console.error('❌ Fallback also failed:', fallbackError.message);
+        throw fallbackError;
+      }
+    }
+
     throw error;
   }
 }
@@ -116,11 +178,11 @@ async function callOpenAI(request, env, openaiRequest) {
  *
  * @param {Response} response - OpenAI API response
  * @param {string} colo - Cloudflare data center code
- * @param {boolean} usedAIGateway - Whether AI Gateway was used
+ * @param {boolean} usedProxy - Whether AWS proxy was used
  * @returns {Promise<Response>} - JSON response or throws error
  */
-async function handleOpenAIResponse(response, colo, usedAIGateway) {
-  console.log(`✅ Response status: ${response.status} (${usedAIGateway ? 'AI Gateway' : 'Direct'})`);
+async function handleOpenAIResponse(response, colo, usedProxy) {
+  console.log(`✅ Response status: ${response.status} (${usedProxy ? 'AWS Proxy' : 'Direct'})`);
 
   if (!response.ok) {
     const error = await response.json();
@@ -141,13 +203,13 @@ async function handleOpenAIResponse(response, colo, usedAIGateway) {
     }
 
     if (response.status === 403) {
-      // This shouldn't happen with preemptive routing, but log for monitoring
-      console.error(`⚠️ Geographic block despite routing logic. COLO: ${colo}, Gateway: ${usedAIGateway}`);
+      // This shouldn't happen with proxy routing, but log for monitoring
+      console.error(`⚠️ Geographic block despite routing logic. COLO: ${colo}, Proxy: ${usedProxy}`);
       return jsonResponse({
         error: 'Geographic restriction',
         details: 'OpenAI API unavailable from this region. Please contact support.',
         colo: colo,
-        debugInfo: `Routed via ${usedAIGateway ? 'AI Gateway' : 'Direct'}`
+        debugInfo: `Routed via ${usedProxy ? 'AWS Proxy' : 'Direct'}`
       }, 503);
     }
 
@@ -274,10 +336,10 @@ Return ONLY the JSON object, no additional text.`
       };
 
       // Call OpenAI API with smart geographic routing
-      const { response: openaiResponse, colo, usedAIGateway, startTime } = await callOpenAI(request, env, openaiRequest);
+      const { response: openaiResponse, colo, usedProxy, startTime } = await callOpenAI(request, env, openaiRequest);
 
       // Handle errors with comprehensive error handling
-      const errorResponse = await handleOpenAIResponse(openaiResponse, colo, usedAIGateway);
+      const errorResponse = await handleOpenAIResponse(openaiResponse, colo, usedProxy);
       if (errorResponse) {
         return errorResponse;
       }
@@ -326,7 +388,7 @@ Return ONLY the JSON object, no additional text.`
       console.log(JSON.stringify({
         event: 'food_recognition',
         colo: colo,
-        routing: usedAIGateway ? 'ai_gateway' : 'direct',
+        routing: usedProxy ? 'aws_proxy' : 'direct',
         status: 'success',
         latency_ms: latencyMs,
         tokens: data.usage?.total_tokens,
@@ -431,10 +493,10 @@ Return ONLY the JSON object, no additional text.`
     };
 
     // Call OpenAI API with smart geographic routing
-    const { response: openaiResponse, colo, usedAIGateway, startTime } = await callOpenAI(request, env, openaiRequest);
+    const { response: openaiResponse, colo, usedProxy, startTime } = await callOpenAI(request, env, openaiRequest);
 
     // Handle errors with comprehensive error handling
-    const errorResponse = await handleOpenAIResponse(openaiResponse, colo, usedAIGateway);
+    const errorResponse = await handleOpenAIResponse(openaiResponse, colo, usedProxy);
     if (errorResponse) {
       return errorResponse;
     }
@@ -464,7 +526,7 @@ Return ONLY the JSON object, no additional text.`
     console.log(JSON.stringify({
       event: 'nutrition_label',
       colo: colo,
-      routing: usedAIGateway ? 'ai_gateway' : 'direct',
+      routing: usedProxy ? 'aws_proxy' : 'direct',
       status: 'success',
       latency_ms: latencyMs,
       tokens: data.usage?.total_tokens,

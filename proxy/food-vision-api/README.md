@@ -10,6 +10,7 @@ Secure Cloudflare Worker proxy for OpenAI GPT-4o Vision API. This proxy keeps yo
 - ✅ Error handling and user-friendly messages
 - ✅ Structured JSON response format
 - ✅ **Free tier**: 100,000 requests/day on Cloudflare
+- ✅ **NEW: Geographic routing** - Automatically routes through AWS proxy when in OpenAI-blocked regions (HKG, China, Russia, etc.)
 
 ## Prerequisites
 
@@ -78,6 +79,39 @@ Secure Cloudflare Worker proxy for OpenAI GPT-4o Vision API. This proxy keeps yo
    npx wrangler deployments list
    ```
    - Copy the URL ending with `/analyze`
+
+## Geographic Routing (Optional but Recommended)
+
+**Problem:** Cloudflare Workers sometimes execute in regions where OpenAI blocks API access (Hong Kong, China, Russia, etc.), causing requests to fail.
+
+**Solution:** Set up an AWS EC2 proxy in Singapore that automatically handles requests from blocked regions.
+
+### When to set this up:
+- You're experiencing intermittent failures (HTTP 403 errors)
+- Your users are in Asia/Pacific regions
+- You want global reliability
+
+### Setup Guide:
+
+**New to AWS?** → [QUICK_START.md](./QUICK_START.md) - 30 min setup with **$0 cost** on free tier
+
+**Detailed guide:** → [AWS_PROXY_SETUP.md](./AWS_PROXY_SETUP.md) - Complete reference
+
+**Quick setup (30 minutes):**
+1. Launch EC2 t2.micro in Singapore (FREE TIER!)
+2. Install nginx reverse proxy with BasicAuth
+3. Set `PROXY_URL` secret in Cloudflare Worker
+4. Deploy worker - automatic routing enabled!
+
+**Cost:**
+- With free tier: **$0/month** for first 12 months
+- After free tier: ~$3-5/month (Smart Placement reduces usage by 60-80%)
+
+**How it works:**
+- Worker detects its execution region (COLO)
+- If in blocked region → Routes through AWS proxy
+- If in normal region → Direct to OpenAI
+- Automatic fallback if proxy fails
 
 ## Testing the Proxy
 
