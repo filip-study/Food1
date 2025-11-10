@@ -96,6 +96,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 16. **Camera Dismissal Fix (2025-11-07):** Fixed camera briefly visible during meal save dismissal by hiding camera once photo captured and showing static photo background instead
 17. **Loading State Phase 2 (2025-11-07):** Added engaging loading experience with rotating blue sparkles indicator, rotating status messages (4 messages every 2s), photo thumbnail in corner, and reduced motion accessibility support
 18. **Macro Color Standardization (2025-11-07):** Fixed inconsistent macro colors across views - standardized to Protein=Blue, Carbs=Orange, Fat=Green everywhere
+19. **Cartoon Food Icons Feature (2025-11-07):** Added AI-generated cartoon food illustrations using pre-generated icon library (500 icons, ~10MB), 3-layer image hierarchy (photo > cartoon > emoji), interactive flip animation in detail view, fuzzy name matching with 70-80% coverage, Settings toggles for show/hide and auto-flip behavior
+20. **Micronutrient Tracking (2025-11-08):** Implemented local SQLite USDA database for comprehensive micronutrient tracking. Background enrichment matches ingredients to 12 key micronutrients (Calcium, Iron, Magnesium, Potassium, Zinc, Vitamins A/C/D/E/B12, Folate, Sodium) with RDA progress tracking. 100% offline, zero API calls, <10ms queries. Deleted HTTP-based USDAService (scalability issues) and manual ingredient search UI (violates "minimize friction" philosophy).
 
 **Future Considerations:**
 - User is open to switching APIs (OpenAI → Claude/Gemini) if better accuracy/cost
@@ -144,9 +146,13 @@ open Food1.xcodeproj
 ## Architecture
 
 ### Data Layer
-- **SwiftData Models:** `Meal` (Food1/Models/Meal.swift) stores nutrition data with UUID, name, emoji, timestamp, macros, and notes
-- **Persistence:** SwiftData ModelContainer initialized in Food1App.swift with schema for Meal entities
+- **SwiftData Models:**
+  - `Meal` (Food1/Models/Meal.swift) - Stores nutrition data with UUID, name, emoji, timestamp, macros, notes, and ingredient relationships
+  - `MealIngredient` (Food1/Models/MealIngredient.swift) - Ingredient breakdown with USDA linking (fdcId) and micronutrient caching (JSON blob)
+  - `Micronutrient` (Food1/Models/Micronutrient.swift) - Individual nutrient data structure with RDA percentage calculations
+- **Persistence:** SwiftData ModelContainer initialized in Food1App.swift with schema for Meal and MealIngredient entities
 - **Preview Support:** PreviewContainer utility provides in-memory ModelContainer for SwiftUI previews
+- **Local USDA Database:** SQLite database (`Food1/Data/usda_nutrients.db`) bundled in app for offline micronutrient lookups (FTS5 indexed, ~8MB compressed)
 
 ### Service Layer
 
@@ -168,6 +174,28 @@ open Food1.xcodeproj
 - 60-second timeout for GPT-4o processing
 - Structured JSON response parsing into FoodPrediction objects and NutritionLabelData
 - Comprehensive error handling (rate limits, network errors, API errors)
+
+**LocalUSDAService** (Food1/Services/LocalUSDAService.swift)
+- SQLite-based USDA food database queries (100% offline, zero API calls)
+- FTS5 full-text search for ingredient name matching (<10ms per query)
+- Nutrient data retrieval scaled to gram amounts (<5ms per food)
+- Returns micronutrient data with RDA percentages
+- Handles 12 key micronutrients: Calcium, Iron, Magnesium, Potassium, Zinc, Vitamins A/C/D/E/B12, Folate, Sodium
+- Memory-efficient: ~5MB active memory, query results cached
+
+**FuzzyMatchingService** (Food1/Services/FuzzyMatchingService.swift)
+- Matches ingredient names from GPT-4o to USDA foods
+- Text normalization and cleaning (removes "grilled", "fresh", "organic", etc.)
+- FTS5 full-text search with Porter stemming
+- Conservative matching (rejects low-confidence matches <50%)
+- Target accuracy: >70% auto-match rate on common foods
+
+**BackgroundEnrichmentService** (Food1/Services/BackgroundEnrichmentService.swift)
+- Orchestrates async micronutrient enrichment in background (non-blocking)
+- Processes ingredients in parallel after meal save
+- Uses FuzzyMatchingService + LocalUSDAService for offline enrichment
+- Caches micronutrients in MealIngredient.cachedMicronutrientsJSON
+- SwiftData observation updates UI automatically when complete (100-200ms typical)
 
 ### View Architecture
 
@@ -193,11 +221,16 @@ TodayView + button (toolbar) → AddMealTabView
 **Key Components:**
 - **AddMealTabView:** Tabbed interface with Photo recognition and Manual entry. Photo recognition uses GPT-4o Vision API with automatic packaging detection.
 - **CameraPicker:** UIImagePickerController wrapper supporting camera and photo library
-- **NutritionReviewView:** Review and edit AI-generated nutrition data before saving. Supports serving size multiplier and nutrition label data.
-- **MealCard:** Displays meal summary with photo or emoji, name, calories, and macros.
+- **NutritionReviewView:** Review and edit AI-generated nutrition data before saving. Supports serving size multiplier, nutrition label data, and ingredient editing.
+- **IngredientListView:** Shows meal ingredients with gram amounts. Users can edit names/grams or delete ingredients. No manual "Add Ingredient" button (MVP decision - AI-detected only).
+- **IngredientRow:** Inline editing component for ingredient gram amounts with stepper controls.
+- **MealCard:** Displays meal summary with photo/cartoon/emoji, name, calories, and macros. 3-layer image hierarchy with sparkle badge for AI icons.
+- **MealDetailView:** Detailed meal view with photo, macros, micronutrients (if available), and notes. Micronutrient section shows RDA progress bars.
+- **MicronutrientRow:** Displays individual micronutrient with name, amount, unit, and color-coded RDA progress bar (Red <20%, Orange 20-50%, Green 50-100%, Blue ≥100%).
 - **MetricsDashboardView:** Progress rings showing daily nutrition vs goals
 - **DateNavigationHeader:** Inline date picker with left/right arrows. Shows "Today" for current date, "Yesterday", or formatted date. Click to open calendar popover.
 - **PredictionRow:** Displays AI prediction with confidence score, description, and nutrition summary
+- **FlippableImageView:** Interactive view that flips between real photo and cartoon icon with 3D rotation animation. Auto-flips on appear, manual flip on tap.
 
 **Packaging Detection & Nutrition Label Scanning:**
 - GPT-4o automatically detects if food is in packaging (unopened or partially opened)
@@ -300,29 +333,46 @@ Food1/
 │   ├── Food1App.swift           - App entry point, ModelContainer setup
 │   └── MainTabView.swift         - Tab navigation root
 ├── Models/
-│   ├── Meal.swift                - SwiftData meal entity
+│   ├── Meal.swift                - SwiftData meal entity with ingredient relationships
+│   ├── MealIngredient.swift      - Ingredient breakdown with USDA data caching
+│   ├── Micronutrient.swift       - Micronutrient data structure with RDA values
 │   ├── UserProfile.swift         - User settings enums (Gender, ActivityLevel, etc.)
 │   └── AppSettings.swift         - App configuration
 ├── Services/
-│   ├── FoodRecognitionService.swift  - Abstraction layer for AI vision
-│   ├── OpenAIVisionService.swift     - GPT-4o Vision API client
-│   └── FoodIconMapper.swift          - (Disabled) Maps meal names to cartoon icons
+│   ├── FoodRecognitionService.swift     - Abstraction layer for AI vision
+│   ├── OpenAIVisionService.swift        - GPT-4o Vision API client
+│   ├── LocalUSDAService.swift           - Local USDA database queries (SQLite)
+│   ├── FuzzyMatchingService.swift       - Ingredient name matching algorithm
+│   ├── BackgroundEnrichmentService.swift - Async micronutrient enrichment
+│   └── FoodIconMapper.swift             - Maps meal names to cartoon icons
 ├── Config/
 │   ├── APIConfig.swift               - API endpoint & auth token (gitignored)
 │   └── APIConfig.swift.example       - Template for developers
 ├── Views/
 │   ├── Today/                    - Daily meal logging
+│   │   ├── TodayView.swift
+│   │   ├── MealDetailView.swift      - Shows macros + micronutrients
+│   │   └── MetricsDashboardView.swift
 │   ├── History/                  - Historical data
 │   ├── Stats/                    - Analytics
 │   ├── Settings/                 - User preferences
 │   ├── Recognition/              - Nutrition review after recognition
+│   │   └── NutritionReviewView.swift  - Includes ingredient editing
 │   └── Components/               - Reusable UI components
+│       ├── IngredientListView.swift   - Ingredient list with editing
+│       ├── IngredientRow.swift        - Inline gram editing
+│       ├── MicronutrientRow.swift     - RDA progress bars
+│       ├── MealCard.swift
+│       ├── FlippableImageView.swift   - Photo/cartoon flip animation
+│       └── ...
 ├── Utilities/
 │   ├── PreviewContainer.swift       - SwiftData preview helper
-│   ├── StringExtensions.swift       - String truncation utilities (character limit handling)
+│   ├── StringExtensions.swift       - String truncation utilities
 │   ├── HapticManager.swift          - Centralized haptic feedback
-│   └── NutritionFormatter.swift     - Nutrition value formatting
+│   ├── NutritionFormatter.swift     - Nutrition value formatting
+│   └── RDAValues.swift              - FDA recommended daily allowances
 └── Data/
+    ├── usda_nutrients.db         - Local USDA food database (SQLite, FTS5 indexed)
     └── MockData.swift            - Sample data for previews
 ```
 
