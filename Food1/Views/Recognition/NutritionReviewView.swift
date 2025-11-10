@@ -303,6 +303,13 @@ struct NutritionReviewView: View {
             modelContext.insert(newMeal)
         }
 
+        // Background: Automatically enrich ingredients with USDA micronutrient data (local database, zero API calls)
+        if let ingredients = newMeal.ingredients, !ingredients.isEmpty {
+            Task.detached {
+                await BackgroundEnrichmentService.shared.enrichIngredients(ingredients)
+            }
+        }
+
         // Dismiss both sheets
         dismiss()
         // Note: This will dismiss the nutrition review sheet.

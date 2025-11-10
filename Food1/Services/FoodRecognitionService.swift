@@ -40,6 +40,9 @@ class FoodRecognitionService: ObservableObject {
         // Packaging detection
         let hasPackaging: Bool
 
+        // Micronutrient tracking: Ingredient breakdown (Phase 1)
+        let ingredients: [IngredientData]?
+
         var confidencePercentage: Int {
             Int(confidence * 100)
         }
@@ -53,6 +56,16 @@ class FoodRecognitionService: ObservableObject {
         var hasNutritionData: Bool {
             calories != nil && protein != nil && carbs != nil && fat != nil
         }
+
+        var hasIngredients: Bool {
+            ingredients?.isEmpty == false
+        }
+    }
+
+    /// Ingredient data from GPT-4o (for micronutrient tracking)
+    struct IngredientData: Codable {
+        let name: String     // e.g., "grilled chicken breast", "romaine lettuce"
+        let grams: Double    // Estimated grams (15% conservative reduction already applied by GPT-4o)
     }
 
     // MARK: - Food Recognition

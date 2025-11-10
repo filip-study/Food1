@@ -88,6 +88,10 @@ class OpenAIVisionService: ObservableObject {
                     throw OpenAIVisionError.rateLimitExceeded
                 } else if httpResponse.statusCode == 401 {
                     throw OpenAIVisionError.unauthorized
+                } else if httpResponse.statusCode == 451 {
+                    // Geographic restriction (HTTP 451: Unavailable For Legal Reasons)
+                    let suggestion = errorResponse?.suggestion ?? "Try using a VPN connected to US, UK, or Western Europe."
+                    throw OpenAIVisionError.geographicRestriction(suggestion)
                 } else {
                     throw OpenAIVisionError.apiError(errorMsg)
                 }
@@ -104,6 +108,15 @@ class OpenAIVisionService: ObservableObject {
                     print("    Nutrition: \(Int(cals)) cal, \(String(format: "%.1f", prot))g protein, \(String(format: "%.1f", carbs))g carbs, \(String(format: "%.1f", fat))g fat, ~\(Int(pred.estimatedGrams))g")
                 } else {
                     print("    ⚠️ Nutrition data: calories=\(pred.calories?.description ?? "nil"), protein=\(pred.protein?.description ?? "nil"), carbs=\(pred.carbs?.description ?? "nil"), fat=\(pred.fat?.description ?? "nil")")
+                }
+                // Debug: Log ingredients if present
+                if let ingredients = pred.ingredients, !ingredients.isEmpty {
+                    print("    🥗 Ingredients (\(ingredients.count)):")
+                    ingredients.forEach { ingredient in
+                        print("       • \(ingredient.name): \(String(format: "%.0f", ingredient.grams))g")
+                    }
+                } else {
+                    print("    🥗 Ingredients: none")
                 }
             }
 
@@ -252,7 +265,17 @@ class OpenAIVisionService: ObservableObject {
             if httpResponse.statusCode != 200 {
                 let errorResponse = try? JSONDecoder().decode(ProxyErrorResponse.self, from: data)
                 let errorMsg = errorResponse?.error ?? "Request failed with status \(httpResponse.statusCode)"
-                throw OpenAIVisionError.apiError(errorMsg)
+
+                if httpResponse.statusCode == 429 {
+                    throw OpenAIVisionError.rateLimitExceeded
+                } else if httpResponse.statusCode == 401 {
+                    throw OpenAIVisionError.unauthorized
+                } else if httpResponse.statusCode == 451 {
+                    let suggestion = errorResponse?.suggestion ?? "Try using a VPN connected to US, UK, or Western Europe."
+                    throw OpenAIVisionError.geographicRestriction(suggestion)
+                } else {
+                    throw OpenAIVisionError.apiError(errorMsg)
+                }
             }
 
             // Step 5: Parse label response
@@ -290,7 +313,15 @@ class OpenAIVisionService: ObservableObject {
 
         // Convert proxy data to FoodPrediction structs
         let predictions = proxyResponse.data.predictions.map { predData in
-            FoodRecognitionService.FoodPrediction(
+            // Convert ingredients from API format to service format
+            let ingredients = predData.ingredients?.map { ingredientData in
+                FoodRecognitionService.IngredientData(
+                    name: ingredientData.name,
+                    grams: ingredientData.grams
+                )
+            }
+
+            return FoodRecognitionService.FoodPrediction(
                 label: predData.label.displayName,  // Safety net: truncates at 45 chars if GPT-4o exceeds 40
                 confidence: Float(predData.confidence),
                 description: predData.description,
@@ -300,7 +331,8 @@ class OpenAIVisionService: ObservableObject {
                 carbs: predData.nutrition?.carbs,
                 fat: predData.nutrition?.fat,
                 estimatedGrams: predData.nutrition?.estimatedGrams ?? 100.0,
-                hasPackaging: hasPackaging
+                hasPackaging: hasPackaging,
+                ingredients: ingredients
             )
         }
 
@@ -333,6 +365,7 @@ enum OpenAIVisionError: LocalizedError {
     case invalidResponse
     case apiError(String)
     case rateLimitExceeded
+    case geographicRestriction(String)
 
     var errorDescription: String? {
         switch self {
@@ -352,6 +385,8 @@ enum OpenAIVisionError: LocalizedError {
             return message
         case .rateLimitExceeded:
             return "Too many requests. Please try again in a moment."
+        case .geographicRestriction(let suggestion):
+            return "Service unavailable in your region. \(suggestion)"
         }
     }
 }
@@ -379,6 +414,12 @@ private struct ProxyResponse: Decodable {
         let confidence: Double
         let description: String?
         let nutrition: NutritionData?
+        let ingredients: [IngredientData]?  // Micronutrient tracking: ingredient breakdown
+    }
+
+    struct IngredientData: Decodable {
+        let name: String
+        let grams: Double
     }
 
     struct NutritionData: Decodable {
@@ -412,6 +453,7 @@ private struct ProxyErrorResponse: Decodable {
     let error: String
     let details: String?
     let message: String?
+    let suggestion: String?  // VPN suggestion for geographic restrictions
 }
 
 /// Response from nutrition label analysis endpoint
