@@ -17,6 +17,7 @@ struct MealDetailView: View {
 
     @State private var showingEditSheet = false
     @State private var showingDeleteAlert = false
+    @State private var showAllMicronutrients = false
 
     private var timeString: String {
         let formatter = DateFormatter()
@@ -25,31 +26,62 @@ struct MealDetailView: View {
         return formatter.string(from: meal.timestamp)
     }
 
+    // Enrichment progress tracking
+    private var enrichmentProgress: (enriched: Int, total: Int, inProgress: Bool) {
+        guard let ingredients = meal.ingredients else {
+            return (0, 0, false)
+        }
+        let total = ingredients.count
+        let enriched = ingredients.filter { $0.usdaFdcId != nil }.count
+        let inProgress = enriched < total && enriched > 0
+        return (enriched, total, inProgress)
+    }
+
+    private var hasUnmatchedIngredients: Bool {
+        guard let ingredients = meal.ingredients else { return false }
+        return ingredients.contains { $0.usdaFdcId == nil }
+    }
+
+    // Priority micronutrients (top 10 by RDA%)
+    private var priorityMicronutrients: [Micronutrient] {
+        Array(meal.micronutrients.prefix(10))
+    }
+
+    // Micronutrients grouped by category
+    private var groupedMicronutrients: [(String, [Micronutrient])] {
+        let grouped = Dictionary(grouping: meal.micronutrients) { $0.category }
+
+        // Order: Vitamins, Minerals, Electrolytes, Other
+        return [
+            ("Vitamins", grouped[.vitamin] ?? []),
+            ("Minerals", grouped[.mineral] ?? []),
+            ("Electrolytes", grouped[.electrolyte] ?? []),
+            ("Fiber", grouped[.fiber] ?? []),
+            ("Fatty Acids", grouped[.fattyAcid] ?? []),
+            ("Other", grouped[.other] ?? [])
+        ].filter { !$0.1.isEmpty }
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                // Header with photo or emoji
+                // Header with photo/emoji
                 VStack(spacing: 12) {
-                    // Photo or Emoji
-                    Group {
-                        if let imageData = meal.photoData,
-                           let uiImage = UIImage(data: imageData) {
-                            // Show captured food photo
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: 120, height: 120)
-                                .clipShape(RoundedRectangle(cornerRadius: 20))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 20)
-                                        .strokeBorder(Color(.separator).opacity(0.3), lineWidth: 1)
-                                )
-                                .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
-                        } else {
-                            // Fallback to emoji
-                            Text(meal.emoji)
-                                .font(.system(size: 80))
-                        }
+                    // Show photo or emoji
+                    if let imageData = meal.photoData,
+                       let uiImage = UIImage(data: imageData) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: 120, height: 120)
+                            .clipShape(RoundedRectangle(cornerRadius: 20))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 20)
+                                    .strokeBorder(Color(.separator).opacity(0.3), lineWidth: 1)
+                            )
+                    } else {
+                        Text(meal.emoji)
+                            .font(.system(size: 80))
                     }
 
                     Text(meal.name)
@@ -68,7 +100,7 @@ struct MealDetailView: View {
                         icon: "flame.fill",
                         label: "Calories",
                         value: "\(Int(meal.calories))",
-                        color: .blue
+                        color: .secondary
                     )
 
                     Divider()
@@ -77,7 +109,7 @@ struct MealDetailView: View {
                         icon: "drop.fill",
                         label: "Protein",
                         value: NutritionFormatter.format(meal.protein, unit: nutritionUnit),
-                        color: .blue
+                        color: .secondary
                     )
 
                     Divider()
@@ -86,7 +118,7 @@ struct MealDetailView: View {
                         icon: "leaf.fill",
                         label: "Carbs",
                         value: NutritionFormatter.format(meal.carbs, unit: nutritionUnit),
-                        color: .green
+                        color: .secondary
                     )
 
                     Divider()
@@ -95,8 +127,20 @@ struct MealDetailView: View {
                         icon: "circle.fill",
                         label: "Fat",
                         value: NutritionFormatter.format(meal.fat, unit: nutritionUnit),
-                        color: .orange
+                        color: .secondary
                     )
+
+                    // Show fiber if available (> 0)
+                    if meal.fiber > 0 {
+                        Divider()
+
+                        NutritionRow(
+                            icon: "leaf.arrow.circlepath",
+                            label: "Fiber",
+                            value: NutritionFormatter.format(meal.fiber, unit: nutritionUnit),
+                            color: .secondary
+                        )
+                    }
                 }
                 .padding(20)
                 .background(
@@ -104,6 +148,181 @@ struct MealDetailView: View {
                         .fill(Color(.secondarySystemBackground))
                 )
                 .padding(.horizontal)
+
+                // Ingredients section
+                if let ingredients = meal.ingredients, !ingredients.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("INGREDIENTS")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.secondary)
+
+                            Spacer()
+
+                            Text("\(ingredients.count)")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(
+                                    Circle()
+                                        .fill(Color(.tertiarySystemBackground))
+                                )
+                        }
+
+                        ForEach(ingredients) { ingredient in
+                            IngredientReadOnlyRow(ingredient: ingredient, showStatus: true)
+
+                            if ingredient.id != ingredients.last?.id {
+                                Divider()
+                            }
+                        }
+
+                        // Footer when some ingredients couldn't be matched
+                        if hasUnmatchedIngredients {
+                            HStack(spacing: 6) {
+                                Image(systemName: "info.circle")
+                                    .font(.caption2)
+                                Text("Some ingredients have limited nutrition data")
+                                    .font(.caption2)
+                            }
+                            .foregroundColor(.secondary)
+                            .padding(.top, 4)
+                        }
+                    }
+                    .padding(20)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color(.secondarySystemBackground))
+                    )
+                    .padding(.horizontal)
+                }
+
+                // Micronutrients section
+                if meal.hasMicronutrients || enrichmentProgress.inProgress {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(alignment: .top) {
+                            Text("Micronutrients")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundColor(.primary)
+
+                            Spacer()
+
+                            // Progress indicator
+                            if enrichmentProgress.inProgress {
+                                HStack(spacing: 4) {
+                                    ForEach(0..<3, id: \.self) { index in
+                                        Circle()
+                                            .fill(index < min(enrichmentProgress.enriched, 3) ? Color.blue : Color.gray.opacity(0.3))
+                                            .frame(width: 6, height: 6)
+                                    }
+
+                                    Text("\(enrichmentProgress.enriched) of \(enrichmentProgress.total)")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            } else {
+                                Image(systemName: "info.circle")
+                                    .font(.system(size: 15))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.bottom, 4)
+
+                        // Info message or partial data indicator
+                        if enrichmentProgress.enriched < enrichmentProgress.total && enrichmentProgress.enriched > 0 {
+                            Text("Based on \(enrichmentProgress.enriched) of \(enrichmentProgress.total) ingredients")
+                                .font(.system(size: 13))
+                                .foregroundColor(.secondary)
+                                .padding(.bottom, 8)
+                        } else {
+                            Text("Shows vitamins and minerals as % of Recommended Daily Allowance (RDA)")
+                                .font(.system(size: 13))
+                                .foregroundColor(.secondary)
+                                .padding(.bottom, 8)
+                        }
+
+                        // Show priority or all micronutrients
+                        if showAllMicronutrients {
+                            // Grouped by category
+                            ForEach(groupedMicronutrients, id: \.0) { category, nutrients in
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text(category.uppercased())
+                                        .font(.system(size: 11, weight: .semibold))
+                                        .foregroundColor(.secondary)
+                                        .padding(.top, 8)
+
+                                    ForEach(nutrients) { micronutrient in
+                                        MicronutrientRow(micronutrient: micronutrient)
+
+                                        if micronutrient.id != nutrients.last?.id {
+                                            Divider()
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            // Top 10 priority micronutrients
+                            ForEach(priorityMicronutrients) { micronutrient in
+                                MicronutrientRow(micronutrient: micronutrient)
+
+                                if micronutrient.id != priorityMicronutrients.last?.id {
+                                    Divider()
+                                }
+                            }
+                        }
+
+                        // Show All / Show Less button
+                        if meal.micronutrients.count > 10 {
+                            Button(action: {
+                                withAnimation {
+                                    showAllMicronutrients.toggle()
+                                }
+                            }) {
+                                HStack {
+                                    Text(showAllMicronutrients ? "Show Less" : "Show All (\(meal.micronutrients.count) nutrients)")
+                                        .font(.system(size: 15, weight: .medium))
+                                    Image(systemName: showAllMicronutrients ? "chevron.up" : "chevron.down")
+                                        .font(.system(size: 13))
+                                }
+                                .foregroundColor(.blue)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                            }
+                            .padding(.top, 4)
+                        }
+                    }
+                    .padding(20)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color(.secondarySystemBackground))
+                    )
+                    .padding(.horizontal)
+                } else if let ingredients = meal.ingredients, !ingredients.isEmpty {
+                    // Empty state - ingredients exist but no micronutrients
+                    VStack(spacing: 12) {
+                        Image(systemName: "chart.bar.xaxis")
+                            .font(.system(size: 40))
+                            .foregroundColor(.secondary.opacity(0.5))
+                            .padding(.top, 20)
+
+                        Text("Detailed nutrition unavailable")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundColor(.primary)
+
+                        Text("Only macro data for this meal")
+                            .font(.system(size: 15))
+                            .foregroundColor(.secondary)
+                            .padding(.bottom, 20)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(20)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color(.secondarySystemBackground))
+                    )
+                    .padding(.horizontal)
+                }
 
                 // Notes section
                 if let notes = meal.notes, !notes.isEmpty {
