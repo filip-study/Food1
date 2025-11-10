@@ -75,3 +75,21 @@ Food1/Services/FastVLM/model/
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# Local LLM models (large files, download separately)
+Food1/Services/LocalLLM/
+
+# SQLite temporary files
+*.db-shm
+*.db-wal
+
+# Icon generation artifacts
+generated_icons/
+*.log
+population_progress.json
+
+# Documentation (created by AI, not version controlled)
+docs/
+*_SETUP.md
+*_GUIDE.md
+QUICK_START*.md
