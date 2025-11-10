@@ -55,19 +55,29 @@ struct MetricsDashboardView: View {
     }
 
     var body: some View {
-        VStack(spacing: 20) {
-            // Mood indicator with add button
-            HStack(spacing: 12) {
-                Text(moodEmoji)
-                    .font(.system(size: 44))
+        VStack(spacing: 24) {
+            // Hero metric section - Oura style
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 12) {
+                    // Status label
+                    Text(moodMessage.uppercased())
+                        .font(.system(size: 11, weight: .semibold, design: .rounded))
+                        .foregroundColor(.secondary)
+                        .tracking(1.2)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(moodMessage)
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
-                        .foregroundColor(.primary)
+                    // Hero calorie number
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text("\(Int(currentCalories))")
+                            .font(.system(size: 56, weight: .bold, design: .rounded))
+                            .foregroundColor(.primary)
+                        Text("cal")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(.secondary)
+                    }
 
-                    Text("\(Int(currentCalories)) / \(Int(goals.calories)) cal")
-                        .font(.system(size: 15, weight: .medium, design: .rounded))
+                    // Progress text
+                    Text("\(Int(currentCalories)) of \(Int(goals.calories)) cal today")
+                        .font(.system(size: 15, weight: .medium))
                         .foregroundColor(.secondary)
                 }
 
@@ -80,8 +90,13 @@ struct MetricsDashboardView: View {
                 )
             }
 
-            // Macro bars
-            VStack(spacing: 12) {
+            // Divider
+            Rectangle()
+                .fill(Color.primary.opacity(0.1))
+                .frame(height: 1)
+
+            // Macro bars - more compact
+            VStack(spacing: 14) {
                 MacroBar(
                     name: "Protein",
                     current: currentProtein,
@@ -94,7 +109,7 @@ struct MetricsDashboardView: View {
                     name: "Carbs",
                     current: currentCarbs,
                     goal: goals.carbs,
-                    color: .green,
+                    color: .orange,
                     unit: nutritionUnit
                 )
 
@@ -102,39 +117,36 @@ struct MetricsDashboardView: View {
                     name: "Fat",
                     current: currentFat,
                     goal: goals.fat,
-                    color: .orange,
+                    color: .green,
                     unit: nutritionUnit
                 )
             }
         }
-        .padding(20)
+        .padding(24)
         .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color(.tertiarySystemBackground))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
+            ZStack {
+                // Gradient background
+                LinearGradient(
+                    colors: [
+                        Color(.secondarySystemGroupedBackground),
+                        Color(.tertiarySystemBackground)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
                 )
-                .shadow(color: Color.primary.opacity(0.08), radius: 16, x: 0, y: 4)
+
+                // Subtle overlay
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(Color.white.opacity(0.02))
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 24))
+            .overlay(
+                RoundedRectangle(cornerRadius: 24)
+                    .strokeBorder(Color.white.opacity(0.05), lineWidth: 1)
+            )
+            .shadow(color: Color.black.opacity(0.15), radius: 24, x: 0, y: 8)
         )
         .padding(.horizontal)
-        .scaleEffect(isBreathing ? 1.0 : 0.98)
-        .animation(
-            calorieProgress < 0.3 ? .easeInOut(duration: 2.5).repeatForever(autoreverses: true) : .default,
-            value: isBreathing
-        )
-        .onAppear {
-            if calorieProgress < 0.3 {
-                isBreathing = true
-            }
-        }
-        .onChange(of: calorieProgress) { oldValue, newValue in
-            if newValue < 0.3 && !isBreathing {
-                isBreathing = true
-            } else if newValue >= 0.3 && isBreathing {
-                isBreathing = false
-            }
-        }
     }
 }
 
@@ -202,6 +214,15 @@ struct MacroBar: View {
         return current / goal
     }
 
+    // State-based saturation: muted when low, full when approaching/complete
+    private var fillColor: Color {
+        if progress >= 0.7 {
+            return color  // Approaching/at goal - full saturation base color
+        } else {
+            return color.opacity(0.6)  // Low progress - muted version
+        }
+    }
+
     var body: some View {
         VStack(spacing: 6) {
             HStack {
@@ -219,17 +240,17 @@ struct MacroBar: View {
             GeometryReader { geometry in
                 ZStack(alignment: .leading) {
                     // Background
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(color.opacity(0.15))
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(color.opacity(0.12))
 
-                    // Progress
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(color)
+                    // Progress with solid fill (state-based color)
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(fillColor)
                         .frame(width: geometry.size.width * min(progress, 1.0))
                         .animation(.spring(response: 0.6, dampingFraction: 0.8), value: progress)
                 }
             }
-            .frame(height: 8)
+            .frame(height: 10)
         }
     }
 }

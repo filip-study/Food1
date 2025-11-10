@@ -7,18 +7,21 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		729E49CBB870FDEB64607121 /* model in Resources */ = {isa = PBXBuildFile; fileRef = F8614D879D319366EDE477D6 /* model */; };
 		DC5B52B82EBBA39500D0439E /* MLX in Frameworks */ = {isa = PBXBuildFile; productRef = DC5B52B72EBBA39500D0439E /* MLX */; };
 		DC5B52BA2EBBA39900D0439E /* MLXNN in Frameworks */ = {isa = PBXBuildFile; productRef = DC5B52B92EBBA39900D0439E /* MLXNN */; };
 		DC5B52BC2EBBA3A900D0439E /* MLXFast in Frameworks */ = {isa = PBXBuildFile; productRef = DC5B52BB2EBBA3A900D0439E /* MLXFast */; };
 		DC5B52BE2EBBA3AE00D0439E /* MLXRandom in Frameworks */ = {isa = PBXBuildFile; productRef = DC5B52BD2EBBA3AE00D0439E /* MLXRandom */; };
 		DC5B52C02EBBA3B500D0439E /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = DC5B52BF2EBBA3B500D0439E /* MLXLMCommon */; };
 		DC5B52C22EBBA3BC00D0439E /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = DC5B52C12EBBA3BC00D0439E /* MLXVLM */; };
+		DC5B52C42EBBA3C000D0439E /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = DC5B52C32EBBA3C000D0439E /* MLXLLM */; };
+		LLM000000000000000000001 /* LocalLLM in Resources */ = {isa = PBXBuildFile; fileRef = LLM000000000000000000002 /* LocalLLM */; };
+		USDA00000000000000000001 /* usda_nutrients.db in Resources */ = {isa = PBXBuildFile; fileRef = USDA00000000000000000002 /* usda_nutrients.db */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		DC65CB812EB8EA5900B066D7 /* Food1.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Food1.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		F8614D879D319366EDE477D6 /* model */ = {isa = PBXFileReference; lastKnownFileType = folder; name = model; path = Food1/Services/FastVLM/model; sourceTree = "<group>"; };
+		LLM000000000000000000002 /* LocalLLM */ = {isa = PBXFileReference; lastKnownFileType = folder; name = LocalLLM; path = Food1/Services/LocalLLM; sourceTree = "<group>"; };
+		USDA00000000000000000002 /* usda_nutrients.db */ = {isa = PBXFileReference; lastKnownFileType = file; name = usda_nutrients.db; path = Food1/Data/usda_nutrients.db; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -37,6 +40,7 @@
 				DC5B52C02EBBA3B500D0439E /* MLXLMCommon in Frameworks */,
 				DC5B52BC2EBBA3A900D0439E /* MLXFast in Frameworks */,
 				DC5B52C22EBBA3BC00D0439E /* MLXVLM in Frameworks */,
+				DC5B52C42EBBA3C000D0439E /* MLXLLM in Frameworks */,
 				DC5B52BA2EBBA39900D0439E /* MLXNN in Frameworks */,
 				DC5B52B82EBBA39500D0439E /* MLX in Frameworks */,
 				DC5B52BE2EBBA3AE00D0439E /* MLXRandom in Frameworks */,
@@ -58,8 +62,8 @@
 			children = (
 				DC65CB832EB8EA5900B066D7 /* Food1 */,
 				DC65CB822EB8EA5900B066D7 /* Products */,
-				F8614D879D319366EDE477D6 /* model */,
 				DC5B52B62EBBA39500D0439E /* Frameworks */,
+				DCBD08E72EBFA23400F8867C /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -69,6 +73,15 @@
 				DC65CB812EB8EA5900B066D7 /* Food1.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		DCBD08E72EBFA23400F8867C /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				LLM000000000000000000002 /* LocalLLM */,
+				USDA00000000000000000002 /* usda_nutrients.db */,
+			);
+			name = "Recovered References";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -97,6 +110,7 @@
 				DC5B52BD2EBBA3AE00D0439E /* MLXRandom */,
 				DC5B52BF2EBBA3B500D0439E /* MLXLMCommon */,
 				DC5B52C12EBBA3BC00D0439E /* MLXVLM */,
+				DC5B52C32EBBA3C000D0439E /* MLXLLM */,
 			);
 			productName = Food1;
 			productReference = DC65CB812EB8EA5900B066D7 /* Food1.app */;
@@ -145,7 +159,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				729E49CBB870FDEB64607121 /* model in Resources */,
+				LLM000000000000000000001 /* LocalLLM in Resources */,
+				USDA00000000000000000001 /* usda_nutrients.db in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -290,10 +305,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = UJ4482ZF9C;
 				ENABLE_PREVIEWS = YES;
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(SRCROOT)/Food1/Services/FastVLM",
-					"$(inherited)",
-				);
+				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "We need access to your camera to recognize food items and automatically log nutrition information.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "We need permission to save photos you capture for meal logging.";
@@ -328,10 +340,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = UJ4482ZF9C;
 				ENABLE_PREVIEWS = YES;
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(SRCROOT)/Food1/Services/FastVLM",
-					"$(inherited)",
-				);
+				FRAMEWORK_SEARCH_PATHS = "$(inherited)";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "We need access to your camera to recognize food items and automatically log nutrition information.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "We need permission to save photos you capture for meal logging.";
@@ -429,6 +438,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DC5B51772EBB6C3600D0439E /* XCRemoteSwiftPackageReference "mlx-swift-examples" */;
 			productName = MLXVLM;
+		};
+		DC5B52C32EBBA3C000D0439E /* MLXLLM */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DC5B51772EBB6C3600D0439E /* XCRemoteSwiftPackageReference "mlx-swift-examples" */;
+			productName = MLXLLM;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

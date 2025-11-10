@@ -49,7 +49,7 @@ struct TodayView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                    VStack(spacing: 24) {
+                    VStack(spacing: 32) {
                         // Metrics dashboard
                         MetricsDashboardView(
                             currentCalories: totals.calories,
@@ -61,7 +61,7 @@ struct TodayView: View {
                         )
 
                         // Meal timeline section
-                        VStack(alignment: .leading, spacing: 16) {
+                        VStack(alignment: .leading, spacing: 20) {
                             HStack {
                                 DateNavigationHeader(selectedDate: $selectedDate)
 
@@ -82,7 +82,7 @@ struct TodayView: View {
                                 EmptyStateView(content: emptyStateContent)
                             } else {
                                 // Meal cards
-                                LazyVStack(spacing: 12) {
+                                LazyVStack(spacing: 16) {
                                     ForEach(mealsForSelectedDate.sorted(by: { $0.timestamp > $1.timestamp })) { meal in
                                         NavigationLink(destination: MealDetailView(meal: meal)) {
                                             MealCard(meal: meal)
@@ -102,37 +102,38 @@ struct TodayView: View {
                             }
                         }
                     }
+                    .padding(.top, 8)
                 }
-                .background(Color(.systemGroupedBackground))
-                .offset(x: dragOffset)
-                .gesture(
-                    DragGesture()
-                        .onChanged { value in
-                            // Only allow horizontal drag
-                            if abs(value.translation.width) > abs(value.translation.height) {
-                                dragOffset = value.translation.width * 0.3 // Reduce movement for better feel
-                            }
+            }
+            .offset(x: dragOffset)
+            .gesture(
+                DragGesture()
+                    .onChanged { value in
+                        // Only allow horizontal drag
+                        if abs(value.translation.width) > abs(value.translation.height) {
+                            dragOffset = value.translation.width * 0.3 // Reduce movement for better feel
                         }
-                        .onEnded { value in
-                            let threshold: CGFloat = 50
+                    }
+                    .onEnded { value in
+                        let threshold: CGFloat = 50
 
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                if value.translation.width > threshold {
-                                    // Swipe right - previous day
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            if value.translation.width > threshold {
+                                // Swipe right - previous day
+                                HapticManager.light()
+                                selectedDate = Calendar.current.date(byAdding: .day, value: -1, to: selectedDate)!
+                            } else if value.translation.width < -threshold {
+                                // Swipe left - next day (only if not future)
+                                let nextDay = Calendar.current.date(byAdding: .day, value: 1, to: selectedDate)!
+                                if nextDay <= Date() {
                                     HapticManager.light()
-                                    selectedDate = Calendar.current.date(byAdding: .day, value: -1, to: selectedDate)!
-                                } else if value.translation.width < -threshold {
-                                    // Swipe left - next day (only if not future)
-                                    let nextDay = Calendar.current.date(byAdding: .day, value: 1, to: selectedDate)!
-                                    if nextDay <= Date() {
-                                        HapticManager.light()
-                                        selectedDate = nextDay
-                                    }
+                                    selectedDate = nextDay
                                 }
-                                dragOffset = 0
                             }
+                            dragOffset = 0
                         }
-                )
+                    }
+            )
             .navigationBarTitleDisplayMode(.inline)
             .fullScreenCover(isPresented: $showingQuickCamera) {
                 QuickAddMealView(selectedDate: selectedDate)
@@ -145,38 +146,39 @@ struct TodayView: View {
             }
         }
     }
-}
 
 // MARK: - Empty State Component
 struct EmptyStateView: View {
     let content: (emoji: String, title: String, subtitle: String)
 
-    @State private var isAnimating = false
-
     var body: some View {
-        VStack(spacing: 20) {
-            Text(content.emoji)
-                .font(.system(size: 72))
-                .scaleEffect(isAnimating ? 1.0 : 0.95)
-                .animation(
-                    .easeInOut(duration: 1.5)
-                        .repeatForever(autoreverses: true),
-                    value: isAnimating
-                )
-                .onAppear {
-                    isAnimating = true
-                }
+        VStack(spacing: 24) {
+            // Emoji with blue circle background
+            ZStack {
+                Circle()
+                    .fill(Color.blue.opacity(0.12))
+                    .frame(width: 120, height: 120)
 
-            VStack(spacing: 8) {
+                Text(content.emoji)
+                    .font(.system(size: 64))
+            }
+
+            VStack(spacing: 10) {
                 Text(content.title)
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.system(size: 22, weight: .bold))
                     .foregroundColor(.primary)
 
                 Text(content.subtitle)
-                    .font(.system(size: 16))
+                    .font(.system(size: 15, weight: .medium))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
+
+                // CTA text
+                Text("Tap + to add your first meal")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.blue)
+                    .padding(.top, 4)
             }
         }
         .frame(maxWidth: .infinity)
