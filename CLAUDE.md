@@ -359,13 +359,16 @@ Food1/
 │   ├── Recognition/              - Nutrition review after recognition
 │   │   └── NutritionReviewView.swift  - Includes ingredient editing
 │   └── Components/               - Reusable UI components
+│       ├── GradientProgressRing.swift  - Progress ring with gradient + glow
 │       ├── IngredientListView.swift   - Ingredient list with editing
 │       ├── IngredientRow.swift        - Inline gram editing
 │       ├── MicronutrientRow.swift     - RDA progress bars
 │       ├── MealCard.swift
+│       ├── InsightCard.swift          - Daily insights with frosted glass
 │       ├── FlippableImageView.swift   - Photo/cartoon flip animation
 │       └── ...
 ├── Utilities/
+│   ├── ColorPalette.swift           - Centralized color definitions (gradients, accents)
 │   ├── PreviewContainer.swift       - SwiftData preview helper
 │   ├── StringExtensions.swift       - String truncation utilities
 │   ├── HapticManager.swift          - Centralized haptic feedback
@@ -531,16 +534,93 @@ The app is optimized for fast GPT-4o Vision API responses (typically 2-5 seconds
 
 ### Macro Color Standards
 **IMPORTANT:** Use these colors consistently across ALL views for nutrition macros:
-- **Protein:** `.blue`
-- **Carbs:** `.orange`
-- **Fat:** `.green`
+- **Protein:** `.orange`
+- **Carbs:** `.green`
+- **Fat:** `.yellow`
+
+**Rationale:** These colors follow the industry standard (MacroFactor) and align with cognitive associations:
+- Orange = Protein (warmth, meat/fish, energy, attention-grabbing for target macro)
+- Green = Carbs (plants, vegetables, grains, natural foods)
+- Yellow = Fat (butter, oils, cheese, concentrated energy)
 
 These colors are used in:
 - MealCard.swift (macro dots below meal cards)
 - MetricsDashboardView.swift (progress bars on Today tab)
-- MealDetailView.swift (nutrition rows in detail view)
+- MealDetailView.swift (nutrition rows - removed for cleaner design, using .secondary)
 
 **DO NOT** use different colors for macros in any new views or features. Consistency is critical for UX.
+
+### Premium UI Visual Design (2025-11-14)
+
+The app uses a premium visual design inspired by Oura Ring and Function Health apps. Key patterns:
+
+**Gradient Backgrounds:**
+- TodayView has subtle gradient background using `LinearGradient`
+- Light mode: white → blue (0.05 opacity)
+- Dark mode: black → blue (0.08 opacity)
+- Pattern:
+  ```swift
+  .background(
+      LinearGradient(
+          colors: colorScheme == .light
+              ? [Color.white, Color.blue.opacity(0.05)]
+              : [Color.black, Color.blue.opacity(0.08)],
+          startPoint: .top,
+          endPoint: .bottom
+      )
+  )
+  ```
+
+**Frosted Glass Cards:**
+- All cards use `.thinMaterial` with 97% opacity
+- MetricsDashboardView, MealCard, InsightCard
+- Pattern:
+  ```swift
+  .background(
+      RoundedRectangle(cornerRadius: 20)
+          .fill(.thinMaterial)
+          .opacity(0.97)
+          .overlay(
+              RoundedRectangle(cornerRadius: 20)
+                  .strokeBorder(Color.white.opacity(0.05), lineWidth: 1)
+          )
+          .shadow(...)  // Layered shadows
+  )
+  ```
+
+**Gradient Progress Rings:**
+- `GradientProgressRing` component (Food1/Views/Components/GradientProgressRing.swift)
+- Uses `ColorPalette.gradientForProgress()` for dynamic gradient bands:
+  - 0-30%: Muted blue
+  - 30-70%: Teal → Blue
+  - 70-100%: Green → Mint
+  - >100%: Orange → Coral
+- Layered shadow glow effects (4pt inner + 12pt outer)
+- Adaptive shadow opacity (light: 0.6, dark: 0.8)
+
+**Color Palette (Food1/Utilities/ColorPalette.swift):**
+- Accent colors: `accentPrimary` (#007AFF), `accentSecondary` (#00D4AA teal), `accentTertiary` (#00E5FF cyan)
+- Progress gradients: `progressLowGradient`, `progressMediumGradient`, `progressHighGradient`, `progressOverGradient`
+- Macro colors: `macroProtein` (orange), `macroCarbs` (green), `macroFat` (yellow) - NON-NEGOTIABLE
+
+**Shadow Standards:**
+- Adaptive opacity for light/dark mode
+- Light mode: 6-8% primary, 2% secondary
+- Dark mode: 12-15% primary, 4% secondary
+- Layered approach: large radius (12-16pt) + small radius (4pt)
+
+**Corner Radius Standards:**
+- Hero cards (MetricsDashboard): 24pt
+- Meal/Insight cards: 20pt
+- Smaller components: 14-16pt
+
+**Implementation Files:**
+- ColorPalette.swift - Centralized color definitions
+- GradientProgressRing.swift - Reusable progress ring component
+- TodayView.swift - Gradient background
+- MetricsDashboardView.swift - Frosted glass + gradient ring
+- MealCard.swift - Frosted glass
+- InsightCard.swift - Frosted glass
 
 ### Date Navigation
 TodayView supports:
@@ -569,3 +649,12 @@ AppTheme enum (referenced in MainTabView) supports system/light/dark modes via @
 - dont just make up stuff about what features you plan to add. its my call what features to add. you can include RECOMMENDATIONS but it should be clearly stated they are comming from you as AI agent and I need to sign off on them and i may have a different opinion. it should be clear. technical improvements that dont affect functionality much is a different story and i can be a bit less involved
 - our software architects should reference existing docs and the CLAUDE.md file whenever making decisions
 - dont over document things just for the sake of documenting ........ we are not creating ahistory book here
+
+## Active Technologies
+- Swift 5.9+ (Xcode 16.0+, iOS 18.0 deployment target) + SwiftUI, SwiftData (existing - no new dependencies) (001-polished-ui)
+- N/A (UI-only changes, existing SwiftData models unchanged) (001-polished-ui)
+- Swift 5.9+ (iOS 18.0+ target) + SwiftUI (system framework), SwiftData (persistence - unchanged), SF Pro font family (002-premium-ui-redesign)
+- N/A (UI enhancement only - existing SwiftData meal storage unchanged) (002-premium-ui-redesign)
+
+## Recent Changes
+- 001-polished-ui: Added Swift 5.9+ (Xcode 16.0+, iOS 18.0 deployment target) + SwiftUI, SwiftData (existing - no new dependencies)

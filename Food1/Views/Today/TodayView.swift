@@ -10,6 +10,8 @@ import SwiftData
 
 struct TodayView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
+    @Environment(\.colorScheme) var colorScheme
     @Query(sort: \Meal.timestamp, order: .reverse) private var allMeals: [Meal]
 
     @State private var showingQuickCamera = false
@@ -46,9 +48,21 @@ struct TodayView: View {
         }
     }
 
+
     var body: some View {
         NavigationStack {
-            ScrollView {
+            ZStack {
+                // Gradient background layer
+                LinearGradient(
+                    colors: colorScheme == .light
+                        ? [Color.white, Color.blue.opacity(0.15)]
+                        : [Color.black, Color.blue.opacity(0.2)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+
+                ScrollView {
                     VStack(spacing: 32) {
                         // Metrics dashboard
                         MetricsDashboardView(
@@ -58,6 +72,17 @@ struct TodayView: View {
                             currentFat: totals.fat,
                             goals: .standard,
                             onAddMeal: { showingQuickCamera = true }
+                        )
+
+                        // Daily insight - placeholder for now
+                        InsightCard(
+                            icon: "flame.fill",
+                            title: "Great progress!",
+                            message: "You've hit your protein goal 5 days this week.",
+                            accentColor: .orange,
+                            onTap: {
+                                // TODO: Show detail view when data-driven insights are implemented
+                            }
                         )
 
                         // Meal timeline section
@@ -82,7 +107,7 @@ struct TodayView: View {
                                 EmptyStateView(content: emptyStateContent)
                             } else {
                                 // Meal cards
-                                LazyVStack(spacing: 16) {
+                                LazyVStack(spacing: 12) {
                                     ForEach(mealsForSelectedDate.sorted(by: { $0.timestamp > $1.timestamp })) { meal in
                                         NavigationLink(destination: MealDetailView(meal: meal)) {
                                             MealCard(meal: meal)
@@ -94,7 +119,7 @@ struct TodayView: View {
                                             }
                                         )
                                         .transition(.asymmetric(
-                                            insertion: .scale.combined(with: .opacity),
+                                            insertion: reduceMotion ? .opacity : .scale.combined(with: .opacity),
                                             removal: .opacity
                                         ))
                                     }
@@ -103,6 +128,7 @@ struct TodayView: View {
                         }
                     }
                     .padding(.top, 8)
+                    }
                 }
             }
             .offset(x: dragOffset)

@@ -9,6 +9,7 @@ import SwiftUI
 
 struct MealCard: View {
     @AppStorage("nutritionUnit") private var nutritionUnit: NutritionUnit = .metric
+    @Environment(\.colorScheme) var colorScheme
 
     let meal: Meal
 
@@ -26,19 +27,10 @@ struct MealCard: View {
         return "\(Int(meal.calories))cal  •  \(protein)P  •  \(carbs)C  •  \(fat)F"
     }
 
-    // Determine dominant macro (highest value)
-    private var dominantMacro: String {
-        let macros = [
-            ("protein", meal.protein),
-            ("carbs", meal.carbs),
-            ("fat", meal.fat)
-        ]
-        return macros.max(by: { $0.1 < $1.1 })?.0 ?? "protein"
-    }
 
     var body: some View {
-        HStack(spacing: 20) {
-            // Photo or Emoji (Oura-inspired large format)
+        HStack(spacing: 16) {
+            // Photo or Emoji (cleaner, more compact)
             Group {
                 if let imageData = meal.photoData,
                    let uiImage = UIImage(data: imageData) {
@@ -46,95 +38,73 @@ struct MealCard: View {
                     Image(uiImage: uiImage)
                         .resizable()
                         .aspectRatio(contentMode: .fill)
-                        .frame(width: 100, height: 100)
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .frame(width: 80, height: 80)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 16)
+                            RoundedRectangle(cornerRadius: 14)
                                 .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
                         )
-                        .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
+                        .shadow(color: Color.black.opacity(0.15), radius: 6, x: 0, y: 3)
                 } else {
                     // Layer 2: Fallback to emoji
                     Text(meal.emoji)
-                        .font(.system(size: 56))
-                        .frame(width: 100, height: 100)
+                        .font(.system(size: 44))
+                        .frame(width: 80, height: 80)
                         .background(
-                            RoundedRectangle(cornerRadius: 16)
+                            RoundedRectangle(cornerRadius: 14)
                                 .fill(Color(.systemGray6).opacity(0.3))
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 16)
+                                    RoundedRectangle(cornerRadius: 14)
                                         .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
                                 )
                         )
                 }
             }
 
-            // Meal info with enhanced typography
-            VStack(alignment: .leading, spacing: 8) {
-                // Food name (up to 2 lines) - Larger, bolder
+            // Meal info with clean hierarchy
+            VStack(alignment: .leading, spacing: 6) {
+                // Food name (single line, truncated) - PRIMARY
                 Text(meal.name)
-                    .font(.system(size: 19, weight: .bold))
+                    .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(.primary)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
 
-                // Time - subtle secondary text
-                Text(timeString)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.secondary)
-
-                Spacer()
-
-                // Calories - Hero metric style
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text("\(Int(meal.calories))")
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
-                        .foregroundColor(.primary)
-                    Text("cal")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.secondary)
+                // Time + Calories combined - SECONDARY
+                HStack(spacing: 4) {
+                    Text(timeString)
+                    Text("•")
+                    Text("\(Int(meal.calories)) cal")
                 }
-
-                // Macro display with enhanced spacing
-                HStack(spacing: 12) {
-                    MacroLabel(value: meal.protein, color: .blue, label: "P", isDominant: dominantMacro == "protein")
-                    MacroLabel(value: meal.carbs, color: .orange, label: "C", isDominant: dominantMacro == "carbs")
-                    MacroLabel(value: meal.fat, color: .green, label: "F", isDominant: dominantMacro == "fat")
-                }
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.secondary)
             }
 
             Spacer(minLength: 0)
         }
-        .padding(20)
+        .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 20)
-                .fill(Color(.secondarySystemGroupedBackground))
+                .fill(.ultraThinMaterial)
+                .opacity(0.85)
                 .overlay(
                     RoundedRectangle(cornerRadius: 20)
                         .strokeBorder(Color.white.opacity(0.05), lineWidth: 1)
                 )
-                .shadow(color: Color.black.opacity(0.12), radius: 20, x: 0, y: 8)
+                .shadow(
+                    color: Color.black.opacity(colorScheme == .dark ? 0.12 : 0.06),
+                    radius: 12,
+                    x: 0,
+                    y: 4
+                )
+                .shadow(
+                    color: Color.black.opacity(colorScheme == .dark ? 0.04 : 0.02),
+                    radius: 4,
+                    x: 0,
+                    y: 2
+                )
         )
         .padding(.horizontal)
-    }
-}
-
-/// Color-coded macro label component with visual hierarchy
-struct MacroLabel: View {
-    let value: Double
-    let color: Color
-    let label: String
-    let isDominant: Bool
-
-    var body: some View {
-        HStack(spacing: 3) {
-            Circle()
-                .fill(color)
-                .frame(width: isDominant ? 8 : 6, height: isDominant ? 8 : 6)
-            Text("\(Int(value))g")
-                .font(.system(size: isDominant ? 14 : 13, weight: isDominant ? .semibold : .medium))
-                .foregroundStyle(isDominant ? .primary : .secondary)
-        }
     }
 }
 

@@ -9,6 +9,8 @@ import SwiftUI
 
 struct MetricsDashboardView: View {
     @AppStorage("nutritionUnit") private var nutritionUnit: NutritionUnit = .metric
+    @Environment(\.colorScheme) var colorScheme
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
 
     let currentCalories: Double
     let currentProtein: Double
@@ -74,6 +76,7 @@ struct MetricsDashboardView: View {
                             .font(.system(size: 18, weight: .medium))
                             .foregroundColor(.secondary)
                     }
+                    .accessibilityLabel("Current calories: \(Int(currentCalories)) of \(Int(goals.calories))")
 
                     // Progress text
                     Text("\(Int(currentCalories)) of \(Int(goals.calories)) cal today")
@@ -84,7 +87,7 @@ struct MetricsDashboardView: View {
                 Spacer()
 
                 // Add meal button with circular progress ring
-                CircularProgressRing(
+                GradientProgressRingButton(
                     progress: calorieProgress,
                     action: onAddMeal
                 )
@@ -101,7 +104,7 @@ struct MetricsDashboardView: View {
                     name: "Protein",
                     current: currentProtein,
                     goal: goals.protein,
-                    color: .blue,
+                    color: .orange,
                     unit: nutritionUnit
                 )
 
@@ -109,7 +112,7 @@ struct MetricsDashboardView: View {
                     name: "Carbs",
                     current: currentCarbs,
                     goal: goals.carbs,
-                    color: .orange,
+                    color: .green,
                     unit: nutritionUnit
                 )
 
@@ -117,88 +120,34 @@ struct MetricsDashboardView: View {
                     name: "Fat",
                     current: currentFat,
                     goal: goals.fat,
-                    color: .green,
+                    color: .yellow,
                     unit: nutritionUnit
                 )
             }
         }
         .padding(24)
         .background(
-            ZStack {
-                // Gradient background
-                LinearGradient(
-                    colors: [
-                        Color(.secondarySystemGroupedBackground),
-                        Color(.tertiarySystemBackground)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
+            RoundedRectangle(cornerRadius: 24)
+                .fill(.ultraThinMaterial)
+                .opacity(0.85)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24)
+                        .strokeBorder(Color.white.opacity(0.05), lineWidth: 1)
                 )
-
-                // Subtle overlay
-                RoundedRectangle(cornerRadius: 24)
-                    .fill(Color.white.opacity(0.02))
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 24))
-            .overlay(
-                RoundedRectangle(cornerRadius: 24)
-                    .strokeBorder(Color.white.opacity(0.05), lineWidth: 1)
-            )
-            .shadow(color: Color.black.opacity(0.15), radius: 24, x: 0, y: 8)
+                .shadow(
+                    color: Color.black.opacity(colorScheme == .dark ? 0.15 : 0.08),
+                    radius: 16,
+                    x: 0,
+                    y: 4
+                )
+                .shadow(
+                    color: Color.black.opacity(colorScheme == .dark ? 0.05 : 0.02),
+                    radius: 4,
+                    x: 0,
+                    y: 2
+                )
         )
         .padding(.horizontal)
-    }
-}
-
-struct CircularProgressRing: View {
-    let progress: Double
-    let action: () -> Void
-
-    private var strokeColors: [Color] {
-        if progress > 1.05 {
-            return [.orange, .red]
-        } else if progress >= 0.95 {
-            return [.green, .mint]
-        } else if progress >= 0.7 {
-            return [.blue, .cyan]
-        } else {
-            return [.blue.opacity(0.7), .blue]
-        }
-    }
-
-    var body: some View {
-        Button(action: {
-            HapticManager.medium()
-            action()
-        }) {
-            ZStack {
-                // Background ring
-                Circle()
-                    .stroke(Color(.systemGray5), lineWidth: 6)
-                    .frame(width: 64, height: 64)
-
-                // Progress ring with gradient
-                Circle()
-                    .trim(from: 0, to: min(progress, 1.0))
-                    .stroke(
-                        AngularGradient(
-                            colors: strokeColors,
-                            center: .center,
-                            startAngle: .degrees(0),
-                            endAngle: .degrees(360)
-                        ),
-                        style: StrokeStyle(lineWidth: 6, lineCap: .round)
-                    )
-                    .frame(width: 64, height: 64)
-                    .rotationEffect(.degrees(-90))
-                    .animation(.spring(response: 1.2, dampingFraction: 0.7), value: progress)
-
-                // Plus icon in center
-                Image(systemName: "plus")
-                    .font(.system(size: 24, weight: .semibold))
-                    .foregroundColor(.blue)
-            }
-        }
     }
 }
 

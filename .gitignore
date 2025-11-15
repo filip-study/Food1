@@ -1,94 +1,60 @@
 # Xcode
-*.xcodeproj/*
-!*.xcodeproj/project.pbxproj
-!*.xcodeproj/xcshareddata/
-!*.xcworkspace/contents.xcworkspacedata
-*.xcworkspace
-**/xcuserdata/
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+build/
+DerivedData/
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
 
-# Swift Package Manager
+## Swift Package Manager
 .build/
+.swiftpm/
 Packages/
 Package.pins
 Package.resolved
 
-# CocoaPods
-Pods/
-*.podspec
-
-# Carthage
-Carthage/Build/
-
-# fastlane
-fastlane/report.xml
-fastlane/Preview.html
-fastlane/screenshots/**/*.png
-fastlane/test_output
-
-# Code Injection
-iOSInjectionProject/
-
-# Python
-model_conversion/mlenv/
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-*.egg-info/
-dist/
-build/
-
-# API Configuration (DO NOT COMMIT SECRETS!)
-Food1/Config/APIConfig.swift
-*.xcconfig
-proxy/food-vision-api/.env
-proxy/food-vision-api/node_modules/
-
-# Large ML Model Files (DO NOT COMMIT TO GIT!)
-Food1/Services/FastVLM/model/
-*.mlpackage/
-*.mlmodel
-*.safetensors
-*.safetensors.index.json
-
 # macOS
 .DS_Store
-.AppleDouble
-.LSOverride
 
-# Thumbnails
-._*
+# Environment & Secrets
+.env
+.env.*
+APIConfig.swift
 
-# Files that might appear in the root of a volume
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
-.VolumeIcon.icns
-.com.apple.timemachine.donotpresent
+# IDE
+.vscode/
+.idea/
 
-# Directories potentially created on remote AFP share
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
+# Logs
+*.log
 
-# Local LLM models (large files, download separately)
-Food1/Services/LocalLLM/
+# Temporary files
+*.tmp
+*.swp
+*.backup*
 
 # SQLite temporary files
 *.db-shm
 *.db-wal
 
-# Icon generation artifacts
+# Node modules
+node_modules/
+
+# AI/Tooling artifacts
+.claude/
+.specify/
 generated_icons/
-*.log
 population_progress.json
 
-# Documentation (created by AI, not version controlled)
+# Documentation (AI-generated)
 docs/
 *_SETUP.md
 *_GUIDE.md
