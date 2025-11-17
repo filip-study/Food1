@@ -34,6 +34,20 @@ class FuzzyMatchingService {
             return nil
         }
 
+        // Check for exact match (1:1 string match) before invoking LLM
+        // Example: GPT-4o says "Raspberries, raw" and USDA has exact "Raspberries, raw"
+        let normalizedIngredient = ingredientName.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+
+        for candidate in candidates {
+            let normalizedDescription = candidate.description.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+            let normalizedCommonName = (candidate.commonName ?? "").lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+
+            if normalizedDescription == normalizedIngredient || normalizedCommonName == normalizedIngredient {
+                print("  ⚡ Exact match found: '\(candidate.description)' (skipped LLM)")
+                return candidate
+            }
+        }
+
         print("  📋 Found \(candidates.count) candidates, sending to LLM for re-ranking...")
 
         // Re-rank candidates using local LLM
