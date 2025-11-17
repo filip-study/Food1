@@ -33,7 +33,15 @@ struct MealDetailView: View {
         }
         let total = ingredients.count
         let enriched = ingredients.filter { $0.usdaFdcId != nil }.count
-        let inProgress = enriched < total && enriched > 0
+
+        // Consider in progress if:
+        // 1. Some ingredients enriched but not all (enriched > 0 && enriched < total)
+        // 2. OR meal created recently (< 2 minutes ago) and no enrichment yet (enriched == 0)
+        //    This gives background enrichment time to process all ingredients
+        let mealAge = Date().timeIntervalSince(meal.timestamp)
+        let isRecentMeal = mealAge < 120 && enriched == 0 && total > 0
+
+        let inProgress = (enriched < total && enriched > 0) || isRecentMeal
         return (enriched, total, inProgress)
     }
 
@@ -210,16 +218,16 @@ struct MealDetailView: View {
 
                             // Progress indicator
                             if enrichmentProgress.inProgress {
-                                HStack(spacing: 4) {
-                                    ForEach(0..<3, id: \.self) { index in
-                                        Circle()
-                                            .fill(index < min(enrichmentProgress.enriched, 3) ? Color.blue : Color.gray.opacity(0.3))
-                                            .frame(width: 6, height: 6)
-                                    }
+                                HStack(spacing: 6) {
+                                    ProgressView()
+                                        .scaleEffect(0.8)
+                                        .tint(.blue)
 
-                                    Text("\(enrichmentProgress.enriched) of \(enrichmentProgress.total)")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
+                                    Text(enrichmentProgress.enriched > 0 ?
+                                         "\(enrichmentProgress.enriched) of \(enrichmentProgress.total)" :
+                                         "Loading...")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(.blue)
                                 }
                             } else {
                                 Image(systemName: "info.circle")
@@ -230,11 +238,26 @@ struct MealDetailView: View {
                         .padding(.bottom, 4)
 
                         // Info message or partial data indicator
-                        if enrichmentProgress.enriched < enrichmentProgress.total && enrichmentProgress.enriched > 0 {
-                            Text("Based on \(enrichmentProgress.enriched) of \(enrichmentProgress.total) ingredients")
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
-                                .padding(.bottom, 8)
+                        if enrichmentProgress.inProgress && enrichmentProgress.enriched == 0 {
+                            HStack(spacing: 8) {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.blue)
+                                Text("Analyzing ingredients and matching nutrition data...")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.bottom, 8)
+                        } else if enrichmentProgress.enriched < enrichmentProgress.total && enrichmentProgress.enriched > 0 {
+                            HStack(spacing: 8) {
+                                Image(systemName: "hourglass")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.orange)
+                                Text("Partial data - based on \(enrichmentProgress.enriched) of \(enrichmentProgress.total) ingredients")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.bottom, 8)
                         } else {
                             Text("Shows vitamins and minerals as % of Recommended Daily Allowance (RDA)")
                                 .font(.system(size: 13))
@@ -299,20 +322,22 @@ struct MealDetailView: View {
                     )
                     .padding(.horizontal)
                 } else if let ingredients = meal.ingredients, !ingredients.isEmpty {
-                    // Empty state - ingredients exist but no micronutrients
+                    // Empty state - ingredients exist but no micronutrients and enrichment not in progress
                     VStack(spacing: 12) {
-                        Image(systemName: "chart.bar.xaxis")
+                        Image(systemName: "exclamationmark.triangle")
                             .font(.system(size: 40))
-                            .foregroundColor(.secondary.opacity(0.5))
+                            .foregroundColor(.orange.opacity(0.7))
                             .padding(.top, 20)
 
-                        Text("Detailed nutrition unavailable")
+                        Text("Micronutrient data unavailable")
                             .font(.system(size: 17, weight: .semibold))
                             .foregroundColor(.primary)
 
-                        Text("Only macro data for this meal")
+                        Text("Ingredients couldn't be matched to nutrition database")
                             .font(.system(size: 15))
                             .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
                             .padding(.bottom, 20)
                     }
                     .frame(maxWidth: .infinity)
