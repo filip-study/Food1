@@ -14,13 +14,11 @@
 		DC5B52C02EBBA3B500D0439E /* MLXLMCommon in Frameworks */ = {isa = PBXBuildFile; productRef = DC5B52BF2EBBA3B500D0439E /* MLXLMCommon */; };
 		DC5B52C22EBBA3BC00D0439E /* MLXVLM in Frameworks */ = {isa = PBXBuildFile; productRef = DC5B52C12EBBA3BC00D0439E /* MLXVLM */; };
 		DC5B52C42EBBA3C000D0439E /* MLXLLM in Frameworks */ = {isa = PBXBuildFile; productRef = DC5B52C32EBBA3C000D0439E /* MLXLLM */; };
-		LLM000000000000000000001 /* LocalLLM in Resources */ = {isa = PBXBuildFile; fileRef = LLM000000000000000000002 /* LocalLLM */; };
 		USDA00000000000000000001 /* usda_nutrients.db in Resources */ = {isa = PBXBuildFile; fileRef = USDA00000000000000000002 /* usda_nutrients.db */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		DC65CB812EB8EA5900B066D7 /* Food1.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Food1.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		LLM000000000000000000002 /* LocalLLM */ = {isa = PBXFileReference; lastKnownFileType = folder; name = LocalLLM; path = Food1/Services/LocalLLM; sourceTree = "<group>"; };
 		USDA00000000000000000002 /* usda_nutrients.db */ = {isa = PBXFileReference; lastKnownFileType = file; name = usda_nutrients.db; path = Food1/Data/usda_nutrients.db; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -78,7 +76,6 @@
 		DCBD08E72EBFA23400F8867C /* Recovered References */ = {
 			isa = PBXGroup;
 			children = (
-				LLM000000000000000000002 /* LocalLLM */,
 				USDA00000000000000000002 /* usda_nutrients.db */,
 			);
 			name = "Recovered References";
@@ -159,7 +156,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				LLM000000000000000000001 /* LocalLLM in Resources */,
 				USDA00000000000000000001 /* usda_nutrients.db in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
