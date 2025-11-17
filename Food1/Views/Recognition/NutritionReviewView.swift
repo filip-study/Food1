@@ -38,7 +38,6 @@ struct NutritionReviewView: View {
     let prefilledEstimatedGrams: Double?
 
     @State private var mealName = ""
-    @State private var selectedEmoji = "🍽️"
     @State private var calories = ""
     @State private var protein = ""
     @State private var carbs = ""
@@ -54,7 +53,8 @@ struct NutritionReviewView: View {
     @State private var errorMessage: String?
     @State private var baseNutrition: NutritionData?
 
-    private let emojiOptions = ["🥗", "🍎", "🥣", "🍳", "🥪", "🍕", "🍔", "🌮", "🍜", "🍱", "🐟", "🥤", "☕", "🍰", "🥐", "🍽️"]
+    // Default emoji for all meals
+    private let selectedEmoji = "🍽️"
 
     var body: some View {
         NavigationStack {
@@ -74,26 +74,6 @@ struct NutritionReviewView: View {
                 // Meal details
                 Section("Meal Details") {
                     TextField("Meal name", text: $mealName)
-
-                    // Emoji picker
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(emojiOptions, id: \.self) { emoji in
-                                Button(action: {
-                                    selectedEmoji = emoji
-                                }) {
-                                    Text(emoji)
-                                        .font(.system(size: 32))
-                                        .frame(width: 50, height: 50)
-                                        .background(
-                                            Circle()
-                                                .fill(selectedEmoji == emoji ? Color.blue.opacity(0.2) : Color.gray.opacity(0.1))
-                                        )
-                                }
-                            }
-                        }
-                        .padding(.vertical, 8)
-                    }
                 }
 
                 // Loading or nutrition data

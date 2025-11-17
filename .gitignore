@@ -59,3 +59,13 @@ docs/
 *_SETUP.md
 *_GUIDE.md
 QUICK_START*.md
+
+# Figma/Design temp files
+figma-*.html
+figma-*.json
+FIGMA_DESIGN_SPEC.md
+screenshots/
+specs/
+
+# Local LLM models (too large for git)
+Food1/Services/LocalLLM/

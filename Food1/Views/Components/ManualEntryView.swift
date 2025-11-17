@@ -18,14 +18,14 @@ struct ManualEntryView: View {
     let editingMeal: Meal?
 
     @State private var mealName = ""
-    @State private var selectedEmoji = "🍽️"
     @State private var calories = ""
     @State private var protein = ""
     @State private var carbs = ""
     @State private var fat = ""
     @State private var notes = ""
 
-    private let emojiOptions = ["🥗", "🍎", "🥣", "🍳", "🥪", "🍕", "🍔", "🌮", "🍜", "🍱", "🐟", "🥤", "☕", "🍰", "🥐", "🍽️"]
+    // Default emoji for all meals
+    private let selectedEmoji = "🍽️"
 
     private var isEditMode: Bool {
         editingMeal != nil
@@ -41,7 +41,6 @@ struct ManualEntryView: View {
             let currentUnit = UserDefaults.standard.string(forKey: "nutritionUnit").flatMap { NutritionUnit(rawValue: $0) } ?? .metric
 
             _mealName = State(initialValue: meal.name)
-            _selectedEmoji = State(initialValue: meal.emoji)
             _calories = State(initialValue: String(format: "%.0f", meal.calories))
             // Convert stored metric values to user's selected unit
             _protein = State(initialValue: NutritionFormatter.formatValue(meal.protein, unit: currentUnit))
@@ -56,26 +55,6 @@ struct ManualEntryView: View {
             Form {
                 Section("Meal Details") {
                     TextField("Meal name", text: $mealName)
-
-                    // Emoji picker
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(emojiOptions, id: \.self) { emoji in
-                                Button(action: {
-                                    selectedEmoji = emoji
-                                }) {
-                                    Text(emoji)
-                                        .font(.system(size: 32))
-                                        .frame(width: 50, height: 50)
-                                        .background(
-                                            Circle()
-                                                .fill(selectedEmoji == emoji ? Color.blue.opacity(0.2) : Color.gray.opacity(0.1))
-                                        )
-                                }
-                            }
-                        }
-                        .padding(.vertical, 8)
-                    }
                 }
 
                 Section("Nutrition") {

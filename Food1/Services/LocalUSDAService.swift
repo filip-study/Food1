@@ -87,7 +87,7 @@ class LocalUSDAService {
         let words = cleanedQuery.split(separator: " ").map(String.init)
         var whereConditions: [String] = []
 
-        for word in words {
+        for _ in words {
             whereConditions.append("(description LIKE ? OR common_name LIKE ?)")
         }
 

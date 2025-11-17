@@ -64,17 +64,17 @@ struct TodayView: View {
 
                 ScrollView {
                     VStack(spacing: 32) {
-                        // Metrics dashboard
+                        // Macro-focused dashboard
                         MetricsDashboardView(
                             currentCalories: totals.calories,
                             currentProtein: totals.protein,
                             currentCarbs: totals.carbs,
                             currentFat: totals.fat,
-                            goals: .standard,
-                            onAddMeal: { showingQuickCamera = true }
+                            goals: .standard
                         )
+                        .padding(.top, 20)
 
-                        // Daily insight - placeholder for now
+                        // Daily insight
                         InsightCard(
                             icon: "flame.fill",
                             title: "Great progress!",

@@ -98,6 +98,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 18. **Macro Color Standardization (2025-11-07):** Fixed inconsistent macro colors across views - standardized to Protein=Blue, Carbs=Orange, Fat=Green everywhere
 19. **Cartoon Food Icons Feature (2025-11-07):** Added AI-generated cartoon food illustrations using pre-generated icon library (500 icons, ~10MB), 3-layer image hierarchy (photo > cartoon > emoji), interactive flip animation in detail view, fuzzy name matching with 70-80% coverage, Settings toggles for show/hide and auto-flip behavior
 20. **Micronutrient Tracking (2025-11-08):** Implemented local SQLite USDA database for comprehensive micronutrient tracking. Background enrichment matches ingredients to 12 key micronutrients (Calcium, Iron, Magnesium, Potassium, Zinc, Vitamins A/C/D/E/B12, Folate, Sodium) with RDA progress tracking. 100% offline, zero API calls, <10ms queries. Deleted HTTP-based USDAService (scalability issues) and manual ingredient search UI (violates "minimize friction" philosophy).
+21. **Emoji Picker Removal (2025-11-16):** Removed emoji picker from ManualEntryView and NutritionReviewView. All meals now use default 🍽️ emoji. Feature had no purpose as emoji wasn't meaningfully used. Simplified meal creation UI.
 
 **Future Considerations:**
 - User is open to switching APIs (OpenAI → Claude/Gemini) if better accuracy/cost

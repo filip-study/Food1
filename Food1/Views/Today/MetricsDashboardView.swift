@@ -10,16 +10,14 @@ import SwiftUI
 struct MetricsDashboardView: View {
     @AppStorage("nutritionUnit") private var nutritionUnit: NutritionUnit = .metric
     @Environment(\.colorScheme) var colorScheme
-    @Environment(\.accessibilityReduceMotion) var reduceMotion
 
     let currentCalories: Double
     let currentProtein: Double
     let currentCarbs: Double
     let currentFat: Double
     let goals: DailyGoals
-    let onAddMeal: () -> Void
 
-    @State private var isBreathing = false
+    @State private var animateIn = false
 
     private var calorieProgress: Double {
         guard goals.calories > 0 else { return 0 }
@@ -58,148 +56,178 @@ struct MetricsDashboardView: View {
 
     var body: some View {
         VStack(spacing: 24) {
-            // Hero metric section - Oura style
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 12) {
-                    // Status label
+            // Motivational badge at top
+            HStack {
+                Text(moodEmoji)
+                    .font(.system(size: 32))
+
+                VStack(alignment: .leading, spacing: 2) {
                     Text(moodMessage.uppercased())
                         .font(.system(size: 11, weight: .semibold, design: .rounded))
                         .foregroundColor(.secondary)
                         .tracking(1.2)
 
-                    // Hero calorie number
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text("\(Int(currentCalories))")
-                            .font(.system(size: 56, weight: .bold, design: .rounded))
-                            .foregroundColor(.primary)
-                        Text("cal")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(.secondary)
-                    }
-                    .accessibilityLabel("Current calories: \(Int(currentCalories)) of \(Int(goals.calories))")
-
-                    // Progress text
-                    Text("\(Int(currentCalories)) of \(Int(goals.calories)) cal today")
-                        .font(.system(size: 15, weight: .medium))
+                    Text("\(Int(currentCalories)) of \(Int(goals.calories)) cal")
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.secondary)
                 }
 
                 Spacer()
-
-                // Add meal button with circular progress ring
-                GradientProgressRingButton(
-                    progress: calorieProgress,
-                    action: onAddMeal
-                )
             }
 
-            // Divider
-            Rectangle()
-                .fill(Color.primary.opacity(0.1))
-                .frame(height: 1)
-
-            // Macro bars - more compact
-            VStack(spacing: 14) {
-                MacroBar(
-                    name: "Protein",
+            // HERO: Macro bars
+            VStack(spacing: 20) {
+                MacroHeroBar(
+                    name: "PROTEIN",
                     current: currentProtein,
                     goal: goals.protein,
-                    color: .orange,
-                    unit: nutritionUnit
+                    color: ColorPalette.macroProtein,
+                    icon: "fish.fill",
+                    delay: 0.0
                 )
 
-                MacroBar(
-                    name: "Carbs",
+                MacroHeroBar(
+                    name: "CARBOHYDRATES",
                     current: currentCarbs,
                     goal: goals.carbs,
-                    color: .green,
-                    unit: nutritionUnit
+                    color: ColorPalette.macroCarbs,
+                    icon: "leaf.fill",
+                    delay: 0.1
                 )
 
-                MacroBar(
-                    name: "Fat",
+                MacroHeroBar(
+                    name: "FAT",
                     current: currentFat,
                     goal: goals.fat,
-                    color: .yellow,
-                    unit: nutritionUnit
+                    color: ColorPalette.macroFat,
+                    icon: "drop.fill",
+                    delay: 0.2
                 )
             }
         }
-        .padding(24)
+        .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 24)
-                .fill(.ultraThinMaterial)
-                .opacity(0.85)
+                .fill(.thinMaterial)
+                .opacity(0.97)
                 .overlay(
                     RoundedRectangle(cornerRadius: 24)
                         .strokeBorder(Color.white.opacity(0.05), lineWidth: 1)
                 )
-                .shadow(
-                    color: Color.black.opacity(colorScheme == .dark ? 0.15 : 0.08),
-                    radius: 16,
-                    x: 0,
-                    y: 4
-                )
-                .shadow(
-                    color: Color.black.opacity(colorScheme == .dark ? 0.05 : 0.02),
-                    radius: 4,
-                    x: 0,
-                    y: 2
-                )
+        )
+        .shadow(
+            color: Color.black.opacity(colorScheme == .dark ? 0.15 : 0.08),
+            radius: 16, x: 0, y: 4
         )
         .padding(.horizontal)
+        .onAppear {
+            animateIn = true
+        }
     }
 }
 
-struct MacroBar: View {
+// Supporting view for macro bars
+struct MacroHeroBar: View {
     let name: String
     let current: Double
     let goal: Double
     let color: Color
-    let unit: NutritionUnit
+    let icon: String
+    let delay: Double
+
+    @State private var animateIn = false
+    @Environment(\.colorScheme) var colorScheme
 
     private var progress: Double {
-        guard goal > 0 else { return 0 }
-        return current / goal
+        goal > 0 ? min(current / goal, 1.5) : 0
     }
 
-    // State-based saturation: muted when low, full when approaching/complete
-    private var fillColor: Color {
-        if progress >= 0.7 {
-            return color  // Approaching/at goal - full saturation base color
-        } else {
-            return color.opacity(0.6)  // Low progress - muted version
-        }
+    private var percentage: Int {
+        goal > 0 ? Int((current / goal) * 100) : 0
     }
 
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
+            // Header with name and current/goal
             HStack {
-                Text(name)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.primary)
+                HStack(spacing: 6) {
+                    Image(systemName: icon)
+                        .font(.system(size: 14))
+                        .foregroundColor(color)
+
+                    Text(name)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.secondary)
+                        .tracking(0.8)
+                }
 
                 Spacer()
 
-                Text(NutritionFormatter.formatProgress(current: current, goal: goal, unit: unit))
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundColor(.secondary)
-            }
+                // Large current value
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    Text("\(Int(current))")
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .foregroundColor(progress >= 0.7 ? color : .primary)
 
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    // Background
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(color.opacity(0.12))
-
-                    // Progress with solid fill (state-based color)
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(fillColor)
-                        .frame(width: geometry.size.width * min(progress, 1.0))
-                        .animation(.spring(response: 0.6, dampingFraction: 0.8), value: progress)
+                    Text("/ \(Int(goal))g")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.secondary)
                 }
             }
-            .frame(height: 10)
+
+            // Visual progress bar
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    // Background track
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(color.opacity(0.15))
+                        .frame(height: 16)
+
+                    // Progress fill with animation
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(
+                            LinearGradient(
+                                colors: progress > 1 ?
+                                    [color, color.opacity(0.8)] :
+                                    [color.opacity(0.8), color],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: animateIn ? geometry.size.width * min(progress, 1.0) : 0, height: 16)
+
+                    // Percentage label inside bar
+                    if progress > 0.15 {
+                        Text("\(percentage)%")
+                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .foregroundColor(.white)
+                            .padding(.leading, 8)
+                            .opacity(animateIn ? 1 : 0)
+                    }
+
+                    // Over-goal indicator
+                    if progress > 1 {
+                        HStack {
+                            Spacer()
+                            Text("+\(Int(current - goal))g")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(color)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(
+                                    Capsule()
+                                        .fill(color.opacity(0.15))
+                                )
+                        }
+                    }
+                }
+            }
+            .frame(height: 16)
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(delay)) {
+                animateIn = true
+            }
         }
     }
 }
@@ -213,8 +241,7 @@ struct MacroBar: View {
                 currentProtein: 107,
                 currentCarbs: 186,
                 currentFat: 57,
-                goals: .standard,
-                onAddMeal: {}
+                goals: .standard
             )
 
             // Just started
@@ -223,8 +250,7 @@ struct MacroBar: View {
                 currentProtein: 15,
                 currentCarbs: 70,
                 currentFat: 29,
-                goals: .standard,
-                onAddMeal: {}
+                goals: .standard
             )
 
             // Over goal
@@ -233,8 +259,7 @@ struct MacroBar: View {
                 currentProtein: 160,
                 currentCarbs: 250,
                 currentFat: 85,
-                goals: .standard,
-                onAddMeal: {}
+                goals: .standard
             )
         }
         .padding(.vertical)

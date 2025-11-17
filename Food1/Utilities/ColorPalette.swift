@@ -46,16 +46,16 @@ struct ColorPalette {
         Color(hex: "#FF6B6B")  // Coral
     ]
 
-    // MARK: - Macro Colors (Preserved from Constitution)
+    // MARK: - Macro Colors (Ocean Depth Palette)
 
-    /// Protein macro color (NON-NEGOTIABLE per Constitution)
-    static let macroProtein = Color.orange
+    /// Protein macro color - Deep Ocean Blue
+    static let macroProtein = Color(hex: "#2563EB")
 
-    /// Carbs macro color (NON-NEGOTIABLE per Constitution)
-    static let macroCarbs = Color.green
+    /// Carbs macro color - Teal
+    static let macroCarbs = Color(hex: "#14B8A6")
 
-    /// Fat macro color (NON-NEGOTIABLE per Constitution)
-    static let macroFat = Color.yellow
+    /// Fat macro color - Warm Coral
+    static let macroFat = Color(hex: "#FB7185")
 
     // MARK: - Helper Method for Progress Band Selection
 
