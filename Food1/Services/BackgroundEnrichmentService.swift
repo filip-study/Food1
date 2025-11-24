@@ -21,50 +21,77 @@ class BackgroundEnrichmentService {
     /// Automatically enrich ingredients with USDA data in background
     /// - Parameter ingredients: Array of MealIngredient objects to enrich
     func enrichIngredients(_ ingredients: [MealIngredient]) async {
+        #if DEBUG
         print("\n📊 Starting background enrichment for \(ingredients.count) ingredients\n")
+        #endif
 
         // Process ingredients sequentially for readable logs
         for (index, ingredient) in ingredients.enumerated() {
             // Skip if already has USDA data
             guard ingredient.usdaFdcId == nil else {
+                #if DEBUG
                 print("⏭️  [\(index + 1)/\(ingredients.count)] Skipping '\(ingredient.name)' (already enriched)\n")
+                #endif
                 continue
             }
 
+            #if DEBUG
             print("🔄 [\(index + 1)/\(ingredients.count)] Processing: '\(ingredient.name)'")
             print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            #endif
             await enrichIngredient(ingredient)
+            #if DEBUG
             print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n")
+            #endif
         }
 
+        #if DEBUG
         print("✅ Background enrichment complete\n")
+        #endif
     }
 
     // MARK: - Private Methods
 
     private func enrichIngredient(_ ingredient: MealIngredient) async {
         // 1. Fuzzy match ingredient name to USDA food (with local LLM re-ranking)
-        guard let matchedFood = await FuzzyMatchingService.shared.match(ingredient.name) else {
+        let (matchedFood, matchMethod) = await FuzzyMatchingService.shared.matchWithMethod(ingredient.name)
+
+        // Mark as attempted regardless of success
+        ingredient.enrichmentAttempted = true
+
+        // Store match method even if no food matched (e.g., blacklisted)
+        if matchMethod != nil && matchedFood == nil {
+            ingredient.matchMethod = matchMethod?.rawValue
+        }
+
+        guard let matchedFood = matchedFood else {
             return
         }
 
         // 2. Fetch micronutrients from local database
+        #if DEBUG
         print("  💊 Fetching micronutrients from database...")
+        #endif
         let micronutrients = LocalUSDAService.shared.getMicronutrients(
             fdcId: matchedFood.fdcId,
             grams: ingredient.grams
         )
 
         guard !micronutrients.isEmpty else {
+            #if DEBUG
             print("  ⚠️  No micronutrients found for fdcId \(matchedFood.fdcId)")
+            #endif
             return
         }
 
         // 3. Cache micronutrients in ingredient
         ingredient.usdaFdcId = String(matchedFood.fdcId)
+        ingredient.matchMethod = matchMethod?.rawValue
         ingredient.cacheMicronutrients(micronutrients)
         ingredient.updatedAt = Date()
 
-        print("  ✅ Cached \(micronutrients.count) micronutrients")
+        #if DEBUG
+        print("  ✅ Cached \(micronutrients.count) micronutrients (via \(matchMethod?.rawValue ?? "unknown"))")
+        #endif
     }
 }

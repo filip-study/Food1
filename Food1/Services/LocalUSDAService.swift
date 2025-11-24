@@ -245,6 +245,35 @@ class LocalUSDAService {
         return food
     }
 
+    /// Get food by exact fdcId (for shortcut lookups)
+    /// - Parameter fdcId: USDA FDC ID
+    /// - Returns: USDAFood or nil if not found
+    func getFood(byId fdcId: Int) -> USDAFood? {
+        guard let db = db else { return nil }
+
+        let sql = "SELECT fdc_id, description, common_name, category FROM usda_foods WHERE fdc_id = ?"
+
+        var statement: OpaquePointer?
+        guard sqlite3_prepare_v2(db, sql, -1, &statement, nil) == SQLITE_OK else {
+            return nil
+        }
+
+        sqlite3_bind_int(statement, 1, Int32(fdcId))
+
+        var food: USDAFood?
+        if sqlite3_step(statement) == SQLITE_ROW {
+            let id = Int(sqlite3_column_int(statement, 0))
+            let desc = String(cString: sqlite3_column_text(statement, 1))
+            let common = sqlite3_column_text(statement, 2).map { String(cString: $0) }
+            let category = sqlite3_column_text(statement, 3).map { String(cString: $0) }
+
+            food = USDAFood(fdcId: id, description: desc, commonName: common, category: category)
+        }
+
+        sqlite3_finalize(statement)
+        return food
+    }
+
     // MARK: - Helper Methods
 
     private func cleanSearchQuery(_ query: String) -> String {

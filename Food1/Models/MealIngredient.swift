@@ -17,6 +17,13 @@ final class MealIngredient {
     // USDA FoodData Central ID (nil if not matched yet)
     var usdaFdcId: String?
 
+    // Match method used to find USDA food (for debugging)
+    // Values: "Shortcut", "Exact", "LLM", "Blacklisted"
+    var matchMethod: String?
+
+    // Whether enrichment has been attempted (regardless of success)
+    var enrichmentAttempted: Bool = false
+
     // Cached micronutrient data (JSON blob for offline access)
     var cachedMicronutrientsJSON: Data?
 
