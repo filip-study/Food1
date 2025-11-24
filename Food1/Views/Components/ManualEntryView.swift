@@ -158,6 +158,11 @@ struct ManualEntryView: View {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                 modelContext.insert(newMeal)
             }
+
+            // Update statistics aggregates
+            Task {
+                await StatisticsService.shared.updateAggregates(for: newMeal, in: modelContext)
+            }
         }
 
         dismiss()

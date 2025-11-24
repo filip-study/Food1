@@ -290,6 +290,11 @@ struct NutritionReviewView: View {
             }
         }
 
+        // Update statistics aggregates
+        Task {
+            await StatisticsService.shared.updateAggregates(for: newMeal, in: modelContext)
+        }
+
         // Dismiss both sheets
         dismiss()
         // Note: This will dismiss the nutrition review sheet.

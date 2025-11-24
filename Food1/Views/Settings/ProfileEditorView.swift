@@ -113,7 +113,7 @@ struct ProfileEditorView: View {
 
                     HStack {
                         Image(systemName: activityLevel.icon)
-                            .foregroundColor(.purple)
+                            .foregroundColor(.blue)
                             .frame(width: 24)
                         Text(activityLevel.description)
                             .font(.system(size: 14))

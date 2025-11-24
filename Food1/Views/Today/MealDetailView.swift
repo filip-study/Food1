@@ -34,14 +34,18 @@ struct MealDetailView: View {
         let total = ingredients.count
         let enriched = ingredients.filter { $0.usdaFdcId != nil }.count
 
-        // Consider in progress if:
-        // 1. Some ingredients enriched but not all (enriched > 0 && enriched < total)
-        // 2. OR meal created recently (< 2 minutes ago) and no enrichment yet (enriched == 0)
-        //    This gives background enrichment time to process all ingredients
-        let mealAge = Date().timeIntervalSince(meal.timestamp)
-        let isRecentMeal = mealAge < 120 && enriched == 0 && total > 0
+        // Count attempted: either explicitly marked OR has fdcId (succeeded) OR old ingredient (> 120s)
+        // This handles data migration for meals created before enrichmentAttempted existed
+        // 120s timeout accounts for LLM reranking which can take up to 2 minutes per ingredient
+        let attempted = ingredients.filter { ingredient in
+            ingredient.enrichmentAttempted ||
+            ingredient.usdaFdcId != nil ||
+            Date().timeIntervalSince(ingredient.createdAt) > 120
+        }.count
 
-        let inProgress = (enriched < total && enriched > 0) || isRecentMeal
+        // In progress if any ingredients haven't been attempted yet
+        let inProgress = attempted < total && total > 0
+
         return (enriched, total, inProgress)
     }
 
@@ -249,15 +253,10 @@ struct MealDetailView: View {
                             }
                             .padding(.bottom, 8)
                         } else if enrichmentProgress.enriched < enrichmentProgress.total && enrichmentProgress.enriched > 0 {
-                            HStack(spacing: 8) {
-                                Image(systemName: "hourglass")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.orange)
-                                Text("Partial data - based on \(enrichmentProgress.enriched) of \(enrichmentProgress.total) ingredients")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.bottom, 8)
+                            Text("Partial data - based on \(enrichmentProgress.enriched) of \(enrichmentProgress.total) ingredients")
+                                .font(.system(size: 13))
+                                .foregroundColor(.secondary)
+                                .padding(.bottom, 8)
                         } else {
                             Text("Shows vitamins and minerals as % of Recommended Daily Allowance (RDA)")
                                 .font(.system(size: 13))
@@ -369,6 +368,82 @@ struct MealDetailView: View {
                     .padding(.horizontal)
                 }
 
+                // Debug section - only in DEBUG builds
+                #if DEBUG
+                if let ingredients = meal.ingredients, !ingredients.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "ant.fill")
+                                .foregroundColor(.orange)
+                            Text("DEBUG: USDA Matches")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(.orange)
+                        }
+
+                        ForEach(ingredients) { ingredient in
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(ingredient.name)
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(.primary)
+
+                                if let fdcId = ingredient.usdaFdcId,
+                                   let fdcIdInt = Int(fdcId),
+                                   let food = LocalUSDAService.shared.getFood(byId: fdcIdInt) {
+                                    Text("→ \(food.description)")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.green)
+                                    HStack(spacing: 8) {
+                                        Text("fdcId: \(fdcId)")
+                                            .font(.system(size: 10, design: .monospaced))
+                                            .foregroundColor(.secondary)
+                                        if let method = ingredient.matchMethod {
+                                            Text("[\(method)]")
+                                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                                .foregroundColor(method == "Shortcut" ? .blue : method == "Exact" ? .cyan : .purple)
+                                        }
+                                    }
+                                } else if ingredient.usdaFdcId != nil {
+                                    Text("→ fdcId: \(ingredient.usdaFdcId!) (lookup failed)")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.yellow)
+                                } else if ingredient.matchMethod == "Blacklisted" {
+                                    Text("→ Blacklisted (no micronutrients)")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.gray)
+                                } else if enrichmentProgress.inProgress {
+                                    HStack(spacing: 6) {
+                                        ProgressView()
+                                            .scaleEffect(0.6)
+                                        Text("Processing...")
+                                            .font(.system(size: 11))
+                                            .foregroundColor(.orange)
+                                    }
+                                } else {
+                                    Text("→ No match")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.red)
+                                }
+                            }
+                            .padding(.vertical, 4)
+
+                            if ingredient.id != ingredients.last?.id {
+                                Divider()
+                            }
+                        }
+                    }
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.orange.opacity(0.1))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+                            )
+                    )
+                    .padding(.horizontal)
+                }
+                #endif
+
                 // Action buttons
                 VStack(spacing: 12) {
                     Button(action: {
@@ -422,9 +497,16 @@ struct MealDetailView: View {
     }
 
     private func deleteMeal() {
+        let mealDate = meal.timestamp
         withAnimation {
             modelContext.delete(meal)
         }
+
+        // Update statistics aggregates
+        Task {
+            await StatisticsService.shared.invalidateAggregate(for: mealDate, in: modelContext)
+        }
+
         dismiss()
     }
 }

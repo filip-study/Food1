@@ -194,11 +194,8 @@ class FoodIconMapper {
         return nil
     }
 
-    /// Loads icon from FoodIcons.xcassets by name
+    /// Loads icon from asset catalog by name
     private func loadIcon(named iconName: String) -> UIImage? {
-        // Icon naming convention: "FoodIcons/icon-name"
-        // For now, just try loading directly
-        // TODO: Update to use "FoodIcons/" prefix once asset catalog is created
         return UIImage(named: iconName)
     }
 }

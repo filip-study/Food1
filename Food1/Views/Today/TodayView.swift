@@ -80,9 +80,7 @@ struct TodayView: View {
                             title: "Great progress!",
                             message: "You've hit your protein goal 5 days this week.",
                             accentColor: .orange,
-                            onTap: {
-                                // TODO: Show detail view when data-driven insights are implemented
-                            }
+                            onTap: { }
                         )
 
                         // Meal timeline section

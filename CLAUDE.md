@@ -659,3 +659,4 @@ AppTheme enum (referenced in MainTabView) supports system/light/dark modes via @
 
 ## Recent Changes
 - 001-polished-ui: Added Swift 5.9+ (Xcode 16.0+, iOS 18.0 deployment target) + SwiftUI, SwiftData (existing - no new dependencies)
+- i dont remember asking you to remove my llm reranking service or modify any of its logic. all major functionality like this should remain UNCHANGED unless i asked or allowed you to do something like this. you absolutely broke the logic now and the app doesnt find any ingredients in USDA database correctly

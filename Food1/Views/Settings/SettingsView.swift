@@ -40,15 +40,9 @@ struct SettingsView: View {
                                     .foregroundColor(.primary)
                                     .font(.system(size: 17, weight: .semibold))
 
-                                if age > 0 && weight > 0 {
-                                    Text("\(age) years • \(String(format: "%.1f", weight)) \(weightUnit.rawValue) • \(activityLevel.rawValue)")
-                                        .font(.system(size: 14))
-                                        .foregroundColor(.secondary)
-                                } else {
-                                    Text("\(age) years • \(String(format: "%.1f", weight)) \(weightUnit.rawValue) • \(activityLevel.rawValue)")
-                                        .font(.system(size: 14))
-                                        .foregroundColor(.secondary)
-                                }
+                                Text("\(age) years • \(String(format: "%.1f", weight)) \(weightUnit.rawValue) • \(activityLevel.rawValue)")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.secondary)
                             }
 
                             Spacer()

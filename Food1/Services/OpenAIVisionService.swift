@@ -57,12 +57,16 @@ class OpenAIVisionService: ObservableObject {
                 throw OpenAIVisionError.encodingFailed
             }
 
+            #if DEBUG
             print("📸 Image encoded: \(base64Image.prefix(50))...")
+            #endif
 
             // Step 2: Build API request
             let request = try buildRequest(base64Image: base64Image)
 
+            #if DEBUG
             print("🌐 Sending request to proxy: \(proxyEndpoint)")
+            #endif
 
             // Step 3: Make network request
             let (data, response) = try await session.data(for: request)
@@ -72,12 +76,14 @@ class OpenAIVisionService: ObservableObject {
                 throw OpenAIVisionError.invalidResponse
             }
 
+            #if DEBUG
             print("✅ Received response: HTTP \(httpResponse.statusCode)")
 
             // Debug: Log raw response
             if let responseString = String(data: data, encoding: .utf8) {
                 print("📄 Raw API response: \(responseString.prefix(500))...")
             }
+            #endif
 
             // Handle error responses
             if httpResponse.statusCode != 200 {
@@ -100,6 +106,7 @@ class OpenAIVisionService: ObservableObject {
             // Step 5: Parse response
             let (predictions, hasPackaging) = try parseResponse(data)
 
+            #if DEBUG
             print("🎯 Parsed \(predictions.count) predictions")
             print("📦 Has packaging: \(hasPackaging)")
             predictions.forEach { pred in
@@ -109,7 +116,6 @@ class OpenAIVisionService: ObservableObject {
                 } else {
                     print("    ⚠️ Nutrition data: calories=\(pred.calories?.description ?? "nil"), protein=\(pred.protein?.description ?? "nil"), carbs=\(pred.carbs?.description ?? "nil"), fat=\(pred.fat?.description ?? "nil")")
                 }
-                // Debug: Log ingredients if present
                 if let ingredients = pred.ingredients, !ingredients.isEmpty {
                     print("    🥗 Ingredients (\(ingredients.count)):")
                     ingredients.forEach { ingredient in
@@ -119,6 +125,7 @@ class OpenAIVisionService: ObservableObject {
                     print("    🥗 Ingredients: none")
                 }
             }
+            #endif
 
             return (predictions, hasPackaging)
 
@@ -129,7 +136,9 @@ class OpenAIVisionService: ObservableObject {
         } catch {
             // Wrap unexpected errors
             errorMessage = "Unexpected error: \(error.localizedDescription)"
+            #if DEBUG
             print("❌ Error: \(error)")
+            #endif
             throw OpenAIVisionError.networkError(error)
         }
     }
@@ -150,11 +159,13 @@ class OpenAIVisionService: ObservableObject {
         let sizeKB = Double(imageData.count) / 1024.0
         let sizeMB = sizeKB / 1024.0
 
+        #if DEBUG
         if sizeMB >= 1.0 {
             print("📦 Image size: \(String(format: "%.2f", sizeMB))MB (\(Int(resized.size.width))x\(Int(resized.size.height)))")
         } else {
             print("📦 Image size: \(String(format: "%.0f", sizeKB))KB (\(Int(resized.size.width))x\(Int(resized.size.height)))")
         }
+        #endif
 
         return base64
     }
@@ -246,7 +257,9 @@ class OpenAIVisionService: ObservableObject {
                 throw OpenAIVisionError.encodingFailed
             }
 
+            #if DEBUG
             print("📋 Analyzing nutrition label...")
+            #endif
 
             // Step 2: Build API request for label endpoint
             let request = try buildLabelRequest(base64Image: base64Image)
@@ -259,7 +272,9 @@ class OpenAIVisionService: ObservableObject {
                 throw OpenAIVisionError.invalidResponse
             }
 
+            #if DEBUG
             print("✅ Received label response: HTTP \(httpResponse.statusCode)")
+            #endif
 
             // Handle error responses
             if httpResponse.statusCode != 200 {
@@ -281,8 +296,10 @@ class OpenAIVisionService: ObservableObject {
             // Step 5: Parse label response
             let labelData = try parseLabelResponse(data)
 
+            #if DEBUG
             print("📊 Extracted label data: \(labelData.productName ?? "Unknown")")
             print("   Calories: \(labelData.nutrition.calories), Protein: \(labelData.nutrition.protein)g")
+            #endif
 
             return labelData
 
@@ -291,7 +308,9 @@ class OpenAIVisionService: ObservableObject {
             throw error
         } catch {
             errorMessage = "Unexpected error: \(error.localizedDescription)"
+            #if DEBUG
             print("❌ Label analysis error: \(error)")
+            #endif
             throw OpenAIVisionError.networkError(error)
         }
     }

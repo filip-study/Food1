@@ -315,6 +315,7 @@ INGREDIENT EXTRACTION:
   * "Rice, brown" or "Rice, white" (specify type)
   * "Olive oil" or "Butter" (use generic fat names)
   * Avoid brand names, adjectives like "organic", "free-range"
+  * AVOID generic mixed categories like "Dried fruits, mixed" or "Nuts, mixed" - instead list specific items like "Raisins", "Dates", "Almonds", "Walnuts"
 - For simple meals (like an apple or banana), use single ingredient: [{"name": "Apple, raw", "grams": 170}]
 - Ingredient grams should roughly sum to estimated_grams (within 10-20% variance for condiments/oils)
 - If a meal is too complex to break down confidently, use empty ingredients array []

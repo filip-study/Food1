@@ -16,10 +16,27 @@ struct IngredientReadOnlyRow: View {
         HStack(spacing: 12) {
             // Status indicator (optional)
             if showStatus {
-                Image(systemName: ingredient.usdaFdcId != nil ? "checkmark.circle.fill" : "circle")
-                    .font(.caption)
-                    .foregroundColor(ingredient.usdaFdcId != nil ? .blue.opacity(0.6) : .gray.opacity(0.4))
-                    .frame(width: 16)
+                Group {
+                    if ingredient.usdaFdcId != nil {
+                        // Matched successfully
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.blue.opacity(0.6))
+                    } else if ingredient.matchMethod == "Blacklisted" {
+                        // Skipped - no micronutrients
+                        Image(systemName: "minus.circle.fill")
+                            .foregroundColor(.gray.opacity(0.4))
+                    } else if ingredient.enrichmentAttempted {
+                        // Failed to match
+                        Image(systemName: "questionmark.circle.fill")
+                            .foregroundColor(.orange.opacity(0.5))
+                    } else {
+                        // Not attempted yet
+                        Image(systemName: "circle")
+                            .foregroundColor(.gray.opacity(0.4))
+                    }
+                }
+                .font(.caption)
+                .frame(width: 16)
             }
 
             // Ingredient name

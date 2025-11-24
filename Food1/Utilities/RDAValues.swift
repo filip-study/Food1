@@ -110,53 +110,114 @@ enum RDAValues {
     /// Insoluble Fiber Daily Value: 18g (general recommendation)
     static let insolubleFiber: Double = 18.0  // g
 
-    // MARK: - Future: User Profile-Based RDA
+    // MARK: - Personalized RDA Based on Gender/Age
 
-    /// Get RDA value for specific nutrient (future: personalized based on age/gender)
+    /// Get RDA value for specific nutrient, personalized based on gender and age
     /// Note: Gender enum is defined in UserProfile.swift
-    static func getRDA(for nutrient: String, gender: Gender? = nil, age: Int? = nil) -> Double {
+    static func getRDA(for nutrient: String, gender: Gender = .preferNotToSay, age: Int = 25) -> Double {
         let lower = nutrient.lowercased()
+        let isFemale = gender == .female
+        let isMale = gender == .male
+        let isOlder = age >= 51
 
-        // Minerals
-        if lower.contains("calcium") { return calcium }
-        if lower.contains("iron") { return iron }
-        if lower.contains("magnesium") { return magnesium }
+        // Minerals - gender-specific values
+        if lower.contains("calcium") {
+            if isOlder { return 1200.0 }
+            return calcium
+        }
+        if lower.contains("iron") {
+            // Women need more iron until menopause
+            if isFemale && age < 51 { return 18.0 }
+            return 8.0
+        }
+        if lower.contains("magnesium") {
+            if isMale { return isOlder ? 420.0 : 400.0 }
+            if isFemale { return isOlder ? 320.0 : 310.0 }
+            return magnesium
+        }
         if lower.contains("potassium") { return potassium }
-        if lower.contains("zinc") { return zinc }
+        if lower.contains("zinc") {
+            if isMale { return 11.0 }
+            if isFemale { return 8.0 }
+            return zinc
+        }
         if lower.contains("sodium") { return sodium }
         if lower.contains("phosphorus") { return phosphorus }
         if lower.contains("copper") { return copper }
-        if lower.contains("manganese") { return manganese }
+        if lower.contains("manganese") {
+            if isMale { return 2.3 }
+            if isFemale { return 1.8 }
+            return manganese
+        }
         if lower.contains("selenium") { return selenium }
-        if lower.contains("chromium") { return chromium }
+        if lower.contains("chromium") {
+            if isMale { return isOlder ? 30.0 : 35.0 }
+            if isFemale { return isOlder ? 20.0 : 25.0 }
+            return chromium
+        }
         if lower.contains("molybdenum") { return molybdenum }
         if lower.contains("iodine") { return iodine }
         if lower.contains("chloride") { return chloride }
 
-        // Vitamins
-        if lower.contains("vitamin a") || lower == "vitamina" { return vitaminA }
-        if lower.contains("vitamin b1") || lower.contains("thiamin") { return vitaminB1 }
-        if lower.contains("vitamin b2") || lower.contains("riboflavin") { return vitaminB2 }
-        if lower.contains("vitamin b3") || lower.contains("niacin") { return vitaminB3 }
+        // Vitamins - some gender-specific
+        if lower.contains("vitamin a") || lower == "vitamina" {
+            if isMale { return 900.0 }
+            if isFemale { return 700.0 }
+            return vitaminA
+        }
+        if lower.contains("vitamin b1") || lower.contains("thiamin") {
+            if isMale { return 1.2 }
+            if isFemale { return 1.1 }
+            return vitaminB1
+        }
+        if lower.contains("vitamin b2") || lower.contains("riboflavin") {
+            if isMale { return 1.3 }
+            if isFemale { return 1.1 }
+            return vitaminB2
+        }
+        if lower.contains("vitamin b3") || lower.contains("niacin") {
+            if isMale { return 16.0 }
+            if isFemale { return 14.0 }
+            return vitaminB3
+        }
         if lower.contains("vitamin b5") || lower.contains("pantothenic") { return vitaminB5 }
-        if lower.contains("vitamin b6") { return vitaminB6 }
+        if lower.contains("vitamin b6") {
+            if isOlder { return 1.7 }
+            return vitaminB6
+        }
         if lower.contains("vitamin b7") || lower.contains("biotin") { return vitaminB7 }
         if lower.contains("vitamin b9") || lower.contains("folate") || lower.contains("folic") { return folate }
         if lower.contains("vitamin b12") || lower == "vitaminb12" { return vitaminB12 }
-        if lower.contains("vitamin c") || lower == "vitaminc" { return vitaminC }
-        if lower.contains("vitamin d") || lower == "vitamind" { return vitaminD }
+        if lower.contains("vitamin c") || lower == "vitaminc" {
+            if isMale { return 90.0 }
+            if isFemale { return 75.0 }
+            return vitaminC
+        }
+        if lower.contains("vitamin d") || lower == "vitamind" {
+            if age > 70 { return 20.0 }
+            return 15.0
+        }
         if lower.contains("vitamin e") || lower == "vitamine" { return vitaminE }
-        if lower.contains("vitamin k") || lower == "vitamink" { return vitaminK }
-        if lower.contains("choline") { return choline }
+        if lower.contains("vitamin k") || lower == "vitamink" {
+            if isMale { return 120.0 }
+            if isFemale { return 90.0 }
+            return vitaminK
+        }
+        if lower.contains("choline") {
+            if isMale { return 550.0 }
+            if isFemale { return 425.0 }
+            return choline
+        }
 
         // Fiber
-        if lower.contains("total fiber") { return totalFiber }
+        if lower.contains("total fiber") || lower == "fiber" {
+            if isMale { return isOlder ? 30.0 : 38.0 }
+            if isFemale { return isOlder ? 21.0 : 25.0 }
+            return totalFiber
+        }
         if lower.contains("soluble fiber") { return solubleFiber }
         if lower.contains("insoluble fiber") { return insolubleFiber }
 
-        // For general "fiber" queries, return total fiber
-        if lower == "fiber" { return totalFiber }
-
-        return 0.0  // Unknown nutrient (fatty acids, water, cholesterol don't have RDAs)
+        return 0.0  // Unknown nutrient
     }
 }
