@@ -143,7 +143,8 @@ struct MacroTrendsChart: View {
                         .gesture(
                             DragGesture(minimumDistance: 0)
                                 .onChanged { value in
-                                    let x = value.location.x - geometry[proxy.plotAreaFrame].origin.x
+                                    guard let plotFrame = proxy.plotFrame else { return }
+                                    let x = value.location.x - geometry[plotFrame].origin.x
                                     if let date: Date = proxy.value(atX: x) {
                                         // Clamp date to data range
                                         guard let firstDate = dailyData.first?.date,

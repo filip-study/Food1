@@ -19,6 +19,7 @@ import BackgroundTasks
 @main
 struct Food1App: App {
     let modelContainer: ModelContainer
+    @State private var launchScreenState = LaunchScreenStateManager()
 
     // Background task identifier
     private static let enrichmentTaskIdentifier = "com.filipolszak.Food1.enrichment"
@@ -133,14 +134,33 @@ struct Food1App: App {
 
     var body: some Scene {
         WindowGroup {
-            MainTabView()
-                .task {
-                    await resumeUnfinishedEnrichment()
+            ZStack {
+                // Main app content
+                MainTabView()
+                    .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
+                        // Schedule background task when app goes to background
+                        scheduleEnrichmentTask()
+                    }
+
+                // Animated splash screen overlay
+                if launchScreenState.state == .animating {
+                    LaunchScreenView()
+                        .transition(.opacity)
+                        .zIndex(1)
                 }
-                .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
-                    // Schedule background task when app goes to background
-                    scheduleEnrichmentTask()
+            }
+            .task {
+                // Resume unfinished enrichment in background
+                await resumeUnfinishedEnrichment()
+
+                // Wait for splash animation to complete (1.2s animation + 0.2s buffer)
+                try? await Task.sleep(for: .milliseconds(1400))
+
+                // Fade out splash screen
+                withAnimation(.easeOut(duration: 0.4)) {
+                    launchScreenState.finish()
                 }
+            }
         }
         .modelContainer(modelContainer)
     }
