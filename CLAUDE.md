@@ -60,6 +60,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Prismae ("Food1") is an iOS nutrition tracking app with AI-powered food recognition (GPT-4o vision). Users log meals via photo or manual entry. The app automatically enriches meals with USDA nutrition data in background, tracks macros and micronutrients, and provides historical views with trend analysis.
 
+**Design:** App icon uses iOS 26 Liquid Glass format (`food1.icon/`) with three overlapping MacroRings (Protein/blue, Carbs/teal, Fat/coral) in triangular arrangement. Launch screen (LaunchScreenView.swift) recreates this design with animated sequential appearance. Icon config details in `food1.icon/icon.json`.
+
 ## Build & Run Commands
 
 ### iOS App (Xcode)
