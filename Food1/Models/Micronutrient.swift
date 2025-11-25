@@ -2,7 +2,13 @@
 //  Micronutrient.swift
 //  Food1
 //
-//  Micronutrient data structure with RDA percentage tracking
+//  Micronutrient data structure with RDA percentage tracking.
+//
+//  WHY THIS ARCHITECTURE:
+//  - RDA color thresholds (Red <20%, Orange 20-50%, Green 50-100%, Blue ≥100%) provide quick visual feedback
+//  - Category-based grouping (vitamin/mineral/electrolyte) enables organized UI display
+//  - Codable support allows JSON caching in MealIngredient for offline access
+//  - rdaPercent calculated per-nutrient enables sorting by deficiency priority
 //
 
 import Foundation

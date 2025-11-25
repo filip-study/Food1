@@ -2,8 +2,26 @@
 //  OpenAIVisionService.swift
 //  Food1
 //
-//  GPT-4o Vision API client for food recognition via secure proxy.
+//  GPT-4o Vision API client for food recognition via secure Cloudflare Worker proxy.
 //  Uses URLSession for networking (no external dependencies).
+//
+//  WHY THIS ARCHITECTURE:
+//  - Two endpoints: /analyze (food recognition, low-detail) and /analyze-label (nutrition OCR, high-detail)
+//  - Aggressive 0.3 JPEG compression and 512px max dimension optimize for speed over quality (2-5s response)
+//  - 60-second timeout handles GPT-4o processing variability without premature failures
+//  - Packaging detection prompts optional nutrition label scan for better accuracy on packaged foods
+//  - Smart 45-char truncation with word boundaries prevents GPT-4o from exceeding UI limits
+//  - Cloudflare proxy keeps OpenAI API key secure (never exposed in iOS app binary)
+//
+//  PERFORMANCE OPTIMIZATION RATIONALE:
+//  Client-side (this file):
+//    • 0.3 JPEG quality (30%) - Aggressive compression for max speed, food still recognizable
+//    • 512px max dimension - Down from 768px→2048px, ~90% file size reduction, sufficient for recognition
+//    • 60s timeout - Handles network variability without premature failures
+//  Server-side (proxy/food-vision-api/worker.js):
+//    • Low-detail mode - 3-5x faster than high-detail, food recognition doesn't need high-res
+//    • 600 max_tokens - Down from 800, faster responses while still sufficient for 5 predictions
+//  Result: Typical 2-5s response time. Further compression may hurt recognition accuracy.
 //
 
 import UIKit

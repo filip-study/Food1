@@ -2,7 +2,13 @@
 //  IngredientListView.swift
 //  Food1
 //
-//  Displays ingredient list with edit/delete functionality for NutritionReviewView
+//  Displays ingredient list with edit/delete functionality for NutritionReviewView.
+//
+//  WHY THIS ARCHITECTURE:
+//  - MVP decision: No manual "Add Ingredient" button (AI-detected only)
+//  - Rationale: Adding manual ingredient requires nutrition lookup, complicates UX
+//  - Users can edit names/grams or delete, but not add new ingredients
+//  - editingIngredientId tracks which row is expanded for inline editing
 //
 
 import SwiftUI

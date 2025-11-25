@@ -2,7 +2,13 @@
 //  SettingsView.swift
 //  Food1
 //
-//  Created by Claude on 2025-11-03.
+//  User preferences and profile editor, accessed via TodayView toolbar gear icon.
+//
+//  WHY THIS ARCHITECTURE:
+//  - Sheet presentation (not separate tab) keeps settings as secondary action
+//  - @AppStorage persists preferences without SwiftData overhead
+//  - ProfileEditor as separate sheet enables focused editing with save/cancel
+//  - Form-based layout follows iOS native patterns for settings screens
 //
 
 import SwiftUI

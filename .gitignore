@@ -53,6 +53,7 @@ node_modules/
 .specify/
 generated_icons/
 population_progress.json
+evaluation/images-food101-tiny/
 
 # Documentation (AI-generated)
 docs/

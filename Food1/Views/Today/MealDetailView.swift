@@ -2,7 +2,14 @@
 //  MealDetailView.swift
 //  Food1
 //
-//  Created by Claude on 2025-11-03.
+//  Detailed meal view with photo, macros, micronutrients, and notes.
+//
+//  WHY THIS ARCHITECTURE:
+//  - FlippableImageView (photo/cartoon flip) adds interactive delight
+//  - Macro section displays nutrition in compact rows with color-coded icons
+//  - Micronutrient section shows RDA progress bars with color thresholds (deficient→excellent)
+//  - Enrichment progress indicator shows real-time status during background USDA lookups
+//  - "Show All" toggle prevents overwhelming users with 12+ micronutrients (shows top 5 by default)
 //
 
 import SwiftUI

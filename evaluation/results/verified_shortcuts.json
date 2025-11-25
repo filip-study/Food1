@@ -1,0 +1,122 @@
+{
+  "egg": {
+    "fdc_id": 171287,
+    "description": "Egg, whole, raw, fresh",
+    "category": "Dairy and Egg Products"
+  },
+  "egg scrambled": {
+    "fdc_id": 172187,
+    "description": "Egg, whole, cooked, scrambled",
+    "category": "Dairy and Egg Products"
+  },
+  "chicken breast": {
+    "fdc_id": 171509,
+    "description": "Chicken, broilers or fryers, breast, skinless, boneless, meat only, with added solution, raw",
+    "category": "Poultry Products"
+  },
+  "milk": {
+    "fdc_id": 171265,
+    "description": "Milk, whole, 3.25% milkfat, with added vitamin D",
+    "category": "Dairy and Egg Products"
+  },
+  "banana": {
+    "fdc_id": 173944,
+    "description": "Bananas, raw",
+    "category": "Fruits and Fruit Juices"
+  },
+  "spinach": {
+    "fdc_id": 168462,
+    "description": "Spinach, raw",
+    "category": "Vegetables and Vegetable Products"
+  },
+  "avocado": {
+    "fdc_id": 171707,
+    "description": "Avocados, raw, Florida",
+    "category": "Fruits and Fruit Juices"
+  },
+  "lettuce romaine": {
+    "fdc_id": 169247,
+    "description": "Lettuce, cos or romaine, raw",
+    "category": "Vegetables and Vegetable Products"
+  },
+  "tomato sauce": {
+    "fdc_id": 170054,
+    "description": "Tomato products, canned, sauce",
+    "category": "Vegetables and Vegetable Products"
+  },
+  "bread whole wheat": {
+    "fdc_id": 172688,
+    "description": "Bread, whole-wheat, commercially prepared",
+    "category": "Baked Products"
+  },
+  "yogurt plain": {
+    "fdc_id": 171284,
+    "description": "Yogurt, plain, whole milk",
+    "category": "Dairy and Egg Products"
+  },
+  "cheddar cheese": {
+    "fdc_id": 170899,
+    "description": "Cheese, cheddar, sharp, sliced",
+    "category": "Dairy and Egg Products"
+  },
+  "mozzarella cheese": {
+    "fdc_id": 170845,
+    "description": "Cheese, mozzarella, whole milk",
+    "category": "Dairy and Egg Products"
+  },
+  "butter": {
+    "fdc_id": 173410,
+    "description": "Butter, salted",
+    "category": "Dairy and Egg Products"
+  },
+  "oats": {
+    "fdc_id": 170685,
+    "description": "Buckwheat groats, roasted, dry",
+    "category": "Cereal Grains and Pasta"
+  },
+  "broccoli": {
+    "fdc_id": 170379,
+    "description": "Broccoli, raw",
+    "category": "Vegetables and Vegetable Products"
+  },
+  "tomato": {
+    "fdc_id": 170457,
+    "description": "Tomatoes, red, ripe, raw, year round average",
+    "category": "Vegetables and Vegetable Products"
+  },
+  "cucumber": {
+    "fdc_id": 168409,
+    "description": "Cucumber, with peel, raw",
+    "category": "Vegetables and Vegetable Products"
+  },
+  "salmon": {
+    "fdc_id": 171998,
+    "description": "Fish, salmon, Atlantic, wild, cooked, dry heat",
+    "category": "Finfish and Shellfish Products"
+  },
+  "beef": {
+    "fdc_id": 174036,
+    "description": "Beef, ground, 80% lean meat / 20% fat, raw",
+    "category": "Beef Products"
+  },
+  "strawberries": {
+    "fdc_id": 167762,
+    "description": "Strawberries, raw",
+    "category": "Fruits and Fruit Juices"
+  },
+  "blueberries": {
+    "fdc_id": 171711,
+    "description": "Blueberries, raw",
+    "category": "Fruits and Fruit Juices"
+  },
+  "raspberries": {
+    "fdc_id": 167755,
+    "description": "Raspberries, raw",
+    "category": "Fruits and Fruit Juices"
+  },
+  "tortilla flour": {
+    "fdc_id": 167535,
+    "description": "Tortillas, ready-to-bake or -fry, flour, shelf stable",
+    "category": "Baked Products"
+  }
+}

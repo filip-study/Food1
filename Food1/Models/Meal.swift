@@ -2,7 +2,14 @@
 //  Meal.swift
 //  Food1
 //
-//  Created by Claude on 2025-11-03.
+//  SwiftData model for meal entries with nutrition tracking and micronutrient support.
+//
+//  WHY THIS ARCHITECTURE:
+//  - Stores macronutrients (calories, protein, carbs, fat) directly for fast queries
+//  - Optional ingredients relationship enables micronutrient tracking without breaking existing meals
+//  - Cascade delete ensures orphaned ingredients don't persist after meal deletion
+//  - photoData stores compressed JPEG (not raw UIImage) to optimize storage and SwiftData performance
+//  - matchedIconName enables 3-layer image hierarchy (photo → cartoon → emoji) for rich UI
 //
 
 import Foundation

@@ -2,15 +2,20 @@
 //  QuickAddMealView.swift
 //  Food1
 //
-//  Created by Claude on 2025-11-07.
+//  Coordinator view that manages the quick add meal flow:
+//  Custom camera → Photo capture → Recognition → Review → Save
+//  Also handles gallery and manual entry alternatives.
+//
+//  WHY THIS ARCHITECTURE:
+//  - Custom AVFoundation camera (not UIImagePickerController) provides better UX with integrated gallery/manual buttons
+//  - Blurred photo background during recognition (not camera viewfinder) shows context without distraction
+//  - Rotating sparkles + dynamic messages make 2-5s API wait feel shorter and more engaging
+//  - 800ms minimum display prevents jarring flash on quick responses (<1s)
+//  - Photo thumbnail in loading state reinforces what's being analyzed
 //
 
 import SwiftUI
 import SwiftData
-
-/// Coordinator view that manages the quick add meal flow:
-/// Custom camera → Photo capture → Recognition → Review → Save
-/// Also handles gallery and manual entry alternatives
 struct QuickAddMealView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext

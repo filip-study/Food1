@@ -2,13 +2,18 @@
 //  NutritionReviewView.swift
 //  Food1
 //
-//  Created by Claude on 2025-11-04.
+//  View for reviewing and editing AI-predicted nutrition data before saving meal.
+//
+//  WHY THIS ARCHITECTURE:
+//  - Serving size multiplier (0.5x, 1x, 2x buttons) enables quick portion adjustments
+//  - Ingredient editing (name/grams) allows correction of GPT-4o mistakes
+//  - Nutrition label data merged with predictions when packaging detected
+//  - Photo stored as JPEG Data (not UIImage) for SwiftData compatibility
+//  - Background enrichment triggered after save (non-blocking UX)
 //
 
 import SwiftUI
 import SwiftData
-
-/// View for reviewing and editing nutrition data before saving the meal
 struct NutritionReviewView: View {
 
     // MARK: - Local Nutrition Data Structure

@@ -1,0 +1,1128 @@
+{
+  "rice white": [
+    {
+      "fdc_id": 168877,
+      "description": "Rice, white, long-grain, regular, raw, enriched",
+      "common_name": "Rice, white, long-grain, regular, raw, enriched",
+      "category": "Cereal Grains and Pasta"
+    },
+    {
+      "fdc_id": 168878,
+      "description": "Rice, white, long-grain, regular, enriched, cooked",
+      "common_name": "Rice, white, long-grain, regular, enriched, cooked",
+      "category": "Cereal Grains and Pasta"
+    },
+    {
+      "fdc_id": 168879,
+      "description": "Rice, white, medium-grain, raw, enriched",
+      "common_name": "Rice, white, medium-grain, raw, enriched",
+      "category": "Cereal Grains and Pasta"
+    },
+    {
+      "fdc_id": 168880,
+      "description": "Rice, white, medium-grain, enriched, cooked",
+      "common_name": "Rice, white, medium-grain, enriched, cooked",
+      "category": "Cereal Grains and Pasta"
+    },
+    {
+      "fdc_id": 168881,
+      "description": "Rice, white, short-grain, enriched, uncooked",
+      "common_name": "Rice, white, short-grain, enriched, uncooked",
+      "category": "Cereal Grains and Pasta"
+    },
+    {
+      "fdc_id": 168882,
+      "description": "Rice, white, short-grain, enriched, cooked",
+      "common_name": "Rice, white, short-grain, enriched, cooked",
+      "category": "Cereal Grains and Pasta"
+    },
+    {
+      "fdc_id": 168883,
+      "description": "Rice, white, glutinous, unenriched, uncooked",
+      "common_name": "Rice, white, glutinous, unenriched, uncooked",
+      "category": "Cereal Grains and Pasta"
+    },
+    {
+      "fdc_id": 168930,
+      "description": "Rice, white, medium-grain, cooked, unenriched",
+      "common_name": "Rice, white, medium-grain, cooked, unenriched",
+      "category": "Cereal Grains and Pasta"
+    },
+    {
+      "fdc_id": 168931,
+      "description": "Rice, white, short-grain, raw, unenriched",
+      "common_name": "Rice, white, short-grain, raw, unenriched",
+      "category": "Cereal Grains and Pasta"
+    },
+    {
+      "fdc_id": 168932,
+      "description": "Rice, white, short-grain, cooked, unenriched",
+      "common_name": "Rice, white, short-grain, cooked, unenriched",
+      "category": "Cereal Grains and Pasta"
+    }
+  ],
+  "tomato sauce": [
+    {
+      "fdc_id": 168125,
+      "description": "Babyfood, dinner, macaroni, beef and tomato sauce, toddler",
+      "common_name": "Babyfood, dinner, macaroni, beef and tomato sauce, toddler",
+      "category": "Baby Foods"
+    },
+    {
+      "fdc_id": 168962,
+      "description": "Turnover, meat- and cheese-filled, tomato-based sauce, reduced fat, frozen",
+      "common_name": "Turnover, meat- and cheese-filled, tomato-based sauce, reduced fat, frozen",
+      "category": "Meals, Entrees, and Side Dishes"
+    },
+    {
+      "fdc_id": 169074,
+      "description": "Tomato sauce, canned, no salt added",
+      "common_name": "Tomato sauce, canned, no salt added",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 169775,
+      "description": "Turnover, cheese-filled, tomato-based sauce, frozen, unprepared",
+      "common_name": "Turnover, cheese-filled, tomato-based sauce, frozen, unprepared",
+      "category": "Meals, Entrees, and Side Dishes"
+    },
+    {
+      "fdc_id": 170054,
+      "description": "Tomato products, canned, sauce",
+      "common_name": "Tomato products, canned, sauce",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 170055,
+      "description": "Tomato products, canned, sauce, with mushrooms",
+      "common_name": "Tomato products, canned, sauce, with mushrooms",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 170056,
+      "description": "Tomato products, canned, sauce, with onions",
+      "common_name": "Tomato products, canned, sauce, with onions",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 170057,
+      "description": "Tomato products, canned, sauce, with herbs and cheese",
+      "common_name": "Tomato products, canned, sauce, with herbs and cheese",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 170085,
+      "description": "Tomato products, canned, sauce, spanish style",
+      "common_name": "Tomato products, canned, sauce, spanish style",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 170306,
+      "description": "Fast foods, submarine sandwich, sweet onion chicken teriyaki on white bread with lettuce, tomato and sweet onion sauce",
+      "common_name": "Fast foods, submarine sandwich, sweet onion chicken teriyaki on white bread with lettuce, tomato and sweet onion sauce",
+      "category": "Fast Foods"
+    }
+  ],
+  "bread whole wheat": [
+    {
+      "fdc_id": 172688,
+      "description": "Bread, whole-wheat, commercially prepared",
+      "common_name": "Bread, whole-wheat, commercially prepared",
+      "category": "Baked Products"
+    },
+    {
+      "fdc_id": 172689,
+      "description": "Bread, whole-wheat, commercially prepared, toasted",
+      "common_name": "Bread, whole-wheat, commercially prepared, toasted",
+      "category": "Baked Products"
+    },
+    {
+      "fdc_id": 172690,
+      "description": "Bread, whole-wheat, prepared from recipe",
+      "common_name": "Bread, whole-wheat, prepared from recipe",
+      "category": "Baked Products"
+    },
+    {
+      "fdc_id": 172691,
+      "description": "Bread, whole-wheat, prepared from recipe, toasted",
+      "common_name": "Bread, whole-wheat, prepared from recipe, toasted",
+      "category": "Baked Products"
+    },
+    {
+      "fdc_id": 174075,
+      "description": "Bread, chapati or roti, whole wheat, commercially prepared, frozen",
+      "common_name": "Bread, chapati or roti, whole wheat, commercially prepared, frozen",
+      "category": "Baked Products"
+    },
+    {
+      "fdc_id": 174076,
+      "description": "Bread, paratha, whole wheat, commercially prepared, frozen",
+      "common_name": "Bread, paratha, whole wheat, commercially prepared, frozen",
+      "category": "Baked Products"
+    },
+    {
+      "fdc_id": 174077,
+      "description": "Bread, naan, whole wheat, commercially prepared, refrigerated",
+      "common_name": "Bread, naan, whole wheat, commercially prepared, refrigerated",
+      "category": "Baked Products"
+    },
+    {
+      "fdc_id": 174091,
+      "description": "Bread, french or vienna, whole wheat",
+      "common_name": "Bread, french or vienna, whole wheat",
+      "category": "Baked Products"
+    },
+    {
+      "fdc_id": 174916,
+      "description": "Bread, pita, whole-wheat",
+      "common_name": "Bread, pita, whole-wheat",
+      "category": "Baked Products"
+    }
+  ],
+  "chicken breast": [
+    {
+      "fdc_id": 170344,
+      "description": "KFC, Fried Chicken, EXTRA CRISPY, Breast, meat only, skin and breading removed",
+      "common_name": "KFC, Fried Chicken, EXTRA CRISPY, Breast, meat only, skin and breading removed",
+      "category": "Fast Foods"
+    },
+    {
+      "fdc_id": 170348,
+      "description": "KFC, Fried Chicken, EXTRA CRISPY, Breast, meat and skin with breading",
+      "common_name": "KFC, Fried Chicken, EXTRA CRISPY, Breast, meat and skin with breading",
+      "category": "Fast Foods"
+    },
+    {
+      "fdc_id": 170353,
+      "description": "POPEYES, Fried Chicken, Mild, Breast, meat and skin with breading",
+      "common_name": "POPEYES, Fried Chicken, Mild, Breast, meat and skin with breading",
+      "category": "Fast Foods"
+    },
+    {
+      "fdc_id": 170356,
+      "description": "Fast Foods, Fried Chicken, Breast, meat only, skin and breading removed",
+      "common_name": "Fast Foods, Fried Chicken, Breast, meat only, skin and breading removed",
+      "category": "Fast Foods"
+    },
+    {
+      "fdc_id": 170739,
+      "description": "KFC, Fried Chicken, ORIGINAL RECIPE, Breast, meat only, skin and breading removed",
+      "common_name": "KFC, Fried Chicken, ORIGINAL RECIPE, Breast, meat only, skin and breading removed",
+      "category": "Fast Foods"
+    },
+    {
+      "fdc_id": 170744,
+      "description": "KFC, Fried Chicken, ORIGINAL RECIPE, Breast, meat and skin with breading",
+      "common_name": "KFC, Fried Chicken, ORIGINAL RECIPE, Breast, meat and skin with breading",
+      "category": "Fast Foods"
+    },
+    {
+      "fdc_id": 170748,
+      "description": "POPEYES, Fried Chicken, Mild, Breast, meat only, skin and breading removed",
+      "common_name": "POPEYES, Fried Chicken, Mild, Breast, meat only, skin and breading removed",
+      "category": "Fast Foods"
+    },
+    {
+      "fdc_id": 170756,
+      "description": "Fast Foods, Fried Chicken, Breast, meat and skin and breading",
+      "common_name": "Fast Foods, Fried Chicken, Breast, meat and skin and breading",
+      "category": "Fast Foods"
+    },
+    {
+      "fdc_id": 171075,
+      "description": "Chicken, broilers or fryers, breast, meat and skin, cooked, roasted",
+      "common_name": "Chicken, broilers or fryers, breast, meat and skin, cooked, roasted",
+      "category": "Poultry Products"
+    },
+    {
+      "fdc_id": 171076,
+      "description": "Chicken, broilers or fryers, breast, meat and skin, cooked, stewed",
+      "common_name": "Chicken, broilers or fryers, breast, meat and skin, cooked, stewed",
+      "category": "Poultry Products"
+    }
+  ],
+  "egg": [
+    {
+      "fdc_id": 167643,
+      "description": "Fish, whitefish, eggs (Alaska Native)",
+      "common_name": "Fish, whitefish, eggs (Alaska Native)",
+      "category": "American Indian/Alaska Native Foods"
+    },
+    {
+      "fdc_id": 167667,
+      "description": "Restaurant, Chinese, egg rolls, assorted",
+      "common_name": "Restaurant, Chinese, egg rolls, assorted",
+      "category": "Restaurant Foods"
+    },
+    {
+      "fdc_id": 168772,
+      "description": "Egg custards, dry mix",
+      "common_name": "Egg custards, dry mix",
+      "category": "Sweets"
+    },
+    {
+      "fdc_id": 168773,
+      "description": "Egg custards, dry mix, prepared with whole milk",
+      "common_name": "Egg custards, dry mix, prepared with whole milk",
+      "category": "Sweets"
+    },
+    {
+      "fdc_id": 168787,
+      "description": "Egg custards, dry mix, prepared with 2% milk",
+      "common_name": "Egg custards, dry mix, prepared with 2% milk",
+      "category": "Sweets"
+    },
+    {
+      "fdc_id": 168832,
+      "description": "Pudding, lemon, dry mix, regular, prepared with sugar, egg yolk and water",
+      "common_name": "Pudding, lemon, dry mix, regular, prepared with sugar, egg yolk and water",
+      "category": "Sweets"
+    },
+    {
+      "fdc_id": 168901,
+      "description": "Pasta, homemade, made with egg, cooked",
+      "common_name": "Pasta, homemade, made with egg, cooked",
+      "category": "Cereal Grains and Pasta"
+    },
+    {
+      "fdc_id": 168902,
+      "description": "Pasta, homemade, made without egg, cooked",
+      "common_name": "Pasta, homemade, made without egg, cooked",
+      "category": "Cereal Grains and Pasta"
+    },
+    {
+      "fdc_id": 168919,
+      "description": "Noodles, egg, cooked, enriched, with added salt",
+      "common_name": "Noodles, egg, cooked, enriched, with added salt",
+      "category": "Cereal Grains and Pasta"
+    },
+    {
+      "fdc_id": 168926,
+      "description": "Noodles, egg, unenriched, cooked, without added salt",
+      "common_name": "Noodles, egg, unenriched, cooked, without added salt",
+      "category": "Cereal Grains and Pasta"
+    }
+  ],
+  "spinach": [
+    {
+      "fdc_id": 168438,
+      "description": "Mustard spinach, (tendergreen), raw",
+      "common_name": "Mustard spinach, (tendergreen), raw",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 168439,
+      "description": "Mustard spinach, (tendergreen), cooked, boiled, drained, without salt",
+      "common_name": "Mustard spinach, (tendergreen), cooked, boiled, drained, without salt",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 168440,
+      "description": "New Zealand spinach, raw",
+      "common_name": "New Zealand spinach, raw",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 168441,
+      "description": "New Zealand spinach, cooked, boiled, drained, without salt",
+      "common_name": "New Zealand spinach, cooked, boiled, drained, without salt",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 168462,
+      "description": "Spinach, raw",
+      "common_name": "Spinach, raw",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 168463,
+      "description": "Spinach, cooked, boiled, drained, without salt",
+      "common_name": "Spinach, cooked, boiled, drained, without salt",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 168911,
+      "description": "Spaghetti, spinach, dry",
+      "common_name": "Spaghetti, spinach, dry",
+      "category": "Cereal Grains and Pasta"
+    },
+    {
+      "fdc_id": 168912,
+      "description": "Spaghetti, spinach, cooked",
+      "common_name": "Spaghetti, spinach, cooked",
+      "category": "Cereal Grains and Pasta"
+    },
+    {
+      "fdc_id": 169285,
+      "description": "Spinach, canned, regular pack, solids and liquids",
+      "common_name": "Spinach, canned, regular pack, solids and liquids",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 169286,
+      "description": "Spinach, canned, regular pack, drained solids",
+      "common_name": "Spinach, canned, regular pack, drained solids",
+      "category": "Vegetables and Vegetable Products"
+    }
+  ],
+  "milk": [
+    {
+      "fdc_id": 167512,
+      "description": "Pillsbury Golden Layer Buttermilk Biscuits, Artificial Flavor, refrigerated dough",
+      "common_name": "Pillsbury Golden Layer Buttermilk Biscuits, Artificial Flavor, refrigerated dough",
+      "category": "Baked Products"
+    },
+    {
+      "fdc_id": 167516,
+      "description": "Waffles, buttermilk, frozen, ready-to-heat",
+      "common_name": "Waffles, buttermilk, frozen, ready-to-heat",
+      "category": "Baked Products"
+    },
+    {
+      "fdc_id": 167517,
+      "description": "Waffle, buttermilk, frozen, ready-to-heat, toasted",
+      "common_name": "Waffle, buttermilk, frozen, ready-to-heat, toasted",
+      "category": "Baked Products"
+    },
+    {
+      "fdc_id": 167518,
+      "description": "Waffle, buttermilk, frozen, ready-to-heat, microwaved",
+      "common_name": "Waffle, buttermilk, frozen, ready-to-heat, microwaved",
+      "category": "Baked Products"
+    },
+    {
+      "fdc_id": 167545,
+      "description": "Snacks, granola bars, soft, coated, milk chocolate coating, chocolate chip",
+      "common_name": "Snacks, granola bars, soft, coated, milk chocolate coating, chocolate chip",
+      "category": "Snacks"
+    },
+    {
+      "fdc_id": 167547,
+      "description": "Snacks, granola bars, soft, coated, milk chocolate coating, peanut butter",
+      "common_name": "Snacks, granola bars, soft, coated, milk chocolate coating, peanut butter",
+      "category": "Snacks"
+    },
+    {
+      "fdc_id": 167587,
+      "description": "Candies, milk chocolate",
+      "common_name": "Candies, milk chocolate",
+      "category": "Sweets"
+    },
+    {
+      "fdc_id": 167588,
+      "description": "Puddings, banana, dry mix, instant, prepared with 2% milk",
+      "common_name": "Puddings, banana, dry mix, instant, prepared with 2% milk",
+      "category": "Sweets"
+    },
+    {
+      "fdc_id": 167589,
+      "description": "Puddings, banana, dry mix, regular, prepared with 2% milk",
+      "common_name": "Puddings, banana, dry mix, regular, prepared with 2% milk",
+      "category": "Sweets"
+    },
+    {
+      "fdc_id": 167684,
+      "description": "Creamy dressing, made with sour cream and/or buttermilk and oil, reduced calorie",
+      "common_name": "Creamy dressing, made with sour cream and/or buttermilk and oil, reduced calorie",
+      "category": "Fats and Oils"
+    }
+  ],
+  "banana": [
+    {
+      "fdc_id": 167588,
+      "description": "Puddings, banana, dry mix, instant, prepared with 2% milk",
+      "common_name": "Puddings, banana, dry mix, instant, prepared with 2% milk",
+      "category": "Sweets"
+    },
+    {
+      "fdc_id": 167589,
+      "description": "Puddings, banana, dry mix, regular, prepared with 2% milk",
+      "common_name": "Puddings, banana, dry mix, regular, prepared with 2% milk",
+      "category": "Sweets"
+    },
+    {
+      "fdc_id": 167629,
+      "description": "Melon, banana (Navajo)",
+      "common_name": "Melon, banana (Navajo)",
+      "category": "American Indian/Alaska Native Foods"
+    },
+    {
+      "fdc_id": 167732,
+      "description": "Babyfood, banana no tapioca, strained",
+      "common_name": "Babyfood, banana no tapioca, strained",
+      "category": "Baby Foods"
+    },
+    {
+      "fdc_id": 167733,
+      "description": "Babyfood, banana apple dessert, strained",
+      "common_name": "Babyfood, banana apple dessert, strained",
+      "category": "Baby Foods"
+    },
+    {
+      "fdc_id": 167764,
+      "description": "Fruit salad, (pineapple and papaya and banana and guava), tropical, canned, heavy syrup, solids and liquids",
+      "common_name": "Fruit salad, (pineapple and papaya and banana and guava), tropical, canned, heavy syrup, solids and liquids",
+      "category": "Fruits and Fruit Juices"
+    },
+    {
+      "fdc_id": 167799,
+      "description": "Fruit juice smoothie, BOLTHOUSE FARMS, strawberry banana",
+      "common_name": "Fruit juice smoothie, BOLTHOUSE FARMS, strawberry banana",
+      "category": "Fruits and Fruit Juices"
+    },
+    {
+      "fdc_id": 168090,
+      "description": "Babyfood, banana juice with low fat yogurt",
+      "common_name": "Babyfood, banana juice with low fat yogurt",
+      "category": "Baby Foods"
+    },
+    {
+      "fdc_id": 168135,
+      "description": "Babyfood, dessert, banana yogurt, strained",
+      "common_name": "Babyfood, dessert, banana yogurt, strained",
+      "category": "Baby Foods"
+    },
+    {
+      "fdc_id": 168213,
+      "description": "Fruit juice smoothie, ODWALLA, strawberry banana",
+      "common_name": "Fruit juice smoothie, ODWALLA, strawberry banana",
+      "category": "Fruits and Fruit Juices"
+    }
+  ],
+  "yogurt plain": [
+    {
+      "fdc_id": 170886,
+      "description": "Yogurt, plain, low fat",
+      "common_name": "Yogurt, plain, low fat",
+      "category": "Dairy and Egg Products"
+    },
+    {
+      "fdc_id": 170887,
+      "description": "Yogurt, plain, skim milk",
+      "common_name": "Yogurt, plain, skim milk",
+      "category": "Dairy and Egg Products"
+    },
+    {
+      "fdc_id": 170894,
+      "description": "Yogurt, Greek, plain, nonfat (Includes foods for USDA's Food Distribution Program)",
+      "common_name": "Yogurt, Greek, plain, nonfat (Includes foods for USDA's Food Distribution Program)",
+      "category": "Dairy and Egg Products"
+    },
+    {
+      "fdc_id": 170903,
+      "description": "Yogurt, Greek, plain, lowfat",
+      "common_name": "Yogurt, Greek, plain, lowfat",
+      "category": "Dairy and Egg Products"
+    },
+    {
+      "fdc_id": 171284,
+      "description": "Yogurt, plain, whole milk",
+      "common_name": "Yogurt, plain, whole milk",
+      "category": "Dairy and Egg Products"
+    },
+    {
+      "fdc_id": 171304,
+      "description": "Yogurt, Greek, plain, whole milk",
+      "common_name": "Yogurt, Greek, plain, whole milk",
+      "category": "Dairy and Egg Products"
+    },
+    {
+      "fdc_id": 171309,
+      "description": "Yogurt, Greek, whole, plain, CHOBANI",
+      "common_name": "Yogurt, Greek, whole, plain, CHOBANI",
+      "category": "Dairy and Egg Products"
+    },
+    {
+      "fdc_id": 171312,
+      "description": "Yogurt, Greek, nonfat, plain, CHOBANI",
+      "common_name": "Yogurt, Greek, nonfat, plain, CHOBANI",
+      "category": "Dairy and Egg Products"
+    },
+    {
+      "fdc_id": 175227,
+      "description": "SILK Plain soy yogurt",
+      "common_name": "SILK Plain soy yogurt",
+      "category": "Legumes and Legume Products"
+    }
+  ],
+  "cheddar cheese": [
+    {
+      "fdc_id": 167964,
+      "description": "Snacks, M&M MARS, COMBOS Snacks Cheddar Cheese Pretzel",
+      "common_name": "Snacks, M&M MARS, COMBOS Snacks Cheddar Cheese Pretzel",
+      "category": "Snacks"
+    },
+    {
+      "fdc_id": 168089,
+      "description": "Imitation cheese, american or cheddar, low cholesterol",
+      "common_name": "Imitation cheese, american or cheddar, low cholesterol",
+      "category": "Dairy and Egg Products"
+    },
+    {
+      "fdc_id": 168121,
+      "description": "Cheese, pasteurized process, cheddar or American, low sodium",
+      "common_name": "Cheese, pasteurized process, cheddar or American, low sodium",
+      "category": "Dairy and Egg Products"
+    },
+    {
+      "fdc_id": 169901,
+      "description": "Cheese, american cheddar, imitation",
+      "common_name": "Cheese, american cheddar, imitation",
+      "category": "Dairy and Egg Products"
+    },
+    {
+      "fdc_id": 170896,
+      "description": "Cheese spread, American or Cheddar cheese base, reduced fat",
+      "common_name": "Cheese spread, American or Cheddar cheese base, reduced fat",
+      "category": "Dairy and Egg Products"
+    },
+    {
+      "fdc_id": 170899,
+      "description": "Cheese, cheddar, sharp, sliced",
+      "common_name": "Cheese, cheddar, sharp, sliced",
+      "category": "Dairy and Egg Products"
+    },
+    {
+      "fdc_id": 171292,
+      "description": "Cheese, cheddar, reduced fat (Includes foods for USDA's Food Distribution Program)",
+      "common_name": "Cheese, cheddar, reduced fat (Includes foods for USDA's Food Distribution Program)",
+      "category": "Dairy and Egg Products"
+    },
+    {
+      "fdc_id": 171295,
+      "description": "Cheese, cheddar, nonfat or fat free",
+      "common_name": "Cheese, cheddar, nonfat or fat free",
+      "category": "Dairy and Egg Products"
+    },
+    {
+      "fdc_id": 172955,
+      "description": "Sausage, pork and beef, with cheddar cheese, smoked",
+      "common_name": "Sausage, pork and beef, with cheddar cheese, smoked",
+      "category": "Sausages and Luncheon Meats"
+    },
+    {
+      "fdc_id": 173414,
+      "description": "Cheese, cheddar (Includes foods for USDA's Food Distribution Program)",
+      "common_name": "Cheese, cheddar (Includes foods for USDA's Food Distribution Program)",
+      "category": "Dairy and Egg Products"
+    }
+  ],
+  "mozzarella cheese": [
+    {
+      "fdc_id": 167735,
+      "description": "Cheese, mozzarella, low sodium",
+      "common_name": "Cheese, mozzarella, low sodium",
+      "category": "Dairy and Egg Products"
+    },
+    {
+      "fdc_id": 168076,
+      "description": "DENNY'S, mozzarella cheese sticks",
+      "common_name": "DENNY'S, mozzarella cheese sticks",
+      "category": "Restaurant Foods"
+    },
+    {
+      "fdc_id": 169051,
+      "description": "Cheese, mozzarella, nonfat",
+      "common_name": "Cheese, mozzarella, nonfat",
+      "category": "Dairy and Egg Products"
+    },
+    {
+      "fdc_id": 170845,
+      "description": "Cheese, mozzarella, whole milk",
+      "common_name": "Cheese, mozzarella, whole milk",
+      "category": "Dairy and Egg Products"
+    },
+    {
+      "fdc_id": 170846,
+      "description": "Cheese, mozzarella, whole milk, low moisture",
+      "common_name": "Cheese, mozzarella, whole milk, low moisture",
+      "category": "Dairy and Egg Products"
+    },
+    {
+      "fdc_id": 170847,
+      "description": "Cheese, mozzarella, part skim milk",
+      "common_name": "Cheese, mozzarella, part skim milk",
+      "category": "Dairy and Egg Products"
+    },
+    {
+      "fdc_id": 170900,
+      "description": "Cheese, mozzarella, low moisture, part-skim, shredded",
+      "common_name": "Cheese, mozzarella, low moisture, part-skim, shredded",
+      "category": "Dairy and Egg Products"
+    },
+    {
+      "fdc_id": 171244,
+      "description": "Cheese, mozzarella, low moisture, part-skim",
+      "common_name": "Cheese, mozzarella, low moisture, part-skim",
+      "category": "Dairy and Egg Products"
+    },
+    {
+      "fdc_id": 172198,
+      "description": "Cheese substitute, mozzarella",
+      "common_name": "Cheese substitute, mozzarella",
+      "category": "Dairy and Egg Products"
+    }
+  ],
+  "butter": [
+    {
+      "fdc_id": 167512,
+      "description": "Pillsbury Golden Layer Buttermilk Biscuits, Artificial Flavor, refrigerated dough",
+      "common_name": "Pillsbury Golden Layer Buttermilk Biscuits, Artificial Flavor, refrigerated dough",
+      "category": "Baked Products"
+    },
+    {
+      "fdc_id": 167516,
+      "description": "Waffles, buttermilk, frozen, ready-to-heat",
+      "common_name": "Waffles, buttermilk, frozen, ready-to-heat",
+      "category": "Baked Products"
+    },
+    {
+      "fdc_id": 167517,
+      "description": "Waffle, buttermilk, frozen, ready-to-heat, toasted",
+      "common_name": "Waffle, buttermilk, frozen, ready-to-heat, toasted",
+      "category": "Baked Products"
+    },
+    {
+      "fdc_id": 167518,
+      "description": "Waffle, buttermilk, frozen, ready-to-heat, microwaved",
+      "common_name": "Waffle, buttermilk, frozen, ready-to-heat, microwaved",
+      "category": "Baked Products"
+    },
+    {
+      "fdc_id": 167546,
+      "description": "Candies, honey-combed, with peanut butter",
+      "common_name": "Candies, honey-combed, with peanut butter",
+      "category": "Sweets"
+    },
+    {
+      "fdc_id": 167547,
+      "description": "Snacks, granola bars, soft, coated, milk chocolate coating, peanut butter",
+      "common_name": "Snacks, granola bars, soft, coated, milk chocolate coating, peanut butter",
+      "category": "Snacks"
+    },
+    {
+      "fdc_id": 167548,
+      "description": "Snacks, granola bars, soft, uncoated, peanut butter and chocolate chip",
+      "common_name": "Snacks, granola bars, soft, uncoated, peanut butter and chocolate chip",
+      "category": "Snacks"
+    },
+    {
+      "fdc_id": 167565,
+      "description": "Candies, NESTLE, BUTTERFINGER Bar",
+      "common_name": "Candies, NESTLE, BUTTERFINGER Bar",
+      "category": "Sweets"
+    },
+    {
+      "fdc_id": 167570,
+      "description": "Candies, confectioner's coating, peanut butter",
+      "common_name": "Candies, confectioner's coating, peanut butter",
+      "category": "Sweets"
+    },
+    {
+      "fdc_id": 167578,
+      "description": "Candies, fudge, peanut butter, prepared-from-recipe",
+      "common_name": "Candies, fudge, peanut butter, prepared-from-recipe",
+      "category": "Sweets"
+    }
+  ],
+  "oats": [
+    {
+      "fdc_id": 168138,
+      "description": "Cereals ready-to-eat, POST, HONEY BUNCHES OF OATS, honey roasted",
+      "common_name": "Cereals ready-to-eat, POST, HONEY BUNCHES OF OATS, honey roasted",
+      "category": "Breakfast Cereals"
+    },
+    {
+      "fdc_id": 169063,
+      "description": "Breakfast bars, oats, sugar, raisins, coconut (include granola bar)",
+      "common_name": "Breakfast bars, oats, sugar, raisins, coconut (include granola bar)",
+      "category": "Snacks"
+    },
+    {
+      "fdc_id": 169705,
+      "description": "Oats (Includes foods for USDA's Food Distribution Program)",
+      "common_name": "Oats (Includes foods for USDA's Food Distribution Program)",
+      "category": "Cereal Grains and Pasta"
+    },
+    {
+      "fdc_id": 169859,
+      "description": "Cereals ready-to-eat, POST, HONEY BUNCHES OF OATS, with almonds",
+      "common_name": "Cereals ready-to-eat, POST, HONEY BUNCHES OF OATS, with almonds",
+      "category": "Breakfast Cereals"
+    },
+    {
+      "fdc_id": 170685,
+      "description": "Buckwheat groats, roasted, dry",
+      "common_name": "Buckwheat groats, roasted, dry",
+      "category": "Cereal Grains and Pasta"
+    },
+    {
+      "fdc_id": 170686,
+      "description": "Buckwheat groats, roasted, cooked",
+      "common_name": "Buckwheat groats, roasted, cooked",
+      "category": "Cereal Grains and Pasta"
+    },
+    {
+      "fdc_id": 171661,
+      "description": "Cereals, oats, instant, fortified, plain, dry",
+      "common_name": "Cereals, oats, instant, fortified, plain, dry",
+      "category": "Breakfast Cereals"
+    },
+    {
+      "fdc_id": 171662,
+      "description": "Cereals, oats, instant, fortified, plain, prepared with water (boiling water added or microwaved)",
+      "common_name": "Cereals, oats, instant, fortified, plain, prepared with water (boiling water added or microwaved)",
+      "category": "Breakfast Cereals"
+    },
+    {
+      "fdc_id": 171664,
+      "description": "Cereals, oats, instant, fortified, with cinnamon and spice, dry",
+      "common_name": "Cereals, oats, instant, fortified, with cinnamon and spice, dry",
+      "category": "Breakfast Cereals"
+    },
+    {
+      "fdc_id": 171675,
+      "description": "Cereals, oats, regular and quick and instant, unenriched, cooked with water (includes boiling and microwaving), with salt",
+      "common_name": "Cereals, oats, regular and quick and instant, unenriched, cooked with water (includes boiling and microwaving), with salt",
+      "category": "Breakfast Cereals"
+    }
+  ],
+  "avocado": [
+    {
+      "fdc_id": 171705,
+      "description": "Avocados, raw, all commercial varieties",
+      "common_name": "Avocados, raw, all commercial varieties",
+      "category": "Fruits and Fruit Juices"
+    },
+    {
+      "fdc_id": 171706,
+      "description": "Avocados, raw, California",
+      "common_name": "Avocados, raw, California",
+      "category": "Fruits and Fruit Juices"
+    },
+    {
+      "fdc_id": 171707,
+      "description": "Avocados, raw, Florida",
+      "common_name": "Avocados, raw, Florida",
+      "category": "Fruits and Fruit Juices"
+    },
+    {
+      "fdc_id": 173573,
+      "description": "Oil, avocado",
+      "common_name": "Oil, avocado",
+      "category": "Fats and Oils"
+    }
+  ],
+  "lettuce romaine": [
+    {
+      "fdc_id": 169247,
+      "description": "Lettuce, cos or romaine, raw",
+      "common_name": "Lettuce, cos or romaine, raw",
+      "category": "Vegetables and Vegetable Products"
+    }
+  ],
+  "salmon": [
+    {
+      "fdc_id": 167614,
+      "description": "Fish, salmon, king, chinook, smoked and canned (Alaska Native)",
+      "common_name": "Fish, salmon, king, chinook, smoked and canned (Alaska Native)",
+      "category": "American Indian/Alaska Native Foods"
+    },
+    {
+      "fdc_id": 167615,
+      "description": "Fish, salmon, king, chinook, smoked, brined (Alaska Native)",
+      "common_name": "Fish, salmon, king, chinook, smoked, brined (Alaska Native)",
+      "category": "American Indian/Alaska Native Foods"
+    },
+    {
+      "fdc_id": 167616,
+      "description": "Fish, salmon, king, chinook, liver (Alaska Native)",
+      "common_name": "Fish, salmon, king, chinook, liver (Alaska Native)",
+      "category": "American Indian/Alaska Native Foods"
+    },
+    {
+      "fdc_id": 167639,
+      "description": "Fish, salmon, coho (silver), raw (Alaska Native)",
+      "common_name": "Fish, salmon, coho (silver), raw (Alaska Native)",
+      "category": "American Indian/Alaska Native Foods"
+    },
+    {
+      "fdc_id": 167642,
+      "description": "Fish, salmon, red, canned, bones removed (Alaska Native)",
+      "common_name": "Fish, salmon, red, canned, bones removed (Alaska Native)",
+      "category": "American Indian/Alaska Native Foods"
+    },
+    {
+      "fdc_id": 167645,
+      "description": "Fish, salmon, red, (sockeye), canned, smoked (Alaska Native)",
+      "common_name": "Fish, salmon, red, (sockeye), canned, smoked (Alaska Native)",
+      "category": "American Indian/Alaska Native Foods"
+    },
+    {
+      "fdc_id": 167646,
+      "description": "Fish, salmon, red, (sockeye), kippered (Alaska Native)",
+      "common_name": "Fish, salmon, red, (sockeye), kippered (Alaska Native)",
+      "category": "American Indian/Alaska Native Foods"
+    },
+    {
+      "fdc_id": 167647,
+      "description": "Fish, salmon, king, with skin, kippered, (Alaska Native)",
+      "common_name": "Fish, salmon, king, with skin, kippered, (Alaska Native)",
+      "category": "American Indian/Alaska Native Foods"
+    },
+    {
+      "fdc_id": 168023,
+      "description": "Fish, salmon, tipnuk, fermented (Alaska Native)",
+      "common_name": "Fish, salmon, tipnuk, fermented (Alaska Native)",
+      "category": "American Indian/Alaska Native Foods"
+    },
+    {
+      "fdc_id": 168024,
+      "description": "Fish, salmon, king, chinook, kippered, canned (Alaska Native)",
+      "common_name": "Fish, salmon, king, chinook, kippered, canned (Alaska Native)",
+      "category": "American Indian/Alaska Native Foods"
+    }
+  ],
+  "beef": [
+    {
+      "fdc_id": 167536,
+      "description": "Snacks, beef jerky, chopped and formed",
+      "common_name": "Snacks, beef jerky, chopped and formed",
+      "category": "Snacks"
+    },
+    {
+      "fdc_id": 167656,
+      "description": "Corned beef and potatoes in tortilla (Apache)",
+      "common_name": "Corned beef and potatoes in tortilla (Apache)",
+      "category": "American Indian/Alaska Native Foods"
+    },
+    {
+      "fdc_id": 167657,
+      "description": "ON THE BORDER, soft taco with ground beef, cheese and lettuce",
+      "common_name": "ON THE BORDER, soft taco with ground beef, cheese and lettuce",
+      "category": "Restaurant Foods"
+    },
+    {
+      "fdc_id": 167658,
+      "description": "Restaurant, Mexican, soft taco with ground beef, cheese and lettuce",
+      "common_name": "Restaurant, Mexican, soft taco with ground beef, cheese and lettuce",
+      "category": "Restaurant Foods"
+    },
+    {
+      "fdc_id": 167660,
+      "description": "Restaurant, Latino, empanadas, beef, prepared",
+      "common_name": "Restaurant, Latino, empanadas, beef, prepared",
+      "category": "Restaurant Foods"
+    },
+    {
+      "fdc_id": 167685,
+      "description": "Bologna, beef and pork, low fat",
+      "common_name": "Bologna, beef and pork, low fat",
+      "category": "Sausages and Luncheon Meats"
+    },
+    {
+      "fdc_id": 167696,
+      "description": "Frankfurter, beef, low fat",
+      "common_name": "Frankfurter, beef, low fat",
+      "category": "Sausages and Luncheon Meats"
+    },
+    {
+      "fdc_id": 167720,
+      "description": "Babyfood, meat, beef with vegetables, toddler",
+      "common_name": "Babyfood, meat, beef with vegetables, toddler",
+      "category": "Baby Foods"
+    },
+    {
+      "fdc_id": 168072,
+      "description": "Restaurant, Chinese, beef and vegetables",
+      "common_name": "Restaurant, Chinese, beef and vegetables",
+      "category": "Restaurant Foods"
+    },
+    {
+      "fdc_id": 168101,
+      "description": "Bologna, beef, low fat",
+      "common_name": "Bologna, beef, low fat",
+      "category": "Sausages and Luncheon Meats"
+    }
+  ],
+  "broccoli": [
+    {
+      "fdc_id": 168510,
+      "description": "Broccoli, cooked, boiled, drained, with salt",
+      "common_name": "Broccoli, cooked, boiled, drained, with salt",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 168511,
+      "description": "Broccoli, frozen, chopped, cooked, boiled, drained, with salt",
+      "common_name": "Broccoli, frozen, chopped, cooked, boiled, drained, with salt",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 168512,
+      "description": "Broccoli, frozen, spears, cooked, boiled, drained, with salt",
+      "common_name": "Broccoli, frozen, spears, cooked, boiled, drained, with salt",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 169329,
+      "description": "Broccoli, leaves, raw",
+      "common_name": "Broccoli, leaves, raw",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 169330,
+      "description": "Broccoli, flower clusters, raw",
+      "common_name": "Broccoli, flower clusters, raw",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 169331,
+      "description": "Broccoli, stalks, raw",
+      "common_name": "Broccoli, stalks, raw",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 169392,
+      "description": "Broccoli, chinese, cooked",
+      "common_name": "Broccoli, chinese, cooked",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 169404,
+      "description": "Broccoli, chinese, raw",
+      "common_name": "Broccoli, chinese, raw",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 169967,
+      "description": "Broccoli, cooked, boiled, drained, without salt",
+      "common_name": "Broccoli, cooked, boiled, drained, without salt",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 169968,
+      "description": "Broccoli, frozen, chopped, unprepared",
+      "common_name": "Broccoli, frozen, chopped, unprepared",
+      "category": "Vegetables and Vegetable Products"
+    }
+  ],
+  "tomato": [
+    {
+      "fdc_id": 167704,
+      "description": "Salad dressing, bacon and tomato",
+      "common_name": "Salad dressing, bacon and tomato",
+      "category": "Fats and Oils"
+    },
+    {
+      "fdc_id": 167708,
+      "description": "Tomato and vegetable juice, low sodium",
+      "common_name": "Tomato and vegetable juice, low sodium",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 168125,
+      "description": "Babyfood, dinner, macaroni, beef and tomato sauce, toddler",
+      "common_name": "Babyfood, dinner, macaroni, beef and tomato sauce, toddler",
+      "category": "Baby Foods"
+    },
+    {
+      "fdc_id": 168567,
+      "description": "Tomatoes, sun-dried",
+      "common_name": "Tomatoes, sun-dried",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 168962,
+      "description": "Turnover, meat- and cheese-filled, tomato-based sauce, reduced fat, frozen",
+      "common_name": "Turnover, meat- and cheese-filled, tomato-based sauce, reduced fat, frozen",
+      "category": "Meals, Entrees, and Side Dishes"
+    },
+    {
+      "fdc_id": 169074,
+      "description": "Tomato sauce, canned, no salt added",
+      "common_name": "Tomato sauce, canned, no salt added",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 169384,
+      "description": "Tomatoes, sun-dried, packed in oil, drained",
+      "common_name": "Tomatoes, sun-dried, packed in oil, drained",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 169775,
+      "description": "Turnover, cheese-filled, tomato-based sauce, frozen, unprepared",
+      "common_name": "Turnover, cheese-filled, tomato-based sauce, frozen, unprepared",
+      "category": "Meals, Entrees, and Side Dishes"
+    },
+    {
+      "fdc_id": 169777,
+      "description": "Spanish rice mix, dry mix, prepared (with canola/vegetable oil blend or diced tomatoes and margarine)",
+      "common_name": "Spanish rice mix, dry mix, prepared (with canola/vegetable oil blend or diced tomatoes and margarine)",
+      "category": "Meals, Entrees, and Side Dishes"
+    },
+    {
+      "fdc_id": 170050,
+      "description": "Tomatoes, red, ripe, cooked",
+      "common_name": "Tomatoes, red, ripe, cooked",
+      "category": "Vegetables and Vegetable Products"
+    }
+  ],
+  "cucumber": [
+    {
+      "fdc_id": 167618,
+      "description": "Sea cucumber, yane (Alaska Native)",
+      "common_name": "Sea cucumber, yane (Alaska Native)",
+      "category": "American Indian/Alaska Native Foods"
+    },
+    {
+      "fdc_id": 168409,
+      "description": "Cucumber, with peel, raw",
+      "common_name": "Cucumber, with peel, raw",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 168558,
+      "description": "Pickles, cucumber, dill or kosher dill",
+      "common_name": "Pickles, cucumber, dill or kosher dill",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 168562,
+      "description": "Pickles, cucumber, sour, low sodium",
+      "common_name": "Pickles, cucumber, sour, low sodium",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 168563,
+      "description": "Pickles, cucumber, dill, reduced sodium",
+      "common_name": "Pickles, cucumber, dill, reduced sodium",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 169225,
+      "description": "Cucumber, peeled, raw",
+      "common_name": "Cucumber, peeled, raw",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 169378,
+      "description": "Pickles, cucumber, sweet (includes bread and butter pickles)",
+      "common_name": "Pickles, cucumber, sweet (includes bread and butter pickles)",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 169379,
+      "description": "Pickles, cucumber, sour",
+      "common_name": "Pickles, cucumber, sour",
+      "category": "Vegetables and Vegetable Products"
+    },
+    {
+      "fdc_id": 169380,
+      "description": "Pickles, cucumber, sweet, low sodium (includes bread and butter pickles)",
+      "common_name": "Pickles, cucumber, sweet, low sodium (includes bread and butter pickles)",
+      "category": "Vegetables and Vegetable Products"
+    }
+  ]
+}

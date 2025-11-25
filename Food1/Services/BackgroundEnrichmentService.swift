@@ -2,8 +2,15 @@
 //  BackgroundEnrichmentService.swift
 //  Food1
 //
-//  Background service for enriching ingredients with micronutrients from local USDA database
-//  100% offline, zero API calls, async processing doesn't block UI
+//  Background service for enriching ingredients with micronutrients from local USDA database.
+//  100% offline, zero API calls, async processing doesn't block UI.
+//
+//  WHY THIS ARCHITECTURE:
+//  - Sequential processing (not parallel) enables readable debug logs and controlled resource usage
+//  - enrichmentAttempted flag prevents redundant lookups on app restart or background task re-run
+//  - SwiftData observation automatically updates UI when cachedMicronutrientsJSON changes (no manual refresh)
+//  - Non-blocking: Meal save completes instantly, enrichment happens after in background (100-200ms typical)
+//  - 10-minute recent window (in Food1App) prevents infinite re-attempts on old unmatched ingredients
 //
 
 import Foundation

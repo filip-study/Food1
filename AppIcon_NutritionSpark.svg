@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Bowl gradient using accentPrimary → accentSecondary -->
+    <linearGradient id="bowlGradient" x1="512" y1="400" x2="512" y2="750" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#007AFF"/>
+      <stop offset="100%" stop-color="#00D4AA"/>
+    </linearGradient>
+
+    <!-- Sparkle gradient using accentTertiary → accentPrimary -->
+    <linearGradient id="sparkleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00E5FF"/>
+      <stop offset="100%" stop-color="#007AFF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Bowl - rounded bottom container shape -->
+  <path d="M200 420
+           Q200 380 240 380
+           L784 380
+           Q824 380 824 420
+           L824 520
+           Q824 720 512 750
+           Q200 720 200 520
+           Z"
+        fill="url(#bowlGradient)"/>
+
+  <!-- Bowl rim highlight -->
+  <ellipse cx="512" cy="400" rx="312" ry="40" fill="#00D4AA" opacity="0.3"/>
+
+  <!-- Large center sparkle -->
+  <path d="M512 180
+           L524 240
+           L584 252
+           L524 264
+           L512 324
+           L500 264
+           L440 252
+           L500 240
+           Z"
+        fill="url(#sparkleGradient)"/>
+
+  <!-- Small left sparkle (accentTertiary) -->
+  <path d="M340 260
+           L348 290
+           L378 298
+           L348 306
+           L340 336
+           L332 306
+           L302 298
+           L332 290
+           Z"
+        fill="#00E5FF" opacity="0.8"/>
+
+  <!-- Small right sparkle (accentSecondary) -->
+  <path d="M684 220
+           L692 250
+           L722 258
+           L692 266
+           L684 296
+           L676 266
+           L646 258
+           L676 250
+           Z"
+        fill="#00D4AA" opacity="0.9"/>
+</svg>

@@ -1,0 +1,2653 @@
+[
+  {
+    "image": "01_two_toasts_fried_egg.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Fried Eggs on Toast",
+            "confidence": 0.95,
+            "description": "Two fried eggs on whole grain toast",
+            "nutrition": {
+              "calories": 400,
+              "protein": 20.0,
+              "carbs": 40.0,
+              "fat": 20.0,
+              "estimated_grams": 200
+            },
+            "ingredients": [
+              {
+                "name": "Egg, fried",
+                "grams": 90
+              },
+              {
+                "name": "Bread, whole wheat",
+                "grams": 110
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 145,
+        "total_tokens": 1003,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "02_scrambled_egg_bacon_toast.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Scrambled Eggs with Bacon",
+            "confidence": 0.95,
+            "description": "Scrambled eggs served with bacon and toast",
+            "nutrition": {
+              "calories": 450,
+              "protein": 25.0,
+              "carbs": 45.0,
+              "fat": 20.0,
+              "estimated_grams": 250
+            },
+            "ingredients": [
+              {
+                "name": "Egg, scrambled",
+                "grams": 120
+              },
+              {
+                "name": "Pork bacon, cooked",
+                "grams": 40
+              },
+              {
+                "name": "Bread, whole wheat",
+                "grams": 90
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 163,
+        "total_tokens": 1021,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "03_scrambled_egg_half_muffin_grapes_strawberries_orange_piece.jpeg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Scrambled Eggs Breakfast Plate",
+            "confidence": 0.95,
+            "description": "Plate with scrambled eggs, fruit, and a muffin",
+            "nutrition": {
+              "calories": 350,
+              "protein": 18.0,
+              "carbs": 40.0,
+              "fat": 15.0,
+              "estimated_grams": 300
+            },
+            "ingredients": [
+              {
+                "name": "Egg, scrambled",
+                "grams": 120
+              },
+              {
+                "name": "English muffin, plain",
+                "grams": 50
+              },
+              {
+                "name": "Grapes, raw",
+                "grams": 60
+              },
+              {
+                "name": "Strawberries, raw",
+                "grams": 40
+              },
+              {
+                "name": "Orange, raw",
+                "grams": 30
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 197,
+        "total_tokens": 1055,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "04_six_pancakes_blueberries_maple_syrup.png",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Pancakes with Syrup and Blueberries",
+            "confidence": 0.95,
+            "description": "Stack of pancakes with syrup and blueberries",
+            "nutrition": {
+              "calories": 550,
+              "protein": 10.0,
+              "carbs": 95.0,
+              "fat": 15.0,
+              "estimated_grams": 250
+            },
+            "ingredients": [
+              {
+                "name": "Pancake, plain",
+                "grams": 200
+              },
+              {
+                "name": "Blueberries, raw",
+                "grams": 30
+              },
+              {
+                "name": "Maple syrup",
+                "grams": 20
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 166,
+        "total_tokens": 1024,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "05_four_chocolate_pancakes_chocolate_sauce_whipped_cream.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Chocolate Pancakes with Toppings",
+            "confidence": 0.95,
+            "description": "Stack of chocolate pancakes with chocolate syrup and whipped cream",
+            "nutrition": {
+              "calories": 600,
+              "protein": 12.0,
+              "carbs": 90.0,
+              "fat": 28.0,
+              "estimated_grams": 300
+            },
+            "ingredients": [
+              {
+                "name": "Pancakes, chocolate",
+                "grams": 250
+              },
+              {
+                "name": "Chocolate syrup",
+                "grams": 30
+              },
+              {
+                "name": "Whipped cream",
+                "grams": 20
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 164,
+        "total_tokens": 1022,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "06_spinach_and_cheese_crepe.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Spinach and Feta Crepes",
+            "confidence": 0.95,
+            "description": "Savory crepes filled with spinach and feta",
+            "nutrition": {
+              "calories": 350,
+              "protein": 15.0,
+              "carbs": 40.0,
+              "fat": 18.0,
+              "estimated_grams": 200
+            },
+            "ingredients": [
+              {
+                "name": "Crepe",
+                "grams": 100
+              },
+              {
+                "name": "Spinach",
+                "grams": 80
+              },
+              {
+                "name": "Feta cheese",
+                "grams": 20
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 161,
+        "total_tokens": 1019,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "07_plain_crepes.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Stack of Plain Crepes",
+            "confidence": 0.95,
+            "description": "Thin pancakes stacked on a plate",
+            "nutrition": {
+              "calories": 580,
+              "protein": 20.0,
+              "carbs": 89.0,
+              "fat": 21.0,
+              "estimated_grams": 250
+            },
+            "ingredients": [
+              {
+                "name": "Flour, wheat",
+                "grams": 120
+              },
+              {
+                "name": "Milk, whole",
+                "grams": 80
+              },
+              {
+                "name": "Eggs, whole",
+                "grams": 40
+              },
+              {
+                "name": "Butter",
+                "grams": 10
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 173,
+        "total_tokens": 1031,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "08_oatmeal_raspberries_blueberries_banana_almonds_chia_seeds_peanut_butter.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Berry Banana Peanut Oatmeal",
+            "confidence": 0.95,
+            "description": "A bowl of oatmeal topped with bananas, berries, nuts, and a drizzle of peanut butter",
+            "nutrition": {
+              "calories": 450,
+              "protein": 12.0,
+              "carbs": 75.0,
+              "fat": 15.0,
+              "estimated_grams": 300
+            },
+            "ingredients": [
+              {
+                "name": "Oats, cooked",
+                "grams": 180
+              },
+              {
+                "name": "Banana, sliced",
+                "grams": 50
+              },
+              {
+                "name": "Blueberries, raw",
+                "grams": 25
+              },
+              {
+                "name": "Raspberries, raw",
+                "grams": 25
+              },
+              {
+                "name": "Peanut butter",
+                "grams": 20
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 206,
+        "total_tokens": 1064,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "09_chocolate_oatmeal.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Chocolate Oatmeal with Yogurt",
+            "confidence": 0.95,
+            "description": "A bowl of chocolate oatmeal topped with yogurt and chocolate chips.",
+            "nutrition": {
+              "calories": 350,
+              "protein": 10.0,
+              "carbs": 50.0,
+              "fat": 15.0,
+              "estimated_grams": 250
+            },
+            "ingredients": [
+              {
+                "name": "Oats",
+                "grams": 150
+              },
+              {
+                "name": "Milk, whole",
+                "grams": 70
+              },
+              {
+                "name": "Cocoa powder",
+                "grams": 10
+              },
+              {
+                "name": "Yogurt, plain",
+                "grams": 50
+              },
+              {
+                "name": "Chocolate chips",
+                "grams": 20
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 195,
+        "total_tokens": 1053,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "10_quaker_life_multigrain_cereal_with_milk.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Bowl of Cereal with Milk",
+            "confidence": 0.95,
+            "description": "Cereal in milk",
+            "nutrition": {
+              "calories": 350,
+              "protein": 15.0,
+              "carbs": 60.0,
+              "fat": 8.0,
+              "estimated_grams": 300
+            },
+            "ingredients": [
+              {
+                "name": "Cereal, wheat squares",
+                "grams": 170
+              },
+              {
+                "name": "Milk, whole",
+                "grams": 130
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 118,
+        "total_tokens": 976,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "11_kaya_toast_with_butter.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Butter Sandwiches",
+            "confidence": 0.95,
+            "description": "Stack of toasted sandwiches with butter",
+            "nutrition": {
+              "calories": 600,
+              "protein": 12.0,
+              "carbs": 72.0,
+              "fat": 30.0,
+              "estimated_grams": 300
+            },
+            "ingredients": [
+              {
+                "name": "Bread, white",
+                "grams": 240
+              },
+              {
+                "name": "Butter, salted",
+                "grams": 60
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 141,
+        "total_tokens": 999,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "12_avocado_toast.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Avocado Toast",
+            "confidence": 0.95,
+            "description": "Toasted bread with sliced and mashed avocado",
+            "nutrition": {
+              "calories": 350,
+              "protein": 7.0,
+              "carbs": 45.0,
+              "fat": 19.0,
+              "estimated_grams": 200
+            },
+            "ingredients": [
+              {
+                "name": "Bread, whole wheat",
+                "grams": 90
+              },
+              {
+                "name": "Avocado, raw",
+                "grams": 110
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 145,
+        "total_tokens": 1003,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "13_avocado_toast_fried_egg_chili_crunch_oil.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Avocado Toast with Fried Egg",
+            "confidence": 0.97,
+            "description": "A slice of toast with mashed avocado and a fried egg.",
+            "nutrition": {
+              "calories": 320,
+              "protein": 12.0,
+              "carbs": 30.0,
+              "fat": 20.0,
+              "estimated_grams": 200
+            },
+            "ingredients": [
+              {
+                "name": "Bread, whole wheat",
+                "grams": 70
+              },
+              {
+                "name": "Avocado, raw",
+                "grams": 75
+              },
+              {
+                "name": "Egg, fried",
+                "grams": 55
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 166,
+        "total_tokens": 1024,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "14_three_poached_eggs.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Poached Eggs",
+            "confidence": 0.95,
+            "description": "Three poached eggs with seasoning",
+            "nutrition": {
+              "calories": 210,
+              "protein": 18.0,
+              "carbs": 2.0,
+              "fat": 14.0,
+              "estimated_grams": 165
+            },
+            "ingredients": [
+              {
+                "name": "Egg, whole, cooked, poached",
+                "grams": 165
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 131,
+        "total_tokens": 989,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "15_ceasar_salad_crispy_chicken_bacon_parmesan_croutons_lettuce.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Chicken Caesar Salad",
+            "confidence": 0.95,
+            "description": "Salad with breaded chicken and dressing",
+            "nutrition": {
+              "calories": 520,
+              "protein": 30.0,
+              "carbs": 40.0,
+              "fat": 30.0,
+              "estimated_grams": 350
+            },
+            "ingredients": [
+              {
+                "name": "Lettuce, romaine",
+                "grams": 90
+              },
+              {
+                "name": "Chicken breast, breaded",
+                "grams": 150
+              },
+              {
+                "name": "Croutons",
+                "grams": 40
+              },
+              {
+                "name": "Parmesan cheese",
+                "grams": 20
+              },
+              {
+                "name": "Caesar dressing",
+                "grams": 50
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 194,
+        "total_tokens": 1052,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "16_fresh_fruit_bowl_grape_blackberry_pineapple_strawberry.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Mixed Fruit Salad",
+            "confidence": 0.95,
+            "description": "A bowl of mixed fresh fruits including watermelon, strawberries, pineapple, blackberries, and grapes.",
+            "nutrition": {
+              "calories": 120,
+              "protein": 2.0,
+              "carbs": 30.0,
+              "fat": 0.5,
+              "estimated_grams": 350
+            },
+            "ingredients": [
+              {
+                "name": "Watermelon, raw",
+                "grams": 140
+              },
+              {
+                "name": "Strawberries, raw",
+                "grams": 70
+              },
+              {
+                "name": "Pineapple, raw",
+                "grams": 70
+              },
+              {
+                "name": "Blackberries, raw",
+                "grams": 35
+              },
+              {
+                "name": "Grapes, red or green (European type varieties, such as Thompson seedless), raw",
+                "grams": 35
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 220,
+        "total_tokens": 1078,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "17_acai_bowl_banana_strawberry_blueberry.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Berry Smoothie Bowl",
+            "confidence": 0.95,
+            "description": "Smoothie bowl with sliced fruits",
+            "nutrition": {
+              "calories": 350,
+              "protein": 5.0,
+              "carbs": 70.0,
+              "fat": 8.0,
+              "estimated_grams": 400
+            },
+            "ingredients": [
+              {
+                "name": "Berries, mixed",
+                "grams": 150
+              },
+              {
+                "name": "Banana, raw",
+                "grams": 100
+              },
+              {
+                "name": "Strawberries, raw",
+                "grams": 80
+              },
+              {
+                "name": "Blueberries, raw",
+                "grams": 70
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 177,
+        "total_tokens": 1035,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "18_three_salmon_nigiri.avif",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Salmon Nigiri Sushi",
+            "confidence": 0.95,
+            "description": "Sushi with raw salmon on rice",
+            "nutrition": {
+              "calories": 125,
+              "protein": 8.0,
+              "carbs": 15.0,
+              "fat": 4.0,
+              "estimated_grams": 100
+            },
+            "ingredients": [
+              {
+                "name": "Salmon, raw",
+                "grams": 40
+              },
+              {
+                "name": "Rice, white",
+                "grams": 60
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 145,
+        "total_tokens": 1003,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "19_imitation_crab_nigiri.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Crab Stick Sushi",
+            "confidence": 0.95,
+            "description": "Nigiri sushi with crab sticks",
+            "nutrition": {
+              "calories": 150,
+              "protein": 12.0,
+              "carbs": 25.0,
+              "fat": 3.0,
+              "estimated_grams": 120
+            },
+            "ingredients": [
+              {
+                "name": "Rice, white",
+                "grams": 70
+              },
+              {
+                "name": "Crab stick",
+                "grams": 45
+              },
+              {
+                "name": "Seaweed, nori",
+                "grams": 5
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 159,
+        "total_tokens": 1017,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "20_sushi_six_spicy_tuna_rolls.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Spicy Tuna Roll Sushi",
+            "confidence": 0.95,
+            "description": "Sushi rolls with spicy tuna topping",
+            "nutrition": {
+              "calories": 400,
+              "protein": 15.0,
+              "carbs": 50.0,
+              "fat": 15.0,
+              "estimated_grams": 250
+            },
+            "ingredients": [
+              {
+                "name": "Rice, white",
+                "grams": 115
+              },
+              {
+                "name": "Tuna, raw",
+                "grams": 70
+              },
+              {
+                "name": "Spicy mayonnaise",
+                "grams": 35
+              },
+              {
+                "name": "Nori, dried seaweed",
+                "grams": 15
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 178,
+        "total_tokens": 1036,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "21_three_biria_tacos.webp",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Birria Tacos",
+            "confidence": 0.95,
+            "description": "Tacos filled with birria and garnished with onions and cilantro",
+            "nutrition": {
+              "calories": 600,
+              "protein": 35.0,
+              "carbs": 50.0,
+              "fat": 30.0,
+              "estimated_grams": 300
+            },
+            "ingredients": [
+              {
+                "name": "Tortillas, corn",
+                "grams": 100
+              },
+              {
+                "name": "Beef, braised",
+                "grams": 140
+              },
+              {
+                "name": "Onions, raw",
+                "grams": 30
+              },
+              {
+                "name": "Cilantro, raw",
+                "grams": 10
+              },
+              {
+                "name": "Lime, wedge",
+                "grams": 20
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 202,
+        "total_tokens": 1060,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "22_two_biria_tacos.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Birria Tacos",
+            "confidence": 0.95,
+            "description": "Corn tortillas with beef and cheese",
+            "nutrition": {
+              "calories": 500,
+              "protein": 30.0,
+              "carbs": 40.0,
+              "fat": 30.0,
+              "estimated_grams": 250
+            },
+            "ingredients": [
+              {
+                "name": "Tortilla, corn",
+                "grams": 80
+              },
+              {
+                "name": "Beef, stewed",
+                "grams": 120
+              },
+              {
+                "name": "Cheese, mozzarella",
+                "grams": 50
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 162,
+        "total_tokens": 1020,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "23_shredded_chicken_taco_tomato_guac_chedar.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Chicken Tacos",
+            "confidence": 0.95,
+            "description": "Soft tacos with chicken filling",
+            "nutrition": {
+              "calories": 350,
+              "protein": 25.0,
+              "carbs": 35.0,
+              "fat": 15.0,
+              "estimated_grams": 250
+            },
+            "ingredients": [
+              {
+                "name": "Tortilla, flour",
+                "grams": 80
+              },
+              {
+                "name": "Chicken breast, cooked",
+                "grams": 100
+              },
+              {
+                "name": "Tomatoes, raw",
+                "grams": 40
+              },
+              {
+                "name": "Lettuce, romaine",
+                "grams": 20
+              },
+              {
+                "name": "Cheese, cheddar",
+                "grams": 10
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 193,
+        "total_tokens": 1051,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "24_tom_yum_soup_shrimp_mushroom.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Shrimp and Mushroom Soup",
+            "confidence": 0.95,
+            "description": "A bowl of soup with shrimp and mushrooms",
+            "nutrition": {
+              "calories": 350,
+              "protein": 30.0,
+              "carbs": 20.0,
+              "fat": 15.0,
+              "estimated_grams": 300
+            },
+            "ingredients": [
+              {
+                "name": "Shrimp, cooked",
+                "grams": 140
+              },
+              {
+                "name": "Mushrooms, raw",
+                "grams": 75
+              },
+              {
+                "name": "Chicken broth",
+                "grams": 60
+              },
+              {
+                "name": "Green onions",
+                "grams": 25
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 176,
+        "total_tokens": 1034,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "25_hummus_shredded_carrot_raw_cucumbers_crackers.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Hummus with Veggies and Crackers",
+            "confidence": 0.95,
+            "description": "Plate with hummus, cucumber, carrots, and crackers.",
+            "nutrition": {
+              "calories": 300,
+              "protein": 10.0,
+              "carbs": 40.0,
+              "fat": 15.0,
+              "estimated_grams": 250
+            },
+            "ingredients": [
+              {
+                "name": "Hummus",
+                "grams": 100
+              },
+              {
+                "name": "Crackers",
+                "grams": 70
+              },
+              {
+                "name": "Carrots, raw",
+                "grams": 50
+              },
+              {
+                "name": "Cucumber, raw",
+                "grams": 30
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 183,
+        "total_tokens": 1041,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "26_ham_and_cheese_stuffed_chicken_breast_broccoli.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Breaded Chicken with Broccoli",
+            "confidence": 0.95,
+            "description": "Breaded chicken cutlet with steamed broccoli",
+            "nutrition": {
+              "calories": 350,
+              "protein": 40.0,
+              "carbs": 20.0,
+              "fat": 15.0,
+              "estimated_grams": 250
+            },
+            "ingredients": [
+              {
+                "name": "Chicken breast, breaded",
+                "grams": 150
+              },
+              {
+                "name": "Broccoli, steamed",
+                "grams": 100
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 149,
+        "total_tokens": 1007,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "27_kfc_original_fried_chicken.webp",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Fried Chicken Pieces",
+            "confidence": 0.95,
+            "description": "Plate of fried chicken pieces including drumsticks and wings",
+            "nutrition": {
+              "calories": 900,
+              "protein": 80.0,
+              "carbs": 45.0,
+              "fat": 60.0,
+              "estimated_grams": 600
+            },
+            "ingredients": [
+              {
+                "name": "Chicken, drumstick, fried",
+                "grams": 240
+              },
+              {
+                "name": "Chicken, wing, fried",
+                "grams": 210
+              },
+              {
+                "name": "All-purpose flour",
+                "grams": 90
+              },
+              {
+                "name": "Vegetable oil",
+                "grams": 60
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 181,
+        "total_tokens": 1039,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "28_mcdonalds_cheeseburger.png",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Cheeseburger with Pickles",
+            "confidence": 0.95,
+            "description": "Classic cheeseburger with cheese and pickles",
+            "nutrition": {
+              "calories": 300,
+              "protein": 15.0,
+              "carbs": 30.0,
+              "fat": 15.0,
+              "estimated_grams": 200
+            },
+            "ingredients": [
+              {
+                "name": "Beef patty, grilled",
+                "grams": 85
+              },
+              {
+                "name": "Cheddar cheese",
+                "grams": 20
+              },
+              {
+                "name": "Burger bun",
+                "grams": 70
+              },
+              {
+                "name": "Pickles, slices",
+                "grams": 15
+              },
+              {
+                "name": "Ketchup",
+                "grams": 10
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 195,
+        "total_tokens": 1053,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "29_beef_burger_cheese_french_fries.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Cheeseburger with fries",
+            "confidence": 0.95,
+            "description": "Burger with cheese, lettuce, and pickles",
+            "nutrition": {
+              "calories": 700,
+              "protein": 40.0,
+              "carbs": 60.0,
+              "fat": 40.0,
+              "estimated_grams": 350
+            },
+            "ingredients": [
+              {
+                "name": "Beef patty, grilled",
+                "grams": 100
+              },
+              {
+                "name": "Cheddar cheese",
+                "grams": 30
+              },
+              {
+                "name": "Lettuce, shredded",
+                "grams": 20
+              },
+              {
+                "name": "Pickles, sliced",
+                "grams": 10
+              },
+              {
+                "name": "Burger bun",
+                "grams": 70
+              },
+              {
+                "name": "French fries",
+                "grams": 120
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 211,
+        "total_tokens": 1069,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "30_chicken_nuggets.jpeg",
+    "response": {
+      "result": {
+        "has_packaging": true,
+        "predictions": [
+          {
+            "label": "Chicken Nuggets",
+            "confidence": 0.95,
+            "description": "Breaded chicken nuggets in container",
+            "nutrition": {
+              "calories": 300,
+              "protein": 18.0,
+              "carbs": 20.0,
+              "fat": 15.0,
+              "estimated_grams": 200
+            },
+            "ingredients": [
+              {
+                "name": "Chicken breast, breaded",
+                "grams": 170
+              },
+              {
+                "name": "Breadcrumbs",
+                "grams": 30
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 141,
+        "total_tokens": 999,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "31_tomato_mozarella_salad.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Caprese Salad",
+            "confidence": 0.97,
+            "description": "Sliced tomatoes, mozzarella, and basil",
+            "nutrition": {
+              "calories": 220,
+              "protein": 13.0,
+              "carbs": 10.0,
+              "fat": 16.0,
+              "estimated_grams": 200
+            },
+            "ingredients": [
+              {
+                "name": "Tomato, raw",
+                "grams": 100
+              },
+              {
+                "name": "Mozzarella cheese",
+                "grams": 80
+              },
+              {
+                "name": "Basil, fresh",
+                "grams": 5
+              },
+              {
+                "name": "Olive oil",
+                "grams": 15
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 176,
+        "total_tokens": 1034,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "32_tomato_cucumber_onion_salad.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Cucumber Tomato Salad",
+            "confidence": 0.95,
+            "description": "A fresh salad with cucumbers, tomatoes, and onions.",
+            "nutrition": {
+              "calories": 90,
+              "protein": 2.0,
+              "carbs": 20.0,
+              "fat": 1.0,
+              "estimated_grams": 250
+            },
+            "ingredients": [
+              {
+                "name": "Cucumber, raw",
+                "grams": 120
+              },
+              {
+                "name": "Tomato, raw",
+                "grams": 100
+              },
+              {
+                "name": "Onion, raw",
+                "grams": 30
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 165,
+        "total_tokens": 1023,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "33_spaghetti_bolognese.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Spaghetti Bolognese",
+            "confidence": 0.95,
+            "description": "spaghetti with meat sauce",
+            "nutrition": {
+              "calories": 600,
+              "protein": 25.0,
+              "carbs": 75.0,
+              "fat": 20.0,
+              "estimated_grams": 350
+            },
+            "ingredients": [
+              {
+                "name": "Spaghetti, cooked",
+                "grams": 200
+              },
+              {
+                "name": "Ground beef, cooked",
+                "grams": 100
+              },
+              {
+                "name": "Tomato sauce",
+                "grams": 50
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 160,
+        "total_tokens": 1018,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "34_penne_carbonara_with_meat.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Creamy Pasta with Bacon",
+            "confidence": 0.95,
+            "description": "Penne pasta coated in a creamy sauce with bacon",
+            "nutrition": {
+              "calories": 500,
+              "protein": 20.0,
+              "carbs": 60.0,
+              "fat": 25.0,
+              "estimated_grams": 350
+            },
+            "ingredients": [
+              {
+                "name": "Pasta, penne, cooked",
+                "grams": 210
+              },
+              {
+                "name": "Bacon, cooked",
+                "grams": 50
+              },
+              {
+                "name": "Cream, heavy whipping",
+                "grams": 40
+              },
+              {
+                "name": "Cheese, parmesan, grated",
+                "grams": 30
+              },
+              {
+                "name": "Parsley, fresh",
+                "grams": 10
+              },
+              {
+                "name": "Garlic, raw",
+                "grams": 10
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 218,
+        "total_tokens": 1076,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "35_nut_and_fruit_mix_pumpkin_seeds_cashews_walnuts_almonds_raisins_cranbery.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Mixed Nuts and Dried Fruits",
+            "confidence": 0.95,
+            "description": "A bowl of mixed nuts and dried fruits",
+            "nutrition": {
+              "calories": 500,
+              "protein": 15.0,
+              "carbs": 50.0,
+              "fat": 35.0,
+              "estimated_grams": 200
+            },
+            "ingredients": [
+              {
+                "name": "Almonds, raw",
+                "grams": 40
+              },
+              {
+                "name": "Cashews, raw",
+                "grams": 40
+              },
+              {
+                "name": "Walnuts, chopped",
+                "grams": 30
+              },
+              {
+                "name": "Pumpkin seeds, raw",
+                "grams": 20
+              },
+              {
+                "name": "Raisins, seedless",
+                "grams": 40
+              },
+              {
+                "name": "Cranberries, dried",
+                "grams": 30
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 217,
+        "total_tokens": 1075,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "36_fruits_raspberry_blueberry_strawberry_yoghurt_honey_drizzle..webp",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Mixed Berry Yogurt Bowl",
+            "confidence": 0.95,
+            "description": "A bowl of yogurt with mixed berries",
+            "nutrition": {
+              "calories": 200,
+              "protein": 8.0,
+              "carbs": 30.0,
+              "fat": 4.0,
+              "estimated_grams": 180
+            },
+            "ingredients": [
+              {
+                "name": "Yogurt, plain",
+                "grams": 90
+              },
+              {
+                "name": "Raspberries, raw",
+                "grams": 40
+              },
+              {
+                "name": "Blueberries, raw",
+                "grams": 30
+              },
+              {
+                "name": "Strawberries, raw",
+                "grams": 20
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 181,
+        "total_tokens": 1039,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "37_grilled_salmon_bok_choy_white_rice_soy_sauce_white_sesame.jpeg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Salmon, rice, and greens",
+            "confidence": 0.95,
+            "description": "Bowl with salmon fillet, rice, and greens",
+            "nutrition": {
+              "calories": 450,
+              "protein": 35.0,
+              "carbs": 50.0,
+              "fat": 15.0,
+              "estimated_grams": 350
+            },
+            "ingredients": [
+              {
+                "name": "Salmon, grilled",
+                "grams": 120
+              },
+              {
+                "name": "Rice, white",
+                "grams": 130
+              },
+              {
+                "name": "Spinach, boiled",
+                "grams": 50
+              },
+              {
+                "name": "Broccoli, cooked",
+                "grams": 50
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 183,
+        "total_tokens": 1041,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "38_butter_chicken_nan_bread.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Butter Chicken with Naan",
+            "confidence": 0.95,
+            "description": "A bowl of butter chicken curry with naan bread",
+            "nutrition": {
+              "calories": 600,
+              "protein": 30.0,
+              "carbs": 60.0,
+              "fat": 25.0,
+              "estimated_grams": 400
+            },
+            "ingredients": [
+              {
+                "name": "Chicken breast, cooked",
+                "grams": 150
+              },
+              {
+                "name": "Tomato sauce",
+                "grams": 100
+              },
+              {
+                "name": "Cream, heavy",
+                "grams": 60
+              },
+              {
+                "name": "Butter, unsalted",
+                "grams": 30
+              },
+              {
+                "name": "Garlic naan",
+                "grams": 60
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 193,
+        "total_tokens": 1051,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "39_butter_chicken.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Butter Chicken Curry",
+            "confidence": 0.95,
+            "description": "Creamy Indian chicken curry dish",
+            "nutrition": {
+              "calories": 420,
+              "protein": 30.0,
+              "carbs": 25.0,
+              "fat": 24.0,
+              "estimated_grams": 350
+            },
+            "ingredients": [
+              {
+                "name": "Chicken breast, cooked",
+                "grams": 150
+              },
+              {
+                "name": "Tomato sauce",
+                "grams": 120
+              },
+              {
+                "name": "Cream, heavy whipping",
+                "grams": 40
+              },
+              {
+                "name": "Butter",
+                "grams": 20
+              },
+              {
+                "name": "Spices, mixed",
+                "grams": 20
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 187,
+        "total_tokens": 1045,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "40_palak_paneer_spinach_and_nan.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Palak Paneer",
+            "confidence": 0.95,
+            "description": "Spinach curry with paneer cheese",
+            "nutrition": {
+              "calories": 270,
+              "protein": 15.0,
+              "carbs": 25.0,
+              "fat": 15.0,
+              "estimated_grams": 250
+            },
+            "ingredients": [
+              {
+                "name": "Spinach, cooked",
+                "grams": 150
+              },
+              {
+                "name": "Paneer, cheese",
+                "grams": 80
+              },
+              {
+                "name": "Onions, cooked",
+                "grams": 20
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 161,
+        "total_tokens": 1019,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "41_greek_plate_tomato_capars_olives_ham_cheese.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Mediterranean Meze Plate",
+            "confidence": 0.95,
+            "description": "Assorted appetizers including cheese, olives, and stuffed grape leaves",
+            "nutrition": {
+              "calories": 400,
+              "protein": 12.0,
+              "carbs": 35.0,
+              "fat": 28.0,
+              "estimated_grams": 250
+            },
+            "ingredients": [
+              {
+                "name": "Cheese, feta",
+                "grams": 50
+              },
+              {
+                "name": "Olives, assorted",
+                "grams": 30
+              },
+              {
+                "name": "Grape leaves, stuffed",
+                "grams": 70
+              },
+              {
+                "name": "Tomatoes, raw",
+                "grams": 40
+              },
+              {
+                "name": "Beef, deli slices",
+                "grams": 60
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 202,
+        "total_tokens": 1060,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "42_steak_aspargus_tomatoes.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Grilled Steak with Veggies",
+            "confidence": 0.95,
+            "description": "Slices of grilled steak with roasted potatoes and asparagus",
+            "nutrition": {
+              "calories": 600,
+              "protein": 45.0,
+              "carbs": 40.0,
+              "fat": 30.0,
+              "estimated_grams": 350
+            },
+            "ingredients": [
+              {
+                "name": "Beef steak, grilled",
+                "grams": 150
+              },
+              {
+                "name": "Potatoes, roasted",
+                "grams": 130
+              },
+              {
+                "name": "Asparagus, roasted",
+                "grams": 70
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 166,
+        "total_tokens": 1024,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "43_japanese_beef_udon_with_beef.jpeg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Beef Udon Noodle Soup",
+            "confidence": 0.95,
+            "description": "Soup with udon noodles, beef, and garnishes",
+            "nutrition": {
+              "calories": 450,
+              "protein": 25.0,
+              "carbs": 60.0,
+              "fat": 15.0,
+              "estimated_grams": 400
+            },
+            "ingredients": [
+              {
+                "name": "Udon noodles",
+                "grams": 180
+              },
+              {
+                "name": "Beef, cooked",
+                "grams": 100
+              },
+              {
+                "name": "Broth, soy sauce base",
+                "grams": 80
+              },
+              {
+                "name": "Fish cake, steamed",
+                "grams": 20
+              },
+              {
+                "name": "Scallions, chopped",
+                "grams": 10
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 202,
+        "total_tokens": 1060,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "44_burrito_ground_beef_black_beans_cheese.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Beef and Bean Burrito",
+            "confidence": 0.95,
+            "description": "A burrito filled with beef, beans, and cheese.",
+            "nutrition": {
+              "calories": 500,
+              "protein": 25.0,
+              "carbs": 50.0,
+              "fat": 20.0,
+              "estimated_grams": 250
+            },
+            "ingredients": [
+              {
+                "name": "Beef, ground, cooked",
+                "grams": 85
+              },
+              {
+                "name": "Beans, black, cooked",
+                "grams": 60
+              },
+              {
+                "name": "Cheddar cheese",
+                "grams": 50
+              },
+              {
+                "name": "Tortilla, flour",
+                "grams": 55
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 186,
+        "total_tokens": 1044,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "45_chicken_katsu_fried_with_plain_white_rice.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Chicken Katsu with Rice",
+            "confidence": 0.95,
+            "description": "Fried breaded chicken with white rice",
+            "nutrition": {
+              "calories": 700,
+              "protein": 40.0,
+              "carbs": 70.0,
+              "fat": 30.0,
+              "estimated_grams": 350
+            },
+            "ingredients": [
+              {
+                "name": "Chicken breast, fried",
+                "grams": 180
+              },
+              {
+                "name": "Rice, white, cooked",
+                "grams": 140
+              },
+              {
+                "name": "Green onions",
+                "grams": 30
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 162,
+        "total_tokens": 1020,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "46_chicken_katsu_curry_with_white_rice_purple_fermented_vegetable.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Chicken Katsu Curry with Rice",
+            "confidence": 0.97,
+            "description": "Breaded chicken katsu with curry sauce and rice.",
+            "nutrition": {
+              "calories": 750,
+              "protein": 35.0,
+              "carbs": 90.0,
+              "fat": 30.0,
+              "estimated_grams": 400
+            },
+            "ingredients": [
+              {
+                "name": "Chicken breast, breaded, fried",
+                "grams": 180
+              },
+              {
+                "name": "Rice, white, cooked",
+                "grams": 150
+              },
+              {
+                "name": "Curry sauce",
+                "grams": 50
+              },
+              {
+                "name": "Pickled radish",
+                "grams": 20
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 185,
+        "total_tokens": 1043,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "47_mixed_berry_smoothie.webp",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Mixed Berry Smoothie",
+            "confidence": 0.95,
+            "description": "A thick, blended berry smoothie",
+            "nutrition": {
+              "calories": 300,
+              "protein": 5.0,
+              "carbs": 65.0,
+              "fat": 2.0,
+              "estimated_grams": 450
+            },
+            "ingredients": [
+              {
+                "name": "Mixed berries, frozen",
+                "grams": 200
+              },
+              {
+                "name": "Banana, raw",
+                "grams": 120
+              },
+              {
+                "name": "Yogurt, plain",
+                "grams": 100
+              },
+              {
+                "name": "Almond milk",
+                "grams": 50
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 176,
+        "total_tokens": 1034,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "48_pepperoni_pizza.webp",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Pepperoni Pizza",
+            "confidence": 0.97,
+            "description": "A pizza topped with pepperoni and cheese",
+            "nutrition": {
+              "calories": 290,
+              "protein": 12.0,
+              "carbs": 34.0,
+              "fat": 14.0,
+              "estimated_grams": 160
+            },
+            "ingredients": [
+              {
+                "name": "Pizza dough",
+                "grams": 85
+              },
+              {
+                "name": "Mozzarella cheese",
+                "grams": 38
+              },
+              {
+                "name": "Pepperoni slices",
+                "grams": 28
+              },
+              {
+                "name": "Tomato sauce",
+                "grams": 9
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 175,
+        "total_tokens": 1033,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  },
+  {
+    "image": "49_classic_mozarrella_margheritta_pizza.jpg",
+    "response": {
+      "result": {
+        "has_packaging": false,
+        "predictions": [
+          {
+            "label": "Margherita Pizza",
+            "confidence": 0.95,
+            "description": "Tomato sauce, mozzarella, basil on pizza dough",
+            "nutrition": {
+              "calories": 800,
+              "protein": 35.0,
+              "carbs": 95.0,
+              "fat": 32.0,
+              "estimated_grams": 400
+            },
+            "ingredients": [
+              {
+                "name": "Pizza dough",
+                "grams": 200
+              },
+              {
+                "name": "Tomato sauce",
+                "grams": 80
+              },
+              {
+                "name": "Mozzarella cheese",
+                "grams": 100
+              },
+              {
+                "name": "Basil, fresh",
+                "grams": 20
+              }
+            ]
+          }
+        ]
+      },
+      "usage": {
+        "prompt_tokens": 858,
+        "completion_tokens": 177,
+        "total_tokens": 1035,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "audio_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0,
+          "audio_tokens": 0,
+          "accepted_prediction_tokens": 0,
+          "rejected_prediction_tokens": 0
+        }
+      }
+    }
+  }
+]

@@ -1,0 +1,526 @@
+{
+  "cleaned_to_raw": {
+    "egg": [
+      "Egg, fried",
+      "Egg, whole, cooked, poached"
+    ],
+    "bread wheat": [
+      "Bread, whole wheat"
+    ],
+    "egg scrambled": [
+      "Egg, scrambled"
+    ],
+    "pork bacon": [
+      "Pork bacon, cooked"
+    ],
+    "english muffin plain": [
+      "English muffin, plain"
+    ],
+    "grapes": [
+      "Grapes, raw"
+    ],
+    "stberries": [
+      "Strawberries, raw"
+    ],
+    "orange": [
+      "Orange, raw"
+    ],
+    "pancake plain": [
+      "Pancake, plain"
+    ],
+    "blueberries": [
+      "Blueberries, raw"
+    ],
+    "maple syrup": [
+      "Maple syrup"
+    ],
+    "pancakes chocolate": [
+      "Pancakes, chocolate"
+    ],
+    "chocolate syrup": [
+      "Chocolate syrup"
+    ],
+    "whipped cream": [
+      "Whipped cream"
+    ],
+    "crepe": [
+      "Crepe"
+    ],
+    "spinach": [
+      "Spinach",
+      "Spinach, cooked",
+      "Spinach, boiled"
+    ],
+    "feta cheese": [
+      "Feta cheese"
+    ],
+    "flour wheat": [
+      "Flour, wheat"
+    ],
+    "milk": [
+      "Milk, whole"
+    ],
+    "eggs": [
+      "Eggs, whole"
+    ],
+    "butter": [
+      "Butter"
+    ],
+    "oats": [
+      "Oats",
+      "Oats, cooked"
+    ],
+    "banana": [
+      "Banana, sliced",
+      "Banana, raw"
+    ],
+    "raspberries": [
+      "Raspberries, raw"
+    ],
+    "peanut butter": [
+      "Peanut butter"
+    ],
+    "cocoa powder": [
+      "Cocoa powder"
+    ],
+    "yogurt plain": [
+      "Yogurt, plain"
+    ],
+    "chocolate chips": [
+      "Chocolate chips"
+    ],
+    "cereal wheat squares": [
+      "Cereal, wheat squares"
+    ],
+    "bread white": [
+      "Bread, white"
+    ],
+    "butter salted": [
+      "Butter, salted"
+    ],
+    "avocado": [
+      "Avocado, raw"
+    ],
+    "lettuce romaine": [
+      "Lettuce, romaine"
+    ],
+    "chicken breast breaded": [
+      "Chicken breast, breaded, fried",
+      "Chicken breast, breaded"
+    ],
+    "croutons": [
+      "Croutons"
+    ],
+    "parmesan cheese": [
+      "Parmesan cheese"
+    ],
+    "caesar dressing": [
+      "Caesar dressing"
+    ],
+    "watermelon": [
+      "Watermelon, raw"
+    ],
+    "pineapple": [
+      "Pineapple, raw"
+    ],
+    "blackberries": [
+      "Blackberries, raw"
+    ],
+    "grapes red or green (european type varieties such as thompson seedless)": [
+      "Grapes, red or green (European type varieties, such as Thompson seedless), raw"
+    ],
+    "berries mixed": [
+      "Berries, mixed"
+    ],
+    "salmon": [
+      "Salmon, grilled",
+      "Salmon, raw"
+    ],
+    "rice white": [
+      "Rice, white",
+      "Rice, white, cooked"
+    ],
+    "crab stick": [
+      "Crab stick"
+    ],
+    "seaweed nori": [
+      "Seaweed, nori"
+    ],
+    "tuna": [
+      "Tuna, raw"
+    ],
+    "spicy mayonnaise": [
+      "Spicy mayonnaise"
+    ],
+    "nori dried seaweed": [
+      "Nori, dried seaweed"
+    ],
+    "tortillas corn": [
+      "Tortillas, corn"
+    ],
+    "beef": [
+      "Beef, cooked",
+      "Beef, braised"
+    ],
+    "onions": [
+      "Onions, cooked",
+      "Onions, raw"
+    ],
+    "cilantro": [
+      "Cilantro, raw"
+    ],
+    "lime wedge": [
+      "Lime, wedge"
+    ],
+    "tortilla corn": [
+      "Tortilla, corn"
+    ],
+    "beef stewed": [
+      "Beef, stewed"
+    ],
+    "cheese mozzarella": [
+      "Cheese, mozzarella"
+    ],
+    "tortilla flour": [
+      "Tortilla, flour"
+    ],
+    "chicken breast": [
+      "Chicken breast, cooked",
+      "Chicken breast, fried"
+    ],
+    "tomatoes": [
+      "Tomatoes, raw"
+    ],
+    "cheese cheddar": [
+      "Cheese, cheddar"
+    ],
+    "shrimp": [
+      "Shrimp, cooked"
+    ],
+    "mushrooms": [
+      "Mushrooms, raw"
+    ],
+    "chicken broth": [
+      "Chicken broth"
+    ],
+    "green onions": [
+      "Green onions"
+    ],
+    "hummus": [
+      "Hummus"
+    ],
+    "crackers": [
+      "Crackers"
+    ],
+    "carrots": [
+      "Carrots, raw"
+    ],
+    "cucumber": [
+      "Cucumber, raw"
+    ],
+    "broccoli": [
+      "Broccoli, steamed",
+      "Broccoli, cooked"
+    ],
+    "chicken drumstick": [
+      "Chicken, drumstick, fried"
+    ],
+    "chicken wing": [
+      "Chicken, wing, fried"
+    ],
+    "all-purpose flour": [
+      "All-purpose flour"
+    ],
+    "vegetable oil": [
+      "Vegetable oil"
+    ],
+    "beef patty": [
+      "Beef patty, grilled"
+    ],
+    "cheddar cheese": [
+      "Cheddar cheese"
+    ],
+    "burger bun": [
+      "Burger bun"
+    ],
+    "pickles slices": [
+      "Pickles, slices"
+    ],
+    "ketchup": [
+      "Ketchup"
+    ],
+    "lettuce": [
+      "Lettuce, shredded"
+    ],
+    "pickles": [
+      "Pickles, sliced"
+    ],
+    "french fries": [
+      "French fries"
+    ],
+    "breadcrumbs": [
+      "Breadcrumbs"
+    ],
+    "tomato": [
+      "Tomato, raw"
+    ],
+    "mozzarella cheese": [
+      "Mozzarella cheese"
+    ],
+    "basil": [
+      "Basil, fresh"
+    ],
+    "olive oil": [
+      "Olive oil"
+    ],
+    "onion": [
+      "Onion, raw"
+    ],
+    "spaghetti": [
+      "Spaghetti, cooked"
+    ],
+    "ground beef": [
+      "Ground beef, cooked"
+    ],
+    "tomato sauce": [
+      "Tomato sauce"
+    ],
+    "pasta penne": [
+      "Pasta, penne, cooked"
+    ],
+    "bacon": [
+      "Bacon, cooked"
+    ],
+    "cream heavy whipping": [
+      "Cream, heavy whipping"
+    ],
+    "cheese parmesan": [
+      "Cheese, parmesan, grated"
+    ],
+    "parsley": [
+      "Parsley, fresh"
+    ],
+    "garlic": [
+      "Garlic, raw"
+    ],
+    "almonds": [
+      "Almonds, raw"
+    ],
+    "cashews": [
+      "Cashews, raw"
+    ],
+    "walnuts": [
+      "Walnuts, chopped"
+    ],
+    "pumpkin seeds": [
+      "Pumpkin seeds, raw"
+    ],
+    "raisins seedless": [
+      "Raisins, seedless"
+    ],
+    "cranberries dried": [
+      "Cranberries, dried"
+    ],
+    "cream heavy": [
+      "Cream, heavy"
+    ],
+    "butter unsalted": [
+      "Butter, unsalted"
+    ],
+    "garlic naan": [
+      "Garlic naan"
+    ],
+    "spices mixed": [
+      "Spices, mixed"
+    ],
+    "paneer cheese": [
+      "Paneer, cheese"
+    ],
+    "cheese feta": [
+      "Cheese, feta"
+    ],
+    "olives assorted": [
+      "Olives, assorted"
+    ],
+    "grape leaves stuffed": [
+      "Grape leaves, stuffed"
+    ],
+    "beef deli slices": [
+      "Beef, deli slices"
+    ],
+    "beef steak": [
+      "Beef steak, grilled"
+    ],
+    "potatoes": [
+      "Potatoes, roasted"
+    ],
+    "asparagus": [
+      "Asparagus, roasted"
+    ],
+    "udon noodles": [
+      "Udon noodles"
+    ],
+    "broth soy sauce base": [
+      "Broth, soy sauce base"
+    ],
+    "fish cake": [
+      "Fish cake, steamed"
+    ],
+    "scallions": [
+      "Scallions, chopped"
+    ],
+    "beef ground": [
+      "Beef, ground, cooked"
+    ],
+    "beans black": [
+      "Beans, black, cooked"
+    ],
+    "curry sauce": [
+      "Curry sauce"
+    ],
+    "pickled radish": [
+      "Pickled radish"
+    ],
+    "mixed berries": [
+      "Mixed berries, frozen"
+    ],
+    "almond milk": [
+      "Almond milk"
+    ],
+    "pizza dough": [
+      "Pizza dough"
+    ],
+    "pepperoni slices": [
+      "Pepperoni slices"
+    ]
+  },
+  "frequency": {
+    "rice white": 6,
+    "tomato sauce": 5,
+    "bread wheat": 4,
+    "stberries": 4,
+    "blueberries": 4,
+    "chicken breast breaded": 4,
+    "chicken breast": 4,
+    "egg": 3,
+    "spinach": 3,
+    "milk": 3,
+    "banana": 3,
+    "yogurt plain": 3,
+    "cheddar cheese": 3,
+    "mozzarella cheese": 3,
+    "egg scrambled": 2,
+    "butter": 2,
+    "oats": 2,
+    "raspberries": 2,
+    "avocado": 2,
+    "lettuce romaine": 2,
+    "salmon": 2,
+    "beef": 2,
+    "onions": 2,
+    "tortilla flour": 2,
+    "tomatoes": 2,
+    "green onions": 2,
+    "cucumber": 2,
+    "broccoli": 2,
+    "beef patty": 2,
+    "burger bun": 2,
+    "tomato": 2,
+    "basil": 2,
+    "cream heavy whipping": 2,
+    "pizza dough": 2,
+    "pork bacon": 1,
+    "english muffin plain": 1,
+    "grapes": 1,
+    "orange": 1,
+    "pancake plain": 1,
+    "maple syrup": 1,
+    "pancakes chocolate": 1,
+    "chocolate syrup": 1,
+    "whipped cream": 1,
+    "crepe": 1,
+    "feta cheese": 1,
+    "flour wheat": 1,
+    "eggs": 1,
+    "peanut butter": 1,
+    "cocoa powder": 1,
+    "chocolate chips": 1,
+    "cereal wheat squares": 1,
+    "bread white": 1,
+    "butter salted": 1,
+    "croutons": 1,
+    "parmesan cheese": 1,
+    "caesar dressing": 1,
+    "watermelon": 1,
+    "pineapple": 1,
+    "blackberries": 1,
+    "grapes red or green (european type varieties such as thompson seedless)": 1,
+    "berries mixed": 1,
+    "crab stick": 1,
+    "seaweed nori": 1,
+    "tuna": 1,
+    "spicy mayonnaise": 1,
+    "nori dried seaweed": 1,
+    "tortillas corn": 1,
+    "cilantro": 1,
+    "lime wedge": 1,
+    "tortilla corn": 1,
+    "beef stewed": 1,
+    "cheese mozzarella": 1,
+    "cheese cheddar": 1,
+    "shrimp": 1,
+    "mushrooms": 1,
+    "chicken broth": 1,
+    "hummus": 1,
+    "crackers": 1,
+    "carrots": 1,
+    "chicken drumstick": 1,
+    "chicken wing": 1,
+    "all-purpose flour": 1,
+    "vegetable oil": 1,
+    "pickles slices": 1,
+    "ketchup": 1,
+    "lettuce": 1,
+    "pickles": 1,
+    "french fries": 1,
+    "breadcrumbs": 1,
+    "olive oil": 1,
+    "onion": 1,
+    "spaghetti": 1,
+    "ground beef": 1,
+    "pasta penne": 1,
+    "bacon": 1,
+    "cheese parmesan": 1,
+    "parsley": 1,
+    "garlic": 1,
+    "almonds": 1,
+    "cashews": 1,
+    "walnuts": 1,
+    "pumpkin seeds": 1,
+    "raisins seedless": 1,
+    "cranberries dried": 1,
+    "cream heavy": 1,
+    "butter unsalted": 1,
+    "garlic naan": 1,
+    "spices mixed": 1,
+    "paneer cheese": 1,
+    "cheese feta": 1,
+    "olives assorted": 1,
+    "grape leaves stuffed": 1,
+    "beef deli slices": 1,
+    "beef steak": 1,
+    "potatoes": 1,
+    "asparagus": 1,
+    "udon noodles": 1,
+    "broth soy sauce base": 1,
+    "fish cake": 1,
+    "scallions": 1,
+    "beef ground": 1,
+    "beans black": 1,
+    "curry sauce": 1,
+    "pickled radish": 1,
+    "mixed berries": 1,
+    "almond milk": 1,
+    "pepperoni slices": 1
+  }
+}

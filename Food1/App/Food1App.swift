@@ -2,7 +2,14 @@
 //  Food1App.swift
 //  Food1
 //
-//  Created by Filip Olszak on 3/11/25.
+//  App entry point with SwiftData persistence and background enrichment.
+//
+//  WHY THIS ARCHITECTURE:
+//  - Schema includes all @Model classes for SwiftData to manage relationships correctly
+//  - Migration failure handling: Deletes corrupt store and creates fresh container (dev safety, not prod)
+//  - Background task registration enables iOS to run enrichment when app is suspended
+//  - resumeUnfinishedEnrichment() on launch handles interrupted enrichments (app closed mid-process)
+//  - 10-minute window for "recent" ingredients prevents infinite re-attempts on old data
 //
 
 import SwiftUI

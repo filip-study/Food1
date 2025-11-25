@@ -2,7 +2,14 @@
 //  MetricsDashboardView.swift
 //  Food1
 //
-//  Created by Claude on 2025-11-03.
+//  Progress rings dashboard at top of TodayView showing nutrition vs goals.
+//
+//  WHY THIS ARCHITECTURE:
+//  - GradientProgressRing component creates premium Oura Ring-inspired visual design
+//  - Dynamic gradient bands (0-30% muted blue, 30-70% teal, 70-100% green, >100% orange) guide user behavior
+//  - Frosted glass (.thinMaterial 97%) + layered shadows (4pt inner, 12pt outer) create depth
+//  - Mood emoji (😢→😐→😊→🎉) adds personality and emotional feedback
+//  - Macro color standard maintained: Orange (protein), Green (carbs), Yellow (fat)
 //
 
 import SwiftUI

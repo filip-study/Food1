@@ -2,7 +2,14 @@
 //  MealIngredient.swift
 //  Food1
 //
-//  Ingredient breakdown for meals with USDA micronutrient tracking
+//  Ingredient breakdown for meals with USDA micronutrient tracking.
+//
+//  WHY THIS ARCHITECTURE:
+//  - usdaFdcId as String (not Int) matches USDA API format and handles future ID format changes
+//  - matchMethod tracking enables debugging/analytics of fuzzy matching pipeline (Shortcut/Exact/LLM/Blacklisted)
+//  - enrichmentAttempted flag prevents redundant USDA lookups for unmatched ingredients
+//  - cachedMicronutrientsJSON stores offline data as JSON blob for instant access without database queries
+//  - isUserEdited tracks manual adjustments for potential ML training data
 //
 
 import Foundation

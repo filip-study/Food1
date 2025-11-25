@@ -2,7 +2,15 @@
 //  MealCard.swift
 //  Food1
 //
-//  Created by Claude on 2025-11-03.
+//  Meal summary card with 3-layer image hierarchy and macro indicators.
+//
+//  WHY THIS ARCHITECTURE:
+//  - 3-layer image hierarchy: photo (if available) → cartoon icon → emoji fallback
+//  - Sparkle badge on AI-generated cartoon icons (visual indicator of AI magic)
+//  - 2-line .lineLimit for food names handles 40-char names without overflow
+//  - Time moved below name (not inline) provides more horizontal space for longer names
+//  - Frosted glass (.thinMaterial 97%) + layered shadows match premium Oura/Function Health aesthetic
+//  - Macro color standard: Orange (protein), Green (carbs), Yellow (fat) - consistent across all views
 //
 
 import SwiftUI

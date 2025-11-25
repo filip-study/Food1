@@ -2,7 +2,14 @@
 //  TodayView.swift
 //  Food1
 //
-//  Created by Claude on 2025-11-03.
+//  Daily meal log with swipe navigation and metrics dashboard.
+//
+//  WHY THIS ARCHITECTURE:
+//  - Settings in toolbar (leading gear icon) instead of separate tab reduces navigation complexity
+//  - Swipe gestures (left/right) enable quick date navigation without opening calendar
+//  - Gradient background (white→blue 0.05 light, black→blue 0.08 dark) provides premium visual depth
+//  - @Query with filter pattern enables efficient SwiftData lookups without manual refresh
+//  - Time-based empty states (morning/afternoon/evening/night) provide contextual encouragement
 //
 
 import SwiftUI

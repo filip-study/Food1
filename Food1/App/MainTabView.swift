@@ -2,7 +2,13 @@
 //  MainTabView.swift
 //  Food1
 //
-//  Created by Claude on 2025-11-03.
+//  Root navigation with two-tab structure: Meals (today's log) and Stats (analytics).
+//
+//  WHY THIS ARCHITECTURE:
+//  - Two-tab minimal design keeps focus on core functionality (log meals, view stats)
+//  - Settings accessed via TodayView toolbar (not separate tab) reduces clutter
+//  - Custom MinimalTabButton provides premium UI with smooth animations
+//  - AppTheme @AppStorage enables system/light/dark mode persistence
 //
 
 import SwiftUI
@@ -11,46 +17,120 @@ struct MainTabView: View {
     @State private var selectedTab = 0
     @State private var showingAddMeal = false
     @AppStorage("appTheme") private var selectedTheme: AppTheme = .system
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            // Main TabView with invisible spacer for FAB
-            TabView(selection: $selectedTab) {
-                TodayView()
-                    .tabItem {
-                        Label("Today", systemImage: "sun.max.fill")
-                    }
-                    .tag(0)
-
-                // Invisible spacer tab for FAB
-                Color.clear
-                    .tabItem {
-                        Text("")
-                    }
-                    .tag(1)
-                    .disabled(true)
-
-                StatsView()
-                    .tabItem {
-                        Label("Stats", systemImage: "chart.line.uptrend.xyaxis")
-                    }
-                    .tag(2)
+            // Content views
+            Group {
+                if selectedTab == 0 {
+                    TodayView()
+                } else {
+                    StatsView()
+                }
             }
-            .tint(.blue)
-            .preferredColorScheme(selectedTheme.colorScheme)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            // Custom raised FAB
-            AddMealFAB(showingAddMeal: $showingAddMeal)
-                .offset(y: -28)
+            // Premium bottom tab bar
+            VStack(spacing: 0) {
+                // Top border
+                Rectangle()
+                    .fill(Color.primary.opacity(0.1))
+                    .frame(height: 0.5)
+
+                // Tab bar content
+                HStack(spacing: 0) {
+                    // Meals tab
+                    MinimalTabButton(
+                        icon: "fork.knife",
+                        label: "Meals",
+                        isSelected: selectedTab == 0
+                    ) {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            selectedTab = 0
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    // Center FAB - elevated above the bar
+                    IntegratedAddMealFAB(showingAddMeal: $showingAddMeal)
+                        .frame(width: 80)
+                        .offset(y: -14)
+
+                    // Stats tab
+                    MinimalTabButton(
+                        icon: "chart.bar.fill",
+                        label: "Stats",
+                        isSelected: selectedTab == 1
+                    ) {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            selectedTab = 1
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .frame(height: 49)
+            }
+            .background(
+                Color(UIColor.systemBackground)
+                    .ignoresSafeArea(edges: .bottom)
+            )
         }
+        .preferredColorScheme(selectedTheme.colorScheme)
         .fullScreenCover(isPresented: $showingAddMeal) {
             QuickAddMealView(selectedDate: Date())
         }
     }
 }
 
-// MARK: - Add Meal FAB Component
-struct AddMealFAB: View {
+// MARK: - Minimal Tab Button
+struct MinimalTabButton: View {
+    let icon: String
+    let label: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    @State private var isPressed = false
+    @Environment(\.colorScheme) var colorScheme
+
+    var body: some View {
+        Button(action: {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
+            action()
+        }) {
+            VStack(spacing: 3) {
+                Image(systemName: icon)
+                    .font(.system(size: 24, weight: isSelected ? .medium : .regular))
+                    .symbolRenderingMode(.monochrome)
+
+                Text(label)
+                    .font(.system(size: 11, weight: isSelected ? .medium : .regular))
+            }
+            .foregroundColor(isSelected ? ColorPalette.accentPrimary : Color.secondary.opacity(0.8))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PlainButtonStyle())
+        .scaleEffect(isPressed ? 0.95 : 1.0)
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    withAnimation(.easeInOut(duration: 0.08)) {
+                        isPressed = true
+                    }
+                }
+                .onEnded { _ in
+                    withAnimation(.easeOut(duration: 0.08)) {
+                        isPressed = false
+                    }
+                }
+        )
+    }
+}
+
+// MARK: - Integrated Add Meal FAB
+struct IntegratedAddMealFAB: View {
     @Binding var showingAddMeal: Bool
     @State private var isPressed = false
     @Environment(\.colorScheme) var colorScheme
@@ -61,38 +141,46 @@ struct AddMealFAB: View {
             showingAddMeal = true
         } label: {
             ZStack {
-                // Gradient background
-                LinearGradient(
-                    colors: [
-                        ColorPalette.accentPrimary,
-                        ColorPalette.accentSecondary
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .frame(width: 56, height: 56)
-                .clipShape(Circle())
-                .opacity(colorScheme == .dark ? 0.9 : 1.0)
+                // Gradient circle
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                ColorPalette.accentPrimary,
+                                ColorPalette.accentPrimary.opacity(0.85)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 52, height: 52)
 
                 // Plus icon
                 Image(systemName: "plus")
-                    .font(.system(size: 24, weight: .medium))
-                    .foregroundColor(.white.opacity(0.95))
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundColor(.white)
             }
         }
-        .scaleEffect(isPressed ? 0.95 : 1.0)
-        .shadow(color: .black.opacity(0.15), radius: 8, x: 0, y: 2)
-        .shadow(color: .black.opacity(0.10), radius: 16, x: 0, y: 4)
+        .scaleEffect(isPressed ? 0.92 : 1.0)
+        .shadow(
+            color: ColorPalette.accentPrimary.opacity(0.25),
+            radius: isPressed ? 3 : 6,
+            x: 0,
+            y: isPressed ? 1 : 2
+        )
         .buttonStyle(PlainButtonStyle())
-        .onLongPressGesture(
-            minimumDuration: 0,
-            maximumDistance: .infinity,
-            pressing: { pressing in
-                withAnimation(.easeInOut(duration: 0.1)) {
-                    isPressed = pressing
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
+                        isPressed = true
+                    }
                 }
-            },
-            perform: {}
+                .onEnded { _ in
+                    withAnimation(.spring(response: 0.2, dampingFraction: 0.6)) {
+                        isPressed = false
+                    }
+                }
         )
         .accessibilityLabel("Add meal")
     }

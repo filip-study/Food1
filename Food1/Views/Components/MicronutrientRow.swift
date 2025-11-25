@@ -2,7 +2,16 @@
 //  MicronutrientRow.swift
 //  Food1
 //
-//  Displays individual micronutrient with RDA percentage bar
+//  Displays individual micronutrient with color-coded RDA percentage bar.
+//
+//  WHY THIS ARCHITECTURE:
+//  - Color thresholds provide instant visual feedback on nutritional status
+//    • Red (<20%): Deficient - needs attention
+//    • Orange (20-50%): Low - room for improvement
+//    • Green (50-100%): Sufficient - on track
+//    • Blue (≥100%): Excellent - goal met or exceeded
+//  - Progress bar capped at 100% width prevents excessive overflow for 200%+ values
+//  - RDA% text shows actual percentage (can exceed 100%) for transparency
 //
 
 import SwiftUI
