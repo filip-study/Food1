@@ -3,7 +3,7 @@
 //  Food1
 //
 //  Local LLM service for re-ranking USDA food candidates
-//  Uses Qwen2.5-0.5B-Instruct-4bit model for intelligent selection
+//  Uses Qwen2.5-3B-Instruct-4bit model for intelligent semantic matching
 //  100% offline, zero API costs
 //
 
@@ -15,13 +15,14 @@ import MLXLLM
 
 /// Service for re-ranking USDA food candidates using local LLM
 @MainActor
-class LocalLLMReranker {
+class LocalLLMReranker: Reranker {
     static let shared = LocalLLMReranker()
 
     private var modelContainer: ModelContainer?
 
     // Model ID from Hugging Face (MLX will download and cache on first use)
-    private let modelId = "mlx-community/Llama-3.2-1B-Instruct-4bit"
+    // Upgraded from 1B to 3B for better reasoning on fuzzy matching tasks
+    private let modelId = "mlx-community/Qwen2.5-3B-Instruct-4bit"
 
     private init() {
         // Register memory warning listener
@@ -99,7 +100,7 @@ class LocalLLMReranker {
     private func loadModelIfNeeded() async throws {
         guard modelContainer == nil else { return }
 
-        print("    📦 Loading Llama-3.2-1B model...")
+        print("    📦 Loading Qwen2.5-3B model (first use: downloads ~1.8GB)...")
         let startTime = Date()
 
         // Use Hugging Face model ID - MLX will download and cache automatically
@@ -135,7 +136,7 @@ class LocalLLMReranker {
     // MARK: - Prompt & Generation
 
     /// Build prompt for food reranking task
-    private func buildPrompt(ingredientName: String, candidates: [USDAFood]) -> String {
+    nonisolated private func buildPrompt(ingredientName: String, candidates: [USDAFood]) -> String {
         var candidateList = "0. None of these match"
         for (index, candidate) in candidates.enumerated() {
             let number = index + 1
@@ -243,7 +244,7 @@ ANSWER: [NUMBER ONLY]
 
     /// Parse LLM response to extract selected index
     /// - Returns: Selected index (0-based), or nil if LLM selected "no match"
-    private func parseSelection(response: String, candidateCount: Int) -> Int? {
+    nonisolated private func parseSelection(response: String, candidateCount: Int) -> Int? {
         let cleaned = response.trimmingCharacters(in: .whitespacesAndNewlines)
 
         // Try to find "ANSWER: [number]" pattern first

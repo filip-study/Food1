@@ -83,25 +83,42 @@ class LocalUSDAService {
         let cleanedQuery = cleanSearchQuery(query)
         guard !cleanedQuery.isEmpty else { return [] }
 
-        // Split into words and build AND conditions for better matching
-        let words = cleanedQuery.split(separator: " ").map(String.init)
+        // Split into words and filter out stopwords
+        // Expanded stopwords to include generic qualifiers that don't help matching
+        let stopwords = Set([
+            "or", "and", "similar", "like", "a", "an", "the", "with", "without",
+            "all", "classes", "types", "varieties", "kinds", "any", "some"
+        ])
+        let words = cleanedQuery.split(separator: " ")
+            .map(String.init)
+            .filter { !stopwords.contains($0.lowercased()) }
+
+        guard !words.isEmpty else { return [] }
+
+        // Use OR search with relevance scoring
+        // Count how many words match to rank results (foods matching more words = higher relevance)
         var whereConditions: [String] = []
+        var scoreConditions: [String] = []
 
         for _ in words {
             whereConditions.append("(description LIKE ? OR common_name LIKE ?)")
+            // Add scoring: +1 for each word that matches
+            scoreConditions.append("(CASE WHEN description LIKE ? OR common_name LIKE ? THEN 1 ELSE 0 END)")
         }
 
-        let whereClause = whereConditions.joined(separator: " AND ")
+        let whereClause = whereConditions.joined(separator: " OR ")
+        let scoreClause = scoreConditions.joined(separator: " + ")
 
         let sql = """
             SELECT fdc_id, description, common_name, category
             FROM usda_foods
             WHERE \(whereClause)
+            ORDER BY (\(scoreClause)) DESC
             LIMIT ?
         """
 
         print("   🔎 SQL: \(sql)")
-        print("   🔎 Words: \(words)")
+        print("   🔎 Words (after stopword filter): \(words)")
 
         var statement: OpaquePointer?
         var foods: [USDAFood] = []
@@ -113,8 +130,20 @@ class LocalUSDAService {
             // SQLITE_TRANSIENT tells SQLite to make its own copy
             let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
-            // Bind word patterns (must use withCString for proper C string conversion)
+            // Bind word patterns for WHERE clause (must use withCString for proper C string conversion)
             var bindIndex: Int32 = 1
+            for word in words {
+                let pattern = "%\(word)%"
+                pattern.withCString { cString in
+                    sqlite3_bind_text(statement, bindIndex, cString, -1, SQLITE_TRANSIENT)
+                }
+                pattern.withCString { cString in
+                    sqlite3_bind_text(statement, bindIndex + 1, cString, -1, SQLITE_TRANSIENT)
+                }
+                bindIndex += 2
+            }
+
+            // Bind word patterns for ORDER BY scoring clause
             for word in words {
                 let pattern = "%\(word)%"
                 pattern.withCString { cString in

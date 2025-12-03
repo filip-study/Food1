@@ -49,7 +49,6 @@ struct NutritionReviewView: View {
     @State private var fat = ""
     @State private var servingCount = 1.0
     @State private var gramsPerServing = 0.0
-    @State private var notes = ""
 
     // Ingredient editing
     @State private var ingredients: [IngredientRowData] = []
@@ -58,22 +57,88 @@ struct NutritionReviewView: View {
     @State private var errorMessage: String?
     @State private var baseNutrition: NutritionData?
 
-    // Default emoji for all meals
-    private let selectedEmoji = "🍽️"
+    // Text correction
+    @State private var showingTextEntry = false
+
+    // Emoji from AI prediction (defaults to 🍽️ if not provided)
+    private var selectedEmoji: String {
+        prediction.emoji ?? "🍽️"
+    }
+
+    // Confidence level for display
+    private var confidencePercentage: Int {
+        Int(prediction.confidence * 100)
+    }
+
+    private var confidenceDots: String {
+        let filled = Int(prediction.confidence * 6)
+        return String(repeating: "●", count: filled) + String(repeating: "○", count: 6 - filled)
+    }
 
     var body: some View {
         NavigationStack {
             Form {
-                // Image preview
-                if let image = capturedImage {
-                    Section {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 200)
-                            .cornerRadius(12)
+                // AI Prediction Card with thumbnail overlay
+                Section {
+                    HStack(alignment: .top, spacing: 12) {
+                        // Photo thumbnail on left
+                        if let image = capturedImage {
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 64, height: 64)
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .strokeBorder(Color(.systemGray5), lineWidth: 1)
+                                )
+                        }
+
+                        // Content on right
+                        VStack(alignment: .leading, spacing: 8) {
+                            // Food name with confidence badge
+                            HStack(alignment: .top, spacing: 8) {
+                                Text(prediction.label)
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .lineLimit(2)
+
+                                Spacer()
+
+                                // Confidence badge
+                                Text("\(confidencePercentage)%")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(.blue)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 3)
+                                    .background(
+                                        Capsule()
+                                            .fill(Color.blue.opacity(0.1))
+                                    )
+                            }
+
+                            // Description if available
+                            if let description = prediction.description {
+                                Text(description)
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(2)
+                            }
+
+                            // Text correction button
+                            Button(action: {
+                                showingTextEntry = true
+                            }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "text.bubble")
+                                        .font(.system(size: 13))
+                                    Text("Not quite right? Try text entry")
+                                        .font(.subheadline)
+                                }
+                                .foregroundColor(.blue)
+                            }
+                        }
                     }
+                    .padding(.vertical, 4)
                 }
 
                 // Meal details
@@ -151,11 +216,6 @@ struct NutritionReviewView: View {
 
                 // Ingredients (editable)
                 IngredientListView(ingredients: $ingredients)
-
-                Section("Notes (Optional)") {
-                    TextField("Add any notes...", text: $notes, axis: .vertical)
-                        .lineLimit(3...6)
-                }
             }
             .navigationTitle("Review Meal")
             .navigationBarTitleDisplayMode(.inline)
@@ -181,6 +241,12 @@ struct NutritionReviewView: View {
                 if let predictionIngredients = prediction.ingredients {
                     ingredients = predictionIngredients.map { IngredientRowData(from: $0) }
                 }
+            }
+            .sheet(isPresented: $showingTextEntry) {
+                TextEntryView(selectedDate: selectedDate, onMealCreated: {
+                    // Close both text entry and nutrition review when meal is saved
+                    dismiss()
+                })
             }
         }
     }
@@ -279,7 +345,7 @@ struct NutritionReviewView: View {
             protein: proteinValue,
             carbs: carbsValue,
             fat: fatValue,
-            notes: notes.isEmpty ? nil : notes,
+            notes: nil,
             photoData: photoData,
             ingredients: mealIngredients
         )
@@ -310,6 +376,7 @@ struct NutritionReviewView: View {
 #Preview {
     let mockPrediction = FoodRecognitionService.FoodPrediction(
         label: "Grilled Chicken Salad",
+        emoji: "🥗",
         confidence: 0.95,
         description: "A healthy salad with grilled chicken",
         fullDescription: nil,

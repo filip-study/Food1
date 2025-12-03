@@ -2,15 +2,42 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.filipolszak.Food1.enrichment</string>
+	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>processing</string>
 	</array>
-	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<key>NSCameraUsageDescription</key>
+	<string>Food1 uses the camera to capture photos of your meals for automatic nutrition tracking powered by AI.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Food1 needs access to select meal photos from your gallery for nutrition analysis.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Food1 uses the microphone for voice input when describing meals. You can type text instead if you prefer not to grant microphone access.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Food1 uses speech recognition to convert your voice into text when describing meals. This makes logging meals faster and easier.</string>
+	<key>PROXY_ENDPOINT</key>
+	<string>$(PROXY_ENDPOINT)</string>
+	<key>AUTH_TOKEN</key>
+	<string>$(AUTH_TOKEN)</string>
+	<key>SUPABASE_URL</key>
+	<string>$(SUPABASE_URL)</string>
+	<key>SUPABASE_ANON_KEY</key>
+	<string>$(SUPABASE_ANON_KEY)</string>
+	<key>CFBundleURLTypes</key>
 	<array>
-		<string>com.filipolszak.Food1.enrichment</string>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.filipolszak.Food1</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.filipolszak.food1</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>

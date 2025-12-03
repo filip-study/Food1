@@ -11,7 +11,7 @@
 //  - 60-second timeout handles GPT-4o processing variability without premature failures
 //  - Packaging detection prompts optional nutrition label scan for better accuracy on packaged foods
 //  - Smart 45-char truncation with word boundaries prevents GPT-4o from exceeding UI limits
-//  - Cloudflare proxy keeps OpenAI API key secure (never exposed in iOS app binary)
+//  - Cloudflare proxy keeps API key secure (never exposed in iOS app binary)
 //
 //  PERFORMANCE OPTIMIZATION RATIONALE:
 //  Client-side (this file):
@@ -19,8 +19,8 @@
 //    • 512px max dimension - Down from 768px→2048px, ~90% file size reduction, sufficient for recognition
 //    • 60s timeout - Handles network variability without premature failures
 //  Server-side (proxy/food-vision-api/worker.js):
-//    • Low-detail mode - 3-5x faster than high-detail, food recognition doesn't need high-res
-//    • 600 max_tokens - Down from 800, faster responses while still sufficient for 5 predictions
+//    • Gemini 2.0 Flash - Fast, cost-effective vision model ($3.54/month for 1K users)
+//    • 800 max_tokens - Sufficient for detailed ingredient analysis
 //  Result: Typical 2-5s response time. Further compression may hurt recognition accuracy.
 //
 
@@ -36,10 +36,10 @@ class OpenAIVisionService: ObservableObject {
     @Published var errorMessage: String?
 
     // MARK: - Configuration
-    private let proxyEndpoint: String
-    private let authToken: String
+    internal let proxyEndpoint: String
+    internal let authToken: String
     private let session: URLSession
-    private let timeout: TimeInterval = 60.0 // 60 second timeout (increased for GPT-4o processing)
+    internal let timeout: TimeInterval = 60.0 // 60 second timeout (increased for GPT-4o processing)
     private let imageCompressionQuality: CGFloat = 0.3 // Aggressive compression for speed (0.3 = 30% quality)
     private let maxImageDimension: CGFloat = 512 // Further reduced for faster uploads & lower API costs
 
@@ -165,12 +165,29 @@ class OpenAIVisionService: ObservableObject {
 
     /// Encodes UIImage to base64 JPEG string with compression
     private func encodeImage(_ image: UIImage) -> String? {
+        // Log original image properties for debugging truncation issues
+        #if DEBUG
+        print("📸 Original image: \(Int(image.size.width))x\(Int(image.size.height)), orientation: \(image.imageOrientation.rawValue)")
+        #endif
+
         // Resize for optimal speed/quality balance (food recognition doesn't need high res)
         let resized = resizeImage(image, maxDimension: maxImageDimension)
 
+        #if DEBUG
+        print("📐 Resized to: \(Int(resized.size.width))x\(Int(resized.size.height))")
+        #endif
+
         // Convert to JPEG with aggressive compression (food photos compress well)
         guard let imageData = resized.jpegData(compressionQuality: imageCompressionQuality) else {
+            print("❌ JPEG encoding failed - image might be corrupted or memory pressure")
             return nil
+        }
+
+        // Validate JPEG data isn't truncated
+        let expectedMinSize = Int(resized.size.width * resized.size.height * 0.01) // At least 1% of pixels as bytes (very conservative)
+        if imageData.count < expectedMinSize {
+            print("⚠️ WARNING: JPEG data suspiciously small (\(imageData.count) bytes for \(Int(resized.size.width))x\(Int(resized.size.height)) image)")
+            print("⚠️ This might indicate truncation or encoding failure")
         }
 
         let base64 = imageData.base64EncodedString()
@@ -183,18 +200,22 @@ class OpenAIVisionService: ObservableObject {
         } else {
             print("📦 Image size: \(String(format: "%.0f", sizeKB))KB (\(Int(resized.size.width))x\(Int(resized.size.height)))")
         }
+        print("📏 Base64 length: \(base64.count) chars")
         #endif
 
         return base64
     }
 
     /// Resizes image to fit within max dimension while maintaining aspect ratio
+    /// Also normalizes orientation to fix EXIF rotation issues
     private func resizeImage(_ image: UIImage, maxDimension: CGFloat) -> UIImage {
-        let size = image.size
+        // First normalize orientation to fix EXIF rotation (critical for camera photos)
+        let normalizedImage = normalizeOrientation(image)
+        let size = normalizedImage.size
 
         // Check if resize needed
         if size.width <= maxDimension && size.height <= maxDimension {
-            return image
+            return normalizedImage
         }
 
         // Calculate new size
@@ -204,7 +225,26 @@ class OpenAIVisionService: ObservableObject {
         // Resize
         let renderer = UIGraphicsImageRenderer(size: newSize)
         return renderer.image { context in
-            image.draw(in: CGRect(origin: .zero, size: newSize))
+            normalizedImage.draw(in: CGRect(origin: .zero, size: newSize))
+        }
+    }
+
+    /// Normalizes image orientation by redrawing with correct transform
+    /// Fixes issue where EXIF rotation metadata causes Gemini to see rotated/cropped images
+    private func normalizeOrientation(_ image: UIImage) -> UIImage {
+        // If already upright, return as-is
+        if image.imageOrientation == .up {
+            return image
+        }
+
+        // Redraw image in correct orientation using modern renderer
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = image.scale
+        format.opaque = false
+
+        let renderer = UIGraphicsImageRenderer(size: image.size, format: format)
+        return renderer.image { context in
+            image.draw(in: CGRect(origin: .zero, size: image.size))
         }
     }
 
@@ -336,7 +376,7 @@ class OpenAIVisionService: ObservableObject {
     // MARK: - Private Methods
 
     /// Parses proxy response into FoodPrediction structs
-    private func parseResponse(_ data: Data) throws -> (predictions: [FoodRecognitionService.FoodPrediction], hasPackaging: Bool) {
+    internal func parseResponse(_ data: Data) throws -> (predictions: [FoodRecognitionService.FoodPrediction], hasPackaging: Bool) {
         // Decode proxy response
         let decoder = JSONDecoder()
         let proxyResponse = try decoder.decode(ProxyResponse.self, from: data)
@@ -360,6 +400,7 @@ class OpenAIVisionService: ObservableObject {
 
             return FoodRecognitionService.FoodPrediction(
                 label: predData.label.displayName,  // Safety net: truncates at 45 chars if GPT-4o exceeds 40
+                emoji: predData.emoji,
                 confidence: Float(predData.confidence),
                 description: predData.description,
                 fullDescription: nil,
@@ -448,6 +489,7 @@ private struct ProxyResponse: Decodable {
 
     struct PredictionData: Decodable {
         let label: String
+        let emoji: String?
         let confidence: Double
         let description: String?
         let nutrition: NutritionData?

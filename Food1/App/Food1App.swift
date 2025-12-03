@@ -15,11 +15,16 @@
 import SwiftUI
 import SwiftData
 import BackgroundTasks
+import Auth
+import Supabase
 
 @main
 struct Food1App: App {
     let modelContainer: ModelContainer
     @State private var launchScreenState = LaunchScreenStateManager()
+    @State private var showingDatabaseError = false
+    @State private var databaseErrorMessage = ""
+    @StateObject private var authViewModel = AuthViewModel()
 
     // Background task identifier
     private static let enrichmentTaskIdentifier = "com.filipolszak.Food1.enrichment"
@@ -47,12 +52,17 @@ struct Food1App: App {
                 )
             } catch {
                 // If migration fails, delete the old store and start fresh
+                // PRODUCTION NOTE: This will delete user data. In production, consider:
+                // 1. Showing alert before deletion
+                // 2. Creating backup before deletion
+                // 3. Providing data export/recovery options
                 print("⚠️  Migration failed, resetting ModelContainer: \(error)")
 
                 // Get the store URL and delete it
                 let storeURL = modelConfiguration.url
                 try? FileManager.default.removeItem(at: storeURL)
-                print("✅ Deleted old store at: \(storeURL)")
+                print("⚠️  Deleted corrupted database at: \(storeURL)")
+                print("⚠️  User will lose existing meal history")
 
                 // Recreate container
                 modelContainer = try ModelContainer(
@@ -62,7 +72,35 @@ struct Food1App: App {
                 print("✅ Created fresh ModelContainer")
             }
         } catch {
-            fatalError("Could not initialize ModelContainer: \(error)")
+            // PRODUCTION: Don't crash - create in-memory container as fallback
+            // This allows users to at least use the app temporarily
+            print("❌ CRITICAL: Could not initialize ModelContainer: \(error)")
+            print("⚠️  Creating temporary in-memory database")
+
+            do {
+                let schema = Schema([
+                    Meal.self,
+                    MealIngredient.self,
+                    DailyAggregate.self,
+                    WeeklyAggregate.self,
+                    MonthlyAggregate.self
+                ])
+                let inMemoryConfig = ModelConfiguration(
+                    schema: schema,
+                    isStoredInMemoryOnly: true,
+                    allowsSave: false
+                )
+                modelContainer = try ModelContainer(
+                    for: schema,
+                    configurations: [inMemoryConfig]
+                )
+                print("✅ Created temporary in-memory database")
+                print("⚠️  Data will not be saved. Please reinstall the app.")
+            } catch {
+                // Last resort: This should never happen, but if it does,
+                // we have no choice but to crash
+                fatalError("CRITICAL: Could not create even in-memory database: \(error)")
+            }
         }
 
         // Register background task for enrichment
@@ -71,7 +109,13 @@ struct Food1App: App {
             forTaskWithIdentifier: Self.enrichmentTaskIdentifier,
             using: nil
         ) { task in
-            Food1App.handleEnrichmentBackgroundTask(task as! BGProcessingTask, container: container)
+            // Safe cast - if wrong type, skip the task
+            guard let processingTask = task as? BGProcessingTask else {
+                print("⚠️  Received unexpected task type: \(type(of: task))")
+                task.setTaskCompleted(success: false)
+                return
+            }
+            Food1App.handleEnrichmentBackgroundTask(processingTask, container: container)
         }
     }
 
@@ -135,12 +179,24 @@ struct Food1App: App {
     var body: some Scene {
         WindowGroup {
             ZStack {
-                // Main app content
-                MainTabView()
-                    .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
-                        // Schedule background task when app goes to background
-                        scheduleEnrichmentTask()
-                    }
+                // Auth routing: Show onboarding, confirmation pending, or main app
+                if let pendingEmail = authViewModel.emailPendingConfirmation {
+                    // Email confirmation pending: Show confirmation screen
+                    EmailConfirmationPendingView(email: pendingEmail)
+                        .environmentObject(authViewModel)
+                } else if authViewModel.isAuthenticated {
+                    // Authenticated and confirmed: Show main app
+                    MainTabView()
+                        .environmentObject(authViewModel)
+                        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
+                            // Schedule background task when app goes to background
+                            scheduleEnrichmentTask()
+                        }
+                } else {
+                    // Not authenticated: Show onboarding
+                    OnboardingView()
+                        .environmentObject(authViewModel)
+                }
 
                 // Animated splash screen overlay
                 if launchScreenState.state == .animating {
@@ -150,15 +206,27 @@ struct Food1App: App {
                 }
             }
             .task {
-                // Resume unfinished enrichment in background
-                await resumeUnfinishedEnrichment()
+                // Check for existing session on launch
+                await authViewModel.checkSession()
 
-                // Wait for splash animation to complete (1.2s animation + 0.2s buffer)
+                // Wait for splash animation to complete FIRST (1.2s animation + 0.2s buffer)
                 try? await Task.sleep(for: .milliseconds(1400))
 
                 // Fade out splash screen
                 withAnimation(.easeOut(duration: 0.4)) {
                     launchScreenState.finish()
+                }
+
+                // THEN resume unfinished enrichment (after app is fully loaded)
+                // Only if authenticated
+                if authViewModel.isAuthenticated {
+                    await resumeUnfinishedEnrichment()
+                }
+            }
+            .onOpenURL { url in
+                // Handle deep links for authentication callbacks
+                Task {
+                    await handleDeepLink(url)
                 }
             }
         }
@@ -203,6 +271,73 @@ struct Food1App: App {
             #if DEBUG
             print("❌ Failed to fetch unenriched ingredients: \(error)")
             #endif
+        }
+    }
+
+    /// Handle deep links for authentication callbacks
+    @MainActor
+    private func handleDeepLink(_ url: URL) async {
+        #if DEBUG
+        print("🔗 Deep link received: \(url.absoluteString)")
+        #endif
+
+        // Check if this is an authentication callback
+        guard url.scheme == "com.filipolszak.food1",
+              url.host == "auth",
+              url.path == "/callback" else {
+            #if DEBUG
+            print("⚠️  Not an auth callback URL, ignoring")
+            #endif
+            return
+        }
+
+        // Extract URL components
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let queryItems = components.queryItems else {
+            #if DEBUG
+            print("⚠️  No query parameters in deep link")
+            #endif
+            return
+        }
+
+        // Look for Supabase auth parameters
+        // Supabase sends: access_token, refresh_token, expires_in, token_type
+        var params: [String: String] = [:]
+        for item in queryItems {
+            if let value = item.value {
+                params[item.name] = value
+            }
+        }
+
+        #if DEBUG
+        print("🔑 Deep link params: \(params.keys.joined(separator: ", "))")
+        #endif
+
+        // If we have access_token, this is a successful auth callback
+        if params["access_token"] != nil {
+            do {
+                // Supabase SDK handles session restoration from URL
+                // We just need to trigger a session check
+                try await SupabaseService.shared.client.auth.session(from: url)
+
+                #if DEBUG
+                print("✅ Session restored from deep link")
+                #endif
+
+                // Refresh auth state
+                await authViewModel.checkSession()
+
+            } catch {
+                #if DEBUG
+                print("❌ Failed to restore session from deep link: \(error)")
+                #endif
+                authViewModel.errorMessage = "Failed to complete authentication. Please try again."
+            }
+        } else if let error = params["error"], let errorDescription = params["error_description"] {
+            #if DEBUG
+            print("❌ Auth error in deep link: \(error) - \(errorDescription)")
+            #endif
+            authViewModel.errorMessage = errorDescription
         }
     }
 }

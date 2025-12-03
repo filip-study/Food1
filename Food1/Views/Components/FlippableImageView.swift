@@ -125,7 +125,8 @@ struct FlippableImageView: View {
                     .transition(.opacity)
                     .onAppear {
                         // Fade out hint after 2 seconds
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        Task { @MainActor in
+                            try? await Task.sleep(for: .seconds(2))
                             withAnimation(.easeOut(duration: 0.5)) {
                                 showHint = false
                             }
@@ -136,7 +137,8 @@ struct FlippableImageView: View {
         .onAppear {
             // Auto-flip once on appear (after 2 second delay) if setting enabled
             if canFlip && !hasAutoFlipped && autoFlipInDetails {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(2))
                     performAutoFlip()
                 }
             }
@@ -166,7 +168,8 @@ struct FlippableImageView: View {
             }
 
             // Switch image at midpoint of flip
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(150))
                 showingCartoon.toggle()
 
                 withAnimation(.easeInOut(duration: 0.3)) {
@@ -183,8 +186,9 @@ struct FlippableImageView: View {
         // Flip to photo
         performFlip()
 
-        // Wait 1.5 seconds, then flip back
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+        // Wait 1.8 seconds, then flip back
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(1800))
             performFlip()
         }
     }

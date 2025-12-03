@@ -28,6 +28,8 @@ Package.resolved
 .env
 .env.*
 APIConfig.swift
+Secrets.xcconfig
+SupabaseConfig.xcconfig
 
 # IDE
 .vscode/

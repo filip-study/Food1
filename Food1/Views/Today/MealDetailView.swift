@@ -491,7 +491,7 @@ struct MealDetailView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingEditSheet) {
-            ManualEntryView(selectedDate: meal.timestamp, editingMeal: meal)
+            MealEditView(editingMeal: meal)
         }
         .alert("Delete Meal", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) { }

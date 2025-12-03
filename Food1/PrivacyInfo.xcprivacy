@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Do we track users across apps/websites? NO -->
+	<key>NSPrivacyTracking</key>
+	<false/>
+
+	<!-- Do we use tracking domains? NO -->
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+
+	<!-- What data do we collect? -->
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array>
+		<!-- Health & Fitness Data (meals, nutrition info) -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeHealthAndFitness</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+
+		<!-- Photos (meal images) -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypePhotos</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+
+		<!-- User ID (device preferences - age, weight, gender) -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeUserID</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+	</array>
+
+	<!-- What APIs do we access? -->
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<!-- UserDefaults (storing preferences) -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<!-- CA92.1: Accessing user defaults for app functionality -->
+				<string>CA92.1</string>
+			</array>
+		</dict>
+
+		<!-- File timestamp (SwiftData, database access) -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<!-- C617.1: Accessing file timestamps for app functionality -->
+				<string>C617.1</string>
+			</array>
+		</dict>
+
+		<!-- System boot time (background task scheduling) -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategorySystemBootTime</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<!-- 35F9.1: Measuring time for app functionality -->
+				<string>35F9.1</string>
+			</array>
+		</dict>
+
+		<!-- Disk space (checking for database storage) -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryDiskSpace</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<!-- E174.1: Checking disk space for app functionality -->
+				<string>E174.1</string>
+			</array>
+		</dict>
+	</array>
+
+	<!-- Notes on privacy practices:
+
+	1. ALL DATA STORED LOCALLY:
+	   - Meal photos stored in SwiftData (app sandbox)
+	   - Nutrition data stored in SwiftData (app sandbox)
+	   - USDA database stored locally (bundled with app)
+	   - User preferences in UserDefaults
+
+	2. NETWORK REQUESTS:
+	   - Food recognition: Sends meal photo + description to Cloudflare Worker → OpenAI/Gemini
+	   - NO user identification, NO analytics, NO tracking
+	   - Photos are NOT stored on servers
+
+	3. THIRD-PARTY APIS:
+	   - OpenAI GPT-4o (via Cloudflare Worker proxy)
+	   - Google Gemini 2.0 Flash (via Cloudflare Worker proxy)
+	   - API keys stored in Cloudflare Worker (never exposed to client)
+
+	4. DATA NOT COLLECTED:
+	   - NO personal identification
+	   - NO location data
+	   - NO browsing history
+	   - NO contact lists
+	   - NO device identifiers
+	   - NO analytics/tracking
+	-->
+</dict>
+</plist>

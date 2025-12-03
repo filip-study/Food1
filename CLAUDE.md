@@ -151,3 +151,4 @@ Architecture documentation is maintained in individual code files. See file head
 
 - dont fucking commit and push if i havent confirmed it works after ur fix
 - dont just make up stuff about what features you plan to add. its my call what features to add. you can include RECOMMENDATIONS but it should be clearly stated they are comming from you as AI agent and I need to sign off on them and i may have a different opinion. it should be clear. technical improvements that dont affect functionality much is a different story and i can be a bit less involved
+- why did you put the api key directly in the code? are you crazy? this is a production app never do that again

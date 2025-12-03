@@ -1,21 +1,21 @@
 //
-//  ManualEntryView.swift
+//  MealEditView.swift
 //  Food1
 //
-//  Created by Claude on 2025-11-07.
+//  Simple form-based meal editor for existing meals.
+//  Used when user taps "Edit" on a meal card.
 //
 
 import SwiftUI
 import SwiftData
 
-/// Manual meal entry form
-struct ManualEntryView: View {
+/// Simple meal editing form
+struct MealEditView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
     @AppStorage("nutritionUnit") private var nutritionUnit: NutritionUnit = .metric
 
-    let selectedDate: Date
-    let editingMeal: Meal?
+    let editingMeal: Meal
 
     @State private var mealName = ""
     @State private var calories = ""
@@ -27,27 +27,20 @@ struct ManualEntryView: View {
     // Default emoji for all meals
     private let selectedEmoji = "🍽️"
 
-    private var isEditMode: Bool {
-        editingMeal != nil
-    }
-
-    init(selectedDate: Date, editingMeal: Meal? = nil) {
-        self.selectedDate = selectedDate
+    init(editingMeal: Meal) {
         self.editingMeal = editingMeal
 
-        // Initialize state with existing meal values if editing
-        if let meal = editingMeal {
-            // Get the current nutrition unit from AppStorage
-            let currentUnit = UserDefaults.standard.string(forKey: "nutritionUnit").flatMap { NutritionUnit(rawValue: $0) } ?? .metric
+        // Initialize state with existing meal values
+        // Get the current nutrition unit from AppStorage
+        let currentUnit = UserDefaults.standard.string(forKey: "nutritionUnit").flatMap { NutritionUnit(rawValue: $0) } ?? .metric
 
-            _mealName = State(initialValue: meal.name)
-            _calories = State(initialValue: String(format: "%.0f", meal.calories))
-            // Convert stored metric values to user's selected unit
-            _protein = State(initialValue: NutritionFormatter.formatValue(meal.protein, unit: currentUnit))
-            _carbs = State(initialValue: NutritionFormatter.formatValue(meal.carbs, unit: currentUnit))
-            _fat = State(initialValue: NutritionFormatter.formatValue(meal.fat, unit: currentUnit))
-            _notes = State(initialValue: meal.notes ?? "")
-        }
+        _mealName = State(initialValue: editingMeal.name)
+        _calories = State(initialValue: String(format: "%.0f", editingMeal.calories))
+        // Convert stored metric values to user's selected unit
+        _protein = State(initialValue: NutritionFormatter.formatValue(editingMeal.protein, unit: currentUnit))
+        _carbs = State(initialValue: NutritionFormatter.formatValue(editingMeal.carbs, unit: currentUnit))
+        _fat = State(initialValue: NutritionFormatter.formatValue(editingMeal.fat, unit: currentUnit))
+        _notes = State(initialValue: editingMeal.notes ?? "")
     }
 
     var body: some View {
@@ -100,7 +93,7 @@ struct ManualEntryView: View {
                     Button(action: {
                         saveMeal()
                     }) {
-                        Text(isEditMode ? "Save Changes" : "Add Meal")
+                        Text("Save Changes")
                             .font(.system(size: 17, weight: .semibold))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
@@ -113,7 +106,7 @@ struct ManualEntryView: View {
                     .listRowBackground(Color.clear)
                 }
             }
-            .navigationTitle(isEditMode ? "Edit Meal" : "Add Meal")
+            .navigationTitle("Edit Meal")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -131,38 +124,15 @@ struct ManualEntryView: View {
         let carbsValue = NutritionFormatter.toGrams(value: Double(carbs) ?? 0, from: nutritionUnit)
         let fatValue = NutritionFormatter.toGrams(value: Double(fat) ?? 0, from: nutritionUnit)
 
-        if let existingMeal = editingMeal {
-            // Update existing meal
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                existingMeal.name = mealName
-                existingMeal.emoji = selectedEmoji
-                existingMeal.calories = Double(calories) ?? 0
-                existingMeal.protein = proteinValue
-                existingMeal.carbs = carbsValue
-                existingMeal.fat = fatValue
-                existingMeal.notes = notes.isEmpty ? nil : notes
-            }
-        } else {
-            // Create new meal
-            let newMeal = Meal(
-                name: mealName,
-                emoji: selectedEmoji,
-                timestamp: selectedDate,
-                calories: Double(calories) ?? 0,
-                protein: proteinValue,
-                carbs: carbsValue,
-                fat: fatValue,
-                notes: notes.isEmpty ? nil : notes
-            )
-
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                modelContext.insert(newMeal)
-            }
-
-            // Update statistics aggregates
-            Task {
-                await StatisticsService.shared.updateAggregates(for: newMeal, in: modelContext)
-            }
+        // Update existing meal
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+            editingMeal.name = mealName
+            editingMeal.emoji = selectedEmoji
+            editingMeal.calories = Double(calories) ?? 0
+            editingMeal.protein = proteinValue
+            editingMeal.carbs = carbsValue
+            editingMeal.fat = fatValue
+            editingMeal.notes = notes.isEmpty ? nil : notes
         }
 
         dismiss()
@@ -170,6 +140,21 @@ struct ManualEntryView: View {
 }
 
 #Preview {
-    ManualEntryView(selectedDate: Date())
-        .modelContainer(PreviewContainer().container)
+    let container = PreviewContainer().container
+    let context = container.mainContext
+
+    // Create a sample meal for preview
+    let meal = Meal(
+        name: "Test Meal",
+        emoji: "🍽️",
+        timestamp: Date(),
+        calories: 500,
+        protein: 30,
+        carbs: 40,
+        fat: 20
+    )
+    context.insert(meal)
+
+    return MealEditView(editingMeal: meal)
+        .modelContainer(container)
 }

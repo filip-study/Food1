@@ -1,0 +1,12 @@
+{
+  "name": "food1-scripts",
+  "version": "1.0.0",
+  "description": "Utility scripts for Food1 app",
+  "private": true,
+  "scripts": {
+    "generate-apple-secret": "node generate-apple-secret.js"
+  },
+  "dependencies": {
+    "jsonwebtoken": "^9.0.2"
+  }
+}

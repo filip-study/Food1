@@ -8,11 +8,17 @@
 
 import Foundation
 
+// MARK: - Reranker Protocol
+/// Protocol for USDA food candidate re-ranking services (local LLM or cloud API)
+protocol Reranker {
+    func rerank(ingredientName: String, candidates: [USDAFood]) async -> USDAFood?
+}
+
 // MARK: - Match Method Tracking
 enum MatchMethod: String, Codable {
     case shortcut = "Shortcut"      // Direct fdcId lookup from commonFoodShortcuts
     case exactMatch = "Exact"       // 1:1 string match with USDA description
-    case llmRerank = "LLM"          // LocalLLMReranker selected best candidate
+    case llmRerank = "LLM"          // Reranker (LocalLLMReranker or GeminiReranker) selected best candidate
     case blacklisted = "Blacklisted" // Skipped - ingredient has negligible micronutrients
 }
 
@@ -82,6 +88,7 @@ class FuzzyMatchingService {
         "chicken breast fried": 171078, // Chicken, broilers or fryers, breast, meat only, cooked, fried
         "chicken breast battered": 171515, // Chicken breast tenders, breaded, uncooked
         "chicken breast breaded": 171515, // Chicken breast tenders, breaded, uncooked
+        "chicken liver": 171060,    // Chicken, liver, all classes, raw
         "salmon": 171998,           // Fish, salmon, Atlantic, wild, cooked
         "tuna": 171986,             // Fish, tuna, light, canned in water, drained
         "shrimp": 175180,           // Crustaceans, shrimp, cooked
@@ -154,6 +161,7 @@ class FuzzyMatchingService {
         // Grains & Carbs
         "rice white": 168878,       // Rice, white, long-grain, enriched, cooked
         "oats": 171662,             // Cereals, oats, instant, fortified, plain
+        "oatmeal": 173905,          // Cereals, oats, regular and quick, unenriched, cooked with water
         "bread wheat": 172688,      // Bread, whole-wheat, commercially prepared
         "bread white": 167532,      // Bread, white wheat
         "spaghetti": 169737,        // Pasta, cooked, enriched
@@ -260,9 +268,13 @@ class FuzzyMatchingService {
         // Try shortcut first - verified common ingredients
         if let fdcId = commonFoodShortcuts[cleanedName] {
             if let food = LocalUSDAService.shared.getFood(byId: fdcId) {
-                print("  ⚡ Shortcut match: '\(food.description)'")
+                print("  ⚡ Shortcut match: '\(food.description)' (fdcId: \(fdcId))")
                 return (food, .shortcut)
+            } else {
+                print("  ⚠️  Shortcut fdcId \(fdcId) not found in database (cleanup needed)")
             }
+        } else {
+            print("  🔍 No shortcut found for '\(cleanedName)', searching database...")
         }
 
         // Search local database for candidates
@@ -293,14 +305,19 @@ class FuzzyMatchingService {
             }
         }
 
-        print("  📋 Found \(candidates.count) candidates, sending to LLM for re-ranking...")
+        print("  📋 Found \(candidates.count) candidates, sending to reranker...")
 
-        // Re-rank candidates using local LLM
+        // Select reranker based on configuration
+        let reranker: Reranker = APIConfig.usdaMatchingProvider == .gemini
+            ? GeminiReranker.shared
+            : LocalLLMReranker.shared as Reranker
+
         #if DEBUG
-        print("  🤖 LLM invocation #1 for '\(ingredientName)'")
+        let providerName = APIConfig.usdaMatchingProvider == .gemini ? "Gemini" : "Local LLM"
+        print("  🤖 Using \(providerName) for reranking '\(ingredientName)'")
         #endif
 
-        if let bestMatch = await LocalLLMReranker.shared.rerank(
+        if let bestMatch = await reranker.rerank(
             ingredientName: ingredientName,
             candidates: candidates
         ) {
@@ -308,17 +325,18 @@ class FuzzyMatchingService {
             return (bestMatch, .llmRerank)
         }
 
-        // LLM failed - try fallback with broader OR search if we used AND query
+        // Reranker failed - try fallback with broader OR search if we used AND query
         // This catches cases where AND was too restrictive
+        print("  🔄 Attempting fallback search (AND query may have been too restrictive)...")
         let fallbackCandidates = LocalUSDAService.shared.search(query: cleanedName, limit: 50)
 
         if !fallbackCandidates.isEmpty && fallbackCandidates.count != candidates.count {
+            print("  📋 Fallback found \(fallbackCandidates.count) candidates (vs \(candidates.count) initial)")
             #if DEBUG
-            print("  🔄 LLM retry with \(fallbackCandidates.count) fallback candidates")
-            print("  🤖 LLM invocation #2 for '\(ingredientName)'")
+            print("  🤖 Retry with \(providerName)")
             #endif
 
-            if let bestMatch = await LocalLLMReranker.shared.rerank(
+            if let bestMatch = await reranker.rerank(
                 ingredientName: ingredientName,
                 candidates: fallbackCandidates
             ) {
@@ -327,7 +345,9 @@ class FuzzyMatchingService {
             }
         }
 
-        print("  ❌ LLM found no suitable match after \(fallbackCandidates.isEmpty ? "1" : "2") attempts")
+        let attempts = fallbackCandidates.isEmpty ? "1" : "2"
+        print("  ❌ LLM found no suitable match after \(attempts) attempt(s)")
+        print("  💡 Consider adding '\(cleanedName)' to shortcuts if this is a common ingredient")
         return (nil, nil)
     }
 
@@ -363,7 +383,9 @@ class FuzzyMatchingService {
             "fresh", "frozen", "raw", "cooked", "organic", "free-range",
             "grass-fed", "wild-caught", "farm-raised", "extra", "premium",
             "chopped", "diced", "sliced", "minced", "shredded", "grated",
-            "whole", "half", "quarter"
+            "whole", "half", "quarter",
+            // Size/quantity descriptors (these break USDA matching since USDA doesn't use them)
+            "medium", "large", "small", "thick", "thin", "tiny", "giant", "jumbo"
         ]
 
         for adj in adjectives {

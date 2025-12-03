@@ -16,6 +16,7 @@
 
 import SwiftUI
 import SwiftData
+import PhotosUI
 struct QuickAddMealView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -26,16 +27,18 @@ struct QuickAddMealView: View {
 
     // Navigation state
     @State private var showingGallery = false
-    @State private var showingManualEntry = false
+    @State private var showingPhotoPreview = false  // Lightweight preview for quick submit (90% case)
+    @State private var showingCropView = false  // Crop view for focused selection (10% case)
+    @State private var selectedGalleryImage: UIImage?
+    @State private var showingTextEntry = false
     @State private var showingPackagingPrompt = false
-    @State private var showingPredictions = false
     @State private var showingNoFoodAlert = false
     @State private var nutritionReviewPrediction: FoodRecognitionService.FoodPrediction? = nil
+    @State private var isLoadingGalleryImage = false  // Loading indicator for iCloud photos
 
     // Recognition data
     @State private var capturedImage: UIImage?
     @State private var predictions: [FoodRecognitionService.FoodPrediction] = []
-    @State private var selectedPrediction: FoodRecognitionService.FoodPrediction?
     @State private var hasPackaging = false
     @State private var showingLabelCamera = false
     @State private var nutritionLabelImage: UIImage?
@@ -59,8 +62,8 @@ struct QuickAddMealView: View {
                     onGalleryTap: {
                         showingGallery = true
                     },
-                    onManualTap: {
-                        showingManualEntry = true
+                    onTextEntryTap: {
+                        showingTextEntry = true
                     }
                 )
             } else {
@@ -76,18 +79,97 @@ struct QuickAddMealView: View {
             if recognitionService.isProcessing {
                 recognitionLoadingOverlay
             }
-        }
-        .sheet(isPresented: $showingGallery) {
-            GalleryPicker { image in
-                handlePhotoCaptured(image)
+
+            // Loading overlay for gallery photo (iCloud downloads)
+            if isLoadingGalleryImage {
+                ZStack {
+                    Color.black.opacity(0.5)
+                        .ignoresSafeArea()
+
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .scaleEffect(1.5)
+                            .tint(.white)
+
+                        Text("Loading photo...")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(.white)
+                    }
+                    .padding(32)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color(.systemBackground).opacity(0.95))
+                    )
+                }
+                .transition(.opacity)
             }
         }
-        .sheet(isPresented: $showingManualEntry) {
-            ManualEntryView(selectedDate: selectedDate)
-                .onDisappear {
-                    // Close the entire flow when meal is saved
-                    dismiss()
+        .sheet(isPresented: $showingGallery) {
+            GalleryPicker(
+                onImageSelected: { image in
+                    selectedGalleryImage = image
+                    isLoadingGalleryImage = false
+                },
+                onLoadingStarted: {
+                    isLoadingGalleryImage = true
                 }
+            )
+        }
+        .onChange(of: selectedGalleryImage) { _, newImage in
+            // When image is loaded, wait for gallery sheet to dismiss then show preview
+            if newImage != nil && !showingGallery {
+                // Gallery already dismissed, show preview immediately
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(300))
+                    showingPhotoPreview = true
+                }
+            }
+        }
+        .onChange(of: showingGallery) { _, isShowing in
+            // If gallery dismisses while we have an image waiting, show preview
+            if !isShowing && selectedGalleryImage != nil && !showingPhotoPreview {
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(300))
+                    showingPhotoPreview = true
+                }
+            }
+        }
+        .sheet(isPresented: $showingPhotoPreview) {
+            if let image = selectedGalleryImage {
+                PhotoPreviewSheet(
+                    image: image,
+                    onAnalyze: { finalImage in
+                        showingPhotoPreview = false
+                        handlePhotoCaptured(finalImage)
+                    },
+                    onRequestCrop: {
+                        showingPhotoPreview = false
+                        // Small delay for smooth transition
+                        Task { @MainActor in
+                            try? await Task.sleep(for: .milliseconds(300))
+                            showingCropView = true
+                        }
+                    }
+                )
+            }
+        }
+        .sheet(isPresented: $showingCropView) {
+            if let image = selectedGalleryImage {
+                SmartCropView(
+                    originalImage: image,
+                    onCropComplete: { croppedImage in
+                        showingCropView = false
+                        handlePhotoCaptured(croppedImage)
+                    }
+                )
+                .interactiveDismissDisabled(true)  // Prevent accidental dismissal while panning
+            }
+        }
+        .sheet(isPresented: $showingTextEntry) {
+            TextEntryView(selectedDate: selectedDate, onMealCreated: {
+                // Close the entire flow when meal is saved
+                dismiss()
+            })
         }
         .sheet(isPresented: $showingPackagingPrompt) {
             if let image = capturedImage {
@@ -97,32 +179,13 @@ struct QuickAddMealView: View {
                         showingLabelCamera = true
                     },
                     onSkipToAI: {
-                        showingPredictions = true
+                        // Go directly to NutritionReviewView with first prediction
+                        nutritionReviewPrediction = predictions.first
                     }
                 )
             }
         }
-        .sheet(isPresented: $showingPredictions) {
-            if let image = capturedImage {
-                PredictionsView(
-                    image: image,
-                    predictions: predictions,
-                    onPredictionSelected: { prediction in
-                        selectedPrediction = prediction
-                        showingPredictions = false
-                        // Set the prediction for sheet presentation
-                        nutritionReviewPrediction = prediction
-                    },
-                    onRetry: {
-                        showingPredictions = false
-                        // Camera view is still visible underneath
-                    },
-                    onCancel: {
-                        dismiss()
-                    }
-                )
-            }
-        }
+        // PredictionsView removed - now go directly to NutritionReviewView
         .sheet(item: $nutritionReviewPrediction) { prediction in
             let _ = {
                 print("🍽️ Opening NutritionReviewView for: \(prediction.displayName)")
@@ -167,14 +230,14 @@ struct QuickAddMealView: View {
                 onGalleryTap: {
                     // Not needed for label scan, but keep for consistency
                 },
-                onManualTap: {
+                onTextEntryTap: {
                     showingLabelCamera = false
                 }
             )
             .onDisappear {
-                // If label scanning dismissed without capture, show predictions list
-                if nutritionLabelImage == nil && !predictions.isEmpty && !showingPredictions && nutritionReviewPrediction == nil {
-                    showingPredictions = true
+                // If label scanning dismissed without capture, show nutrition review
+                if nutritionLabelImage == nil && !predictions.isEmpty && nutritionReviewPrediction == nil {
+                    nutritionReviewPrediction = predictions.first
                 }
             }
         }
@@ -183,11 +246,11 @@ struct QuickAddMealView: View {
                 capturedImage = nil
                 predictions = []
             }
-            Button("Enter Manually") {
-                showingManualEntry = true
+            Button("Describe with Text") {
+                showingTextEntry = true
             }
         } message: {
-            Text("We couldn't identify any food in this image. Try taking another photo with better lighting, or enter your meal manually.")
+            Text("We couldn't identify any food in this image. Try taking another photo with better lighting, or describe your meal with text.")
         }
     }
 
@@ -316,7 +379,6 @@ struct QuickAddMealView: View {
 
         // Clear previous state when starting new recognition
         labelData = nil
-        selectedPrediction = nil
         minimumLoadingDisplayed = false
         currentMessageIndex = 0  // Reset message rotation
 
@@ -350,8 +412,8 @@ struct QuickAddMealView: View {
                 print("📦 Package detected - showing prompt")
                 showingPackagingPrompt = true
             } else {
-                // No packaging, go straight to predictions
-                showingPredictions = true
+                // No packaging, go straight to nutrition review
+                nutritionReviewPrediction = predictions.first
             }
         }
     }
@@ -370,9 +432,8 @@ struct QuickAddMealView: View {
             HapticManager.error()
         }
 
-        // After label scan, show predictions list so user can select food
-        // NutritionReviewView requires selectedPrediction to be set first
-        showingPredictions = true
+        // After label scan, go directly to nutrition review with first prediction
+        nutritionReviewPrediction = predictions.first
     }
 }
 
@@ -381,195 +442,76 @@ struct QuickAddMealView: View {
 struct GalleryPicker: UIViewControllerRepresentable {
     @Environment(\.dismiss) var dismiss
     let onImageSelected: (UIImage) -> Void
+    let onLoadingStarted: () -> Void
 
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController()
-        picker.sourceType = .photoLibrary
+    func makeUIViewController(context: Context) -> PHPickerViewController {
+        var config = PHPickerConfiguration()
+        config.filter = .images
+        config.selectionLimit = 1
+        config.preferredAssetRepresentationMode = .current // Ensures full-quality image from iCloud
+        config.selection = .default // Single-select appearance (not ordered)
+        config.mode = .default // Compact UI for single selection
+
+        let picker = PHPickerViewController(configuration: config)
         picker.delegate = context.coordinator
-        picker.allowsEditing = true
         return picker
     }
 
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {}
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
 
-    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+    class Coordinator: NSObject, PHPickerViewControllerDelegate {
         let parent: GalleryPicker
 
         init(_ parent: GalleryPicker) {
             self.parent = parent
         }
 
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-            if let image = info[.editedImage] as? UIImage ?? info[.originalImage] as? UIImage {
-                parent.onImageSelected(image)
+        func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+            guard let provider = results.first?.itemProvider else {
+                parent.dismiss()
+                return
             }
-            parent.dismiss()
-        }
 
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            // Show loading indicator immediately before dismissing
+            DispatchQueue.main.async {
+                self.parent.onLoadingStarted()
+            }
+
+            // Dismiss picker
             parent.dismiss()
+
+            // Load full-quality image (waits for iCloud download if needed)
+            if provider.canLoadObject(ofClass: UIImage.self) {
+                provider.loadObject(ofClass: UIImage.self) { image, error in
+                    if let error = error {
+                        print("❌ Error loading image from picker: \(error.localizedDescription)")
+                        DispatchQueue.main.async {
+                            // Reset loading state on error
+                            self.parent.onImageSelected(UIImage()) // This will trigger cleanup
+                        }
+                        return
+                    }
+
+                    if let image = image as? UIImage {
+                        DispatchQueue.main.async {
+                            print("✅ Loaded full-quality image from gallery: \(Int(image.size.width))x\(Int(image.size.height))")
+                            self.parent.onImageSelected(image)
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
 // MARK: - Predictions View
 
-struct PredictionsView: View {
-    @Environment(\.dismiss) var dismiss
-
-    let image: UIImage
-    let predictions: [FoodRecognitionService.FoodPrediction]
-    let onPredictionSelected: (FoodRecognitionService.FoodPrediction) -> Void
-    let onRetry: () -> Void
-    let onCancel: () -> Void
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Captured image
-                    Image(uiImage: image)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxHeight: 250)
-                        .cornerRadius(16)
-                        .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
-                        .padding(.horizontal)
-                        .padding(.top)
-
-                    // Predictions list
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("What did we find?")
-                            .font(.system(size: 20, weight: .bold))
-                            .padding(.horizontal)
-
-                        Text("Select the food that matches your meal")
-                            .font(.system(size: 15))
-                            .foregroundColor(.secondary)
-                            .padding(.horizontal)
-
-                        VStack(spacing: 8) {
-                            ForEach(predictions) { prediction in
-                                PredictionRow(prediction: prediction) {
-                                    onPredictionSelected(prediction)
-                                    dismiss()
-                                }
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
-
-                    // Retry option
-                    Button(action: {
-                        dismiss()
-                        onRetry()
-                    }) {
-                        HStack {
-                            Image(systemName: "arrow.counterclockwise")
-                            Text("Try different photo")
-                        }
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(.secondary)
-                    }
-                    .padding(.top, 8)
-                    .padding(.bottom, 24)
-                }
-            }
-            .navigationTitle("Select Food")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        dismiss()
-                        onCancel()
-                    }
-                }
-            }
-        }
-    }
-}
-
-// MARK: - Prediction Row Component
-struct PredictionRow: View {
-    let prediction: FoodRecognitionService.FoodPrediction
-    let onTap: () -> Void
-
-    private var confidenceColor: Color {
-        switch prediction.confidencePercentage {
-        case 90...100:
-            return .green
-        case 70..<90:
-            return .blue
-        case 50..<70:
-            return .orange
-        default:
-            return .red
-        }
-    }
-
-    var body: some View {
-        Button(action: {
-            HapticManager.medium()
-            onTap()
-        }) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text(prediction.displayName)
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundColor(.primary)
-
-                            Spacer()
-
-                            // Confidence badge
-                            Text("\(prediction.confidencePercentage)%")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(confidenceColor)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(
-                                    Capsule()
-                                        .fill(confidenceColor.opacity(0.15))
-                                )
-                        }
-
-                        // Show 1-sentence description if available
-                        if let description = prediction.description {
-                            Text(description)
-                                .font(.system(size: 14))
-                                .foregroundColor(.secondary)
-                                .lineLimit(2)
-                                .multilineTextAlignment(.leading)
-                        } else if prediction.hasNutritionData {
-                            // Show nutrition summary if no description
-                            Text("\(Int(prediction.calories ?? 0)) cal • \(Int(prediction.protein ?? 0))g protein")
-                                .font(.system(size: 14))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-
-                    Spacer()
-
-                    Image(systemName: "arrow.forward.circle.fill")
-                        .font(.system(size: 24))
-                        .foregroundColor(.blue)
-                }
-
-            }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(.secondarySystemBackground))
-            )
-        }
-        .buttonStyle(PlainButtonStyle())
-    }
-}
+// MARK: - PredictionsView removed (merged into NutritionReviewView)
+// Users now see AI prediction directly in the review screen
 
 #Preview {
     QuickAddMealView(selectedDate: Date())

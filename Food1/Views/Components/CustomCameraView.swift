@@ -17,7 +17,7 @@ struct CustomCameraView: View {
     let selectedDate: Date
     let onPhotoCaptured: (UIImage) -> Void
     let onGalleryTap: () -> Void
-    let onManualTap: () -> Void
+    let onTextEntryTap: () -> Void
 
     @StateObject private var cameraManager = CameraManager()
     @State private var showingPermissionAlert = false
@@ -133,18 +133,18 @@ struct CustomCameraView: View {
                             }
                             .scaleEffect(captureAnimation ? 0.9 : 1.0)
 
-                            // Manual button
+                            // Text Entry button
                             Button(action: {
-                                onManualTap()
+                                onTextEntryTap()
                             }) {
                                 VStack(spacing: 8) {
-                                    Image(systemName: "keyboard")
+                                    Image(systemName: "text.bubble")
                                         .font(.system(size: 24, weight: .medium))
                                         .foregroundColor(.white)
                                         .frame(width: 56, height: 56)
                                         .background(Circle().fill(Color.black.opacity(0.5)))
 
-                                    Text("Manual")
+                                    Text("Text")
                                         .font(.system(size: 13, weight: .medium))
                                         .foregroundColor(.white)
                                 }
@@ -257,7 +257,8 @@ struct CustomCameraView: View {
             }
 
             // Reset animation
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(200))
                 captureAnimation = false
             }
         }

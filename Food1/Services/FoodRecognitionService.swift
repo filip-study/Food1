@@ -26,6 +26,7 @@ class FoodRecognitionService: ObservableObject {
     struct FoodPrediction: Identifiable {
         let id = UUID()
         let label: String
+        let emoji: String?  // Emoji representing the food (e.g., "🍳" for eggs)
         let confidence: Float
         let description: String?
         let fullDescription: String?

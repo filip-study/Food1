@@ -170,7 +170,9 @@ struct TodayView: View {
                 QuickAddMealView(selectedDate: selectedDate)
             }
             .sheet(isPresented: $showingManualEntry) {
-                ManualEntryView(selectedDate: selectedDate)
+                TextEntryView(selectedDate: selectedDate, onMealCreated: {
+                    showingManualEntry = false
+                })
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
