@@ -23,6 +23,8 @@ struct MealEditView: View {
     @State private var carbs = ""
     @State private var fat = ""
     @State private var notes = ""
+    @State private var mealDate: Date
+    @State private var mealTime: Date
 
     // Default emoji for all meals
     private let selectedEmoji = "🍽️"
@@ -41,6 +43,10 @@ struct MealEditView: View {
         _carbs = State(initialValue: NutritionFormatter.formatValue(editingMeal.carbs, unit: currentUnit))
         _fat = State(initialValue: NutritionFormatter.formatValue(editingMeal.fat, unit: currentUnit))
         _notes = State(initialValue: editingMeal.notes ?? "")
+
+        // Initialize date and time from existing timestamp
+        _mealDate = State(initialValue: editingMeal.timestamp)
+        _mealTime = State(initialValue: editingMeal.timestamp)
     }
 
     var body: some View {
@@ -48,6 +54,24 @@ struct MealEditView: View {
             Form {
                 Section("Meal Details") {
                     TextField("Meal name", text: $mealName)
+                }
+
+                Section("When") {
+                    DatePicker(
+                        "Date",
+                        selection: $mealDate,
+                        in: ...Date(),
+                        displayedComponents: .date
+                    )
+                    .datePickerStyle(.compact)
+
+                    DatePicker(
+                        "Time",
+                        selection: $mealTime,
+                        in: ...Date(),
+                        displayedComponents: .hourAndMinute
+                    )
+                    .datePickerStyle(.compact)
                 }
 
                 Section("Nutrition") {
@@ -124,15 +148,44 @@ struct MealEditView: View {
         let carbsValue = NutritionFormatter.toGrams(value: Double(carbs) ?? 0, from: nutritionUnit)
         let fatValue = NutritionFormatter.toGrams(value: Double(fat) ?? 0, from: nutritionUnit)
 
+        // Combine date from mealDate with time from mealTime
+        let calendar = Calendar.current
+        let dateComponents = calendar.dateComponents([.year, .month, .day], from: mealDate)
+        let timeComponents = calendar.dateComponents([.hour, .minute], from: mealTime)
+
+        var combinedComponents = DateComponents()
+        combinedComponents.year = dateComponents.year
+        combinedComponents.month = dateComponents.month
+        combinedComponents.day = dateComponents.day
+        combinedComponents.hour = timeComponents.hour
+        combinedComponents.minute = timeComponents.minute
+        combinedComponents.second = 0  // Zero out seconds for cleaner timestamps
+
+        let newTimestamp = calendar.date(from: combinedComponents) ?? editingMeal.timestamp
+
+        // Check if date changed (cross-day move) for statistics invalidation
+        let oldDate = calendar.startOfDay(for: editingMeal.timestamp)
+        let newDate = calendar.startOfDay(for: newTimestamp)
+        let dateChanged = oldDate != newDate
+
         // Update existing meal
         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
             editingMeal.name = mealName
             editingMeal.emoji = selectedEmoji
+            editingMeal.timestamp = newTimestamp
             editingMeal.calories = Double(calories) ?? 0
             editingMeal.protein = proteinValue
             editingMeal.carbs = carbsValue
             editingMeal.fat = fatValue
             editingMeal.notes = notes.isEmpty ? nil : notes
+        }
+
+        // If date changed, invalidate statistics for both old and new dates
+        if dateChanged {
+            Task {
+                await StatisticsService.shared.invalidateAggregate(for: oldDate, in: modelContext)
+                await StatisticsService.shared.invalidateAggregate(for: newDate, in: modelContext)
+            }
         }
 
         dismiss()

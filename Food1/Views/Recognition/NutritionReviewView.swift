@@ -60,6 +60,25 @@ struct NutritionReviewView: View {
     // Text correction
     @State private var showingTextEntry = false
 
+    // Time selection
+    @State private var mealTime: Date
+    @State private var showingTimePicker = false
+
+    init(selectedDate: Date, foodName: String, capturedImage: UIImage?, prediction: FoodRecognitionService.FoodPrediction, prefilledCalories: Double? = nil, prefilledProtein: Double? = nil, prefilledCarbs: Double? = nil, prefilledFat: Double? = nil, prefilledEstimatedGrams: Double? = nil, photoTimestamp: Date? = nil) {
+        self.selectedDate = selectedDate
+        self.foodName = foodName
+        self.capturedImage = capturedImage
+        self.prediction = prediction
+        self.prefilledCalories = prefilledCalories
+        self.prefilledProtein = prefilledProtein
+        self.prefilledCarbs = prefilledCarbs
+        self.prefilledFat = prefilledFat
+        self.prefilledEstimatedGrams = prefilledEstimatedGrams
+
+        // Initialize mealTime with photo timestamp if available, otherwise current time
+        self._mealTime = State(initialValue: photoTimestamp ?? Date())
+    }
+
     // Emoji from AI prediction (defaults to 🍽️ if not provided)
     private var selectedEmoji: String {
         prediction.emoji ?? "🍽️"
@@ -73,6 +92,36 @@ struct NutritionReviewView: View {
     private var confidenceDots: String {
         let filled = Int(prediction.confidence * 6)
         return String(repeating: "●", count: filled) + String(repeating: "○", count: 6 - filled)
+    }
+
+    // Relative time string for display
+    private var relativeTimeString: String {
+        let calendar = Calendar.current
+        let now = Date()
+
+        if calendar.isDateInToday(mealTime) {
+            let components = calendar.dateComponents([.minute], from: mealTime, to: now)
+            if let minutes = components.minute {
+                if minutes < 1 {
+                    return "Just now"
+                } else if minutes < 60 {
+                    return "\(minutes) minute\(minutes == 1 ? "" : "s") ago"
+                }
+            }
+            // Show time for today if more than 1 hour ago
+            let formatter = DateFormatter()
+            formatter.timeStyle = .short
+            return "Today, \(formatter.string(from: mealTime))"
+        } else if calendar.isDateInYesterday(mealTime) {
+            let formatter = DateFormatter()
+            formatter.timeStyle = .short
+            return "Yesterday, \(formatter.string(from: mealTime))"
+        } else {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .short
+            return formatter.string(from: mealTime)
+        }
     }
 
     var body: some View {
@@ -144,6 +193,51 @@ struct NutritionReviewView: View {
                 // Meal details
                 Section("Meal Details") {
                     TextField("Meal name", text: $mealName)
+                }
+
+                // Time selection
+                Section {
+                    VStack(spacing: 0) {
+                        // Collapsed view
+                        Button(action: {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                showingTimePicker.toggle()
+                            }
+                        }) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "clock")
+                                    .foregroundColor(.secondary)
+                                    .font(.system(size: 16))
+
+                                Text("Eaten at")
+                                    .foregroundColor(.secondary)
+
+                                Spacer()
+
+                                Text(relativeTimeString)
+                                    .foregroundColor(.primary)
+
+                                Image(systemName: showingTimePicker ? "chevron.up" : "chevron.down")
+                                    .foregroundColor(.secondary)
+                                    .font(.system(size: 14, weight: .medium))
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+
+                        // Expanded DatePicker
+                        if showingTimePicker {
+                            DatePicker(
+                                "",
+                                selection: $mealTime,
+                                in: ...Date(),
+                                displayedComponents: [.hourAndMinute]
+                            )
+                            .datePickerStyle(.wheel)
+                            .labelsHidden()
+                            .padding(.top, 12)
+                        }
+                    }
                 }
 
                 // Loading or nutrition data
@@ -337,10 +431,25 @@ struct NutritionReviewView: View {
             )
         }
 
+        // Combine date from selectedDate with time from mealTime picker
+        let calendar = Calendar.current
+        let dateComponents = calendar.dateComponents([.year, .month, .day], from: selectedDate)
+        let timeComponents = calendar.dateComponents([.hour, .minute], from: mealTime)
+
+        var combinedComponents = DateComponents()
+        combinedComponents.year = dateComponents.year
+        combinedComponents.month = dateComponents.month
+        combinedComponents.day = dateComponents.day
+        combinedComponents.hour = timeComponents.hour
+        combinedComponents.minute = timeComponents.minute
+        combinedComponents.second = 0  // Zero out seconds for cleaner timestamps
+
+        let finalTimestamp = calendar.date(from: combinedComponents) ?? selectedDate
+
         let newMeal = Meal(
             name: mealName,
             emoji: selectedEmoji,
-            timestamp: selectedDate,
+            timestamp: finalTimestamp,
             calories: Double(calories) ?? 0,
             protein: proteinValue,
             carbs: carbsValue,

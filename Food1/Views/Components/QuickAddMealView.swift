@@ -38,6 +38,7 @@ struct QuickAddMealView: View {
 
     // Recognition data
     @State private var capturedImage: UIImage?
+    @State private var photoTimestamp: Date?  // EXIF timestamp from photo
     @State private var predictions: [FoodRecognitionService.FoodPrediction] = []
     @State private var hasPackaging = false
     @State private var showingLabelCamera = false
@@ -56,8 +57,8 @@ struct QuickAddMealView: View {
             if capturedImage == nil {
                 CustomCameraView(
                     selectedDate: selectedDate,
-                    onPhotoCaptured: { image in
-                        handlePhotoCaptured(image)
+                    onPhotoCaptured: { image, timestamp in
+                        handlePhotoCaptured(image, timestamp: timestamp)
                     },
                     onGalleryTap: {
                         showingGallery = true
@@ -140,7 +141,7 @@ struct QuickAddMealView: View {
                     image: image,
                     onAnalyze: { finalImage in
                         showingPhotoPreview = false
-                        handlePhotoCaptured(finalImage)
+                        handlePhotoCaptured(finalImage, timestamp: nil)  // Gallery photos: no EXIF timestamp extraction yet
                     },
                     onRequestCrop: {
                         showingPhotoPreview = false
@@ -159,7 +160,7 @@ struct QuickAddMealView: View {
                     originalImage: image,
                     onCropComplete: { croppedImage in
                         showingCropView = false
-                        handlePhotoCaptured(croppedImage)
+                        handlePhotoCaptured(croppedImage, timestamp: nil)  // Gallery photos: no EXIF timestamp extraction yet
                     }
                 )
                 .interactiveDismissDisabled(true)  // Prevent accidental dismissal while panning
@@ -210,7 +211,8 @@ struct QuickAddMealView: View {
                 prefilledProtein: labelData?.nutrition.protein ?? prediction.protein,
                 prefilledCarbs: labelData?.nutrition.carbs ?? prediction.carbs,
                 prefilledFat: labelData?.nutrition.fat ?? prediction.fat,
-                prefilledEstimatedGrams: labelData?.estimatedGrams ?? prediction.estimatedGrams
+                prefilledEstimatedGrams: labelData?.estimatedGrams ?? prediction.estimatedGrams,
+                photoTimestamp: photoTimestamp
             )
             .onDisappear {
                 // Close the entire flow when meal is saved
@@ -220,7 +222,7 @@ struct QuickAddMealView: View {
         .sheet(isPresented: $showingLabelCamera) {
             CustomCameraView(
                 selectedDate: selectedDate,
-                onPhotoCaptured: { labelImage in
+                onPhotoCaptured: { labelImage, _ in  // Ignore timestamp for label scan
                     nutritionLabelImage = labelImage
                     showingLabelCamera = false
                     Task {
@@ -374,8 +376,9 @@ struct QuickAddMealView: View {
         }
     }
 
-    private func handlePhotoCaptured(_ image: UIImage) {
+    private func handlePhotoCaptured(_ image: UIImage, timestamp: Date?) {
         capturedImage = image
+        photoTimestamp = timestamp
 
         // Clear previous state when starting new recognition
         labelData = nil
@@ -383,6 +386,9 @@ struct QuickAddMealView: View {
         currentMessageIndex = 0  // Reset message rotation
 
         print("📸 New photo captured - cleared previous state")
+        if let timestamp = timestamp {
+            print("📸 Photo timestamp: \(timestamp)")
+        }
 
         Task {
             // Start minimum display timer (prevents flash on quick responses)

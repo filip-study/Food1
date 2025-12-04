@@ -9,13 +9,14 @@ import SwiftUI
 import AVFoundation
 import UIKit
 import Combine
+import ImageIO
 
 /// Custom camera view with live preview and quick access to gallery/manual entry
 struct CustomCameraView: View {
     @Environment(\.dismiss) var dismiss
 
     let selectedDate: Date
-    let onPhotoCaptured: (UIImage) -> Void
+    let onPhotoCaptured: (UIImage, Date?) -> Void  // Now includes optional EXIF timestamp
     let onGalleryTap: () -> Void
     let onTextEntryTap: () -> Void
 
@@ -251,9 +252,9 @@ struct CustomCameraView: View {
         }
 
         // Capture photo
-        cameraManager.capturePhoto { image in
+        cameraManager.capturePhoto { image, timestamp in
             if let image = image {
-                onPhotoCaptured(image)
+                onPhotoCaptured(image, timestamp)
             }
 
             // Reset animation
@@ -274,7 +275,7 @@ class CameraManager: NSObject, ObservableObject {
 
     let session = AVCaptureSession()
     private var photoOutput = AVCapturePhotoOutput()
-    private var captureCompletion: ((UIImage?) -> Void)?
+    private var captureCompletion: ((UIImage?, Date?) -> Void)?
 
     override init() {
         super.init()
@@ -342,7 +343,7 @@ class CameraManager: NSObject, ObservableObject {
         flashMode = flashMode == .off ? .on : .off
     }
 
-    func capturePhoto(completion: @escaping (UIImage?) -> Void) {
+    func capturePhoto(completion: @escaping (UIImage?, Date?) -> Void) {
         self.captureCompletion = completion
 
         let settings = AVCapturePhotoSettings()
@@ -363,11 +364,29 @@ extension CameraManager: AVCapturePhotoCaptureDelegate {
         guard error == nil,
               let imageData = photo.fileDataRepresentation(),
               let image = UIImage(data: imageData) else {
-            captureCompletion?(nil)
+            captureCompletion?(nil, nil)
             return
         }
 
-        captureCompletion?(image)
+        // Extract EXIF timestamp from photo metadata
+        var photoTimestamp: Date?
+        if let source = CGImageSourceCreateWithData(imageData as CFData, nil),
+           let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any],
+           let exifDict = properties[kCGImagePropertyExifDictionary as String] as? [String: Any],
+           let dateString = exifDict[kCGImagePropertyExifDateTimeOriginal as String] as? String {
+
+            // Parse EXIF date format: "YYYY:MM:DD HH:MM:SS"
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
+            dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+            photoTimestamp = dateFormatter.date(from: dateString)
+
+            print("📸 EXIF timestamp extracted: \(dateString) -> \(photoTimestamp?.description ?? "nil")")
+        } else {
+            print("📸 No EXIF timestamp found in photo")
+        }
+
+        captureCompletion?(image, photoTimestamp)
         captureCompletion = nil
     }
 }
