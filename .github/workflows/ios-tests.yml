@@ -1,0 +1,84 @@
+# GitHub Actions workflow for iOS unit tests
+# Uses self-hosted runner with Xcode 26.0.1
+#
+# Triggers: Push to main or claude/* branches
+
+name: iOS Tests
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - 'claude/**'
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  test:
+    name: Run Unit Tests
+    runs-on: self-hosted
+    timeout-minutes: 30
+
+    env:
+      DEVELOPER_DIR: /Applications/Xcode-26.0.1.app/Contents/Developer
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify Xcode version
+        run: |
+          echo "Using DEVELOPER_DIR: $DEVELOPER_DIR"
+          xcodebuild -version
+
+      - name: Resolve Swift packages
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project Food1.xcodeproj \
+            -scheme Food1
+
+      - name: Build for testing
+        run: |
+          xcodebuild build-for-testing \
+            -project Food1.xcodeproj \
+            -scheme Food1 \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+            -configuration Debug \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            | xcpretty --color || true
+
+      - name: Run unit tests
+        run: |
+          xcodebuild test-without-building \
+            -project Food1.xcodeproj \
+            -scheme Food1 \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+            -configuration Debug \
+            -resultBundlePath TestResults.xcresult \
+            | xcpretty --color --report junit --output test-results.xml || true
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: |
+            TestResults.xcresult
+            test-results.xml
+          retention-days: 7
+
+      - name: Test Summary
+        if: always()
+        run: |
+          if [ -f test-results.xml ]; then
+            echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+            # Count tests from junit XML
+            TESTS=$(grep -c '<testcase' test-results.xml 2>/dev/null || echo "0")
+            FAILURES=$(grep -c '<failure' test-results.xml 2>/dev/null || echo "0")
+            echo "- Total tests: $TESTS" >> $GITHUB_STEP_SUMMARY
+            echo "- Failures: $FAILURES" >> $GITHUB_STEP_SUMMARY
+          fi

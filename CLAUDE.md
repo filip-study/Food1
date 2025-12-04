@@ -32,6 +32,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - Don't reinvent or contradict existing architectural decisions without user approval
    - Don't remove existing functionality without explicit user approval
 
+5. **Test Protection Policy (CRITICAL):**
+   - **NEVER modify files in `Food1Tests/` without explicit user approval**
+   - Test files are protected from AI agent edits - ask before changing
+   - If tests fail, fix the implementation code, not the tests (unless tests are clearly wrong)
+   - When adding new features, suggest new tests but wait for user approval before creating them
+   - Tests serve as the source of truth for expected behavior
+
 ## Project Goals & User Preferences
 
 **Project Vision:**
@@ -82,6 +89,10 @@ xcodebuild -project Food1.xcodeproj -scheme Food1 clean
 
 # Open in Xcode (preferred for development)
 open Food1.xcodeproj
+
+# Run unit tests
+xcodebuild test -project Food1.xcodeproj -scheme Food1 -configuration Debug \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 ```
 
 **CRITICAL BUILD RULES:**
@@ -142,6 +153,21 @@ Architecture documentation is maintained in individual code files. See file head
 - **Debug logs:** Run `npx wrangler tail` in proxy/food-vision-api directory for real-time request/response monitoring
 - **More details:** See `proxy/food-vision-api/README.md`
 
+
+## Testing & CI/CD
+
+**Unit Tests:** Located in `Food1Tests/`. Run via Xcode or command line (see Build & Run Commands).
+
+**Test Coverage:**
+- `NutritionFormatterTests` - Unit conversion and formatting
+- `RDAValuesTests` - FDA recommended daily allowances by gender/age
+- `MicronutrientTests` - RDA color thresholds, categories, formatting
+- `MealCalculationsTests` - Nutrition aggregation math
+- `FuzzyMatchingTests` - USDA shortcuts, blacklist, name cleaning
+
+**GitHub Actions:** `.github/workflows/ios-tests.yml` runs tests on push to `main` and `claude/*` branches using a self-hosted macOS runner with Xcode 26.0.1.
+
+**Test Protection:** Tests are protected from AI modification. See "Test Protection Policy" in Maintenance Instructions.
 
 ## Development Tools
 
