@@ -16,7 +16,6 @@
 
 import SwiftUI
 import SwiftData
-import PhotosUI
 struct QuickAddMealView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -34,7 +33,6 @@ struct QuickAddMealView: View {
     @State private var showingPackagingPrompt = false
     @State private var showingNoFoodAlert = false
     @State private var nutritionReviewPrediction: FoodRecognitionService.FoodPrediction? = nil
-    @State private var isLoadingGalleryImage = false  // Loading indicator for iCloud photos
 
     // Recognition data
     @State private var capturedImage: UIImage?
@@ -80,41 +78,11 @@ struct QuickAddMealView: View {
             if recognitionService.isProcessing {
                 recognitionLoadingOverlay
             }
-
-            // Loading overlay for gallery photo (iCloud downloads)
-            if isLoadingGalleryImage {
-                ZStack {
-                    Color.black.opacity(0.5)
-                        .ignoresSafeArea()
-
-                    VStack(spacing: 16) {
-                        ProgressView()
-                            .scaleEffect(1.5)
-                            .tint(.white)
-
-                        Text("Loading photo...")
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(.white)
-                    }
-                    .padding(32)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color(.systemBackground).opacity(0.95))
-                    )
-                }
-                .transition(.opacity)
-            }
         }
         .sheet(isPresented: $showingGallery) {
-            GalleryPicker(
-                onImageSelected: { image in
-                    selectedGalleryImage = image
-                    isLoadingGalleryImage = false
-                },
-                onLoadingStarted: {
-                    isLoadingGalleryImage = true
-                }
-            )
+            GalleryPicker { image in
+                selectedGalleryImage = image
+            }
         }
         .onChange(of: selectedGalleryImage) { _, newImage in
             // When image is loaded, wait for gallery sheet to dismiss then show preview
@@ -444,72 +412,57 @@ struct QuickAddMealView: View {
 }
 
 // MARK: - Gallery Picker
+//
+// Uses UIImagePickerController for optimal single-photo selection UX:
+// - Tap photo → immediately dismisses (no "Add" button required)
+// - Built-in iCloud download progress indicator
+// - Familiar, intuitive user experience
+//
+// PHPicker requires tap + "Add" button even for single selection,
+// which feels like multi-select and adds friction.
 
 struct GalleryPicker: UIViewControllerRepresentable {
     @Environment(\.dismiss) var dismiss
     let onImageSelected: (UIImage) -> Void
-    let onLoadingStarted: () -> Void
 
-    func makeUIViewController(context: Context) -> PHPickerViewController {
-        var config = PHPickerConfiguration()
-        config.filter = .images
-        config.selectionLimit = 1
-        config.preferredAssetRepresentationMode = .current // Ensures full-quality image from iCloud
-        config.selection = .default // Single-select appearance (not ordered)
-        config.mode = .default // Compact UI for single selection
-
-        let picker = PHPickerViewController(configuration: config)
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = .photoLibrary
         picker.delegate = context.coordinator
+        picker.allowsEditing = false
         return picker
     }
 
-    func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {}
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
 
-    class Coordinator: NSObject, PHPickerViewControllerDelegate {
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
         let parent: GalleryPicker
 
         init(_ parent: GalleryPicker) {
             self.parent = parent
         }
 
-        func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-            guard let provider = results.first?.itemProvider else {
-                parent.dismiss()
-                return
-            }
-
-            // Show loading indicator immediately before dismissing
-            DispatchQueue.main.async {
-                self.parent.onLoadingStarted()
-            }
-
-            // Dismiss picker
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            // Dismiss picker immediately for responsive UX
             parent.dismiss()
 
-            // Load full-quality image (waits for iCloud download if needed)
-            if provider.canLoadObject(ofClass: UIImage.self) {
-                provider.loadObject(ofClass: UIImage.self) { image, error in
-                    if let error = error {
-                        print("❌ Error loading image from picker: \(error.localizedDescription)")
-                        DispatchQueue.main.async {
-                            // Reset loading state on error
-                            self.parent.onImageSelected(UIImage()) // This will trigger cleanup
-                        }
-                        return
-                    }
-
-                    if let image = image as? UIImage {
-                        DispatchQueue.main.async {
-                            print("✅ Loaded full-quality image from gallery: \(Int(image.size.width))x\(Int(image.size.height))")
-                            self.parent.onImageSelected(image)
-                        }
-                    }
+            // Extract the selected image
+            if let image = info[.originalImage] as? UIImage {
+                print("✅ Selected image from gallery: \(Int(image.size.width))x\(Int(image.size.height))")
+                DispatchQueue.main.async {
+                    self.parent.onImageSelected(image)
                 }
+            } else {
+                print("❌ Failed to get image from picker")
             }
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.dismiss()
         }
     }
 }
