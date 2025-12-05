@@ -30,8 +30,8 @@ jobs:
 
       - name: Setup API Config for CI
         run: |
-          # Copy CI-safe APIConfig (no real secrets needed for tests)
-          cp Food1/Config/APIConfig.ci.swift Food1/Config/APIConfig.swift
+          # Copy CI-safe APIConfig template (no real secrets needed for tests)
+          cp Food1/Config/APIConfig.swift.template Food1/Config/APIConfig.swift
           echo "✅ Using test-safe APIConfig for CI"
 
       - name: Build for Testing

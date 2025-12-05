@@ -1,0 +1,25 @@
+//
+//  APIConfig.swift.template
+//  Food1
+//
+//  Test-safe API configuration template for CI/CD
+//  This file is copied to APIConfig.swift during CI builds
+//
+
+import Foundation
+
+struct APIConfig {
+    // MARK: - Vision API (Dummy values for CI)
+
+    static let proxyEndpoint: String = "https://test-worker.example.com/analyze"
+    static let authToken: String = "test-auth-token-for-ci"
+
+    // MARK: - USDA Matching API
+
+    static let usdaMatchingProvider: UsdaProvider = .local
+}
+
+enum UsdaProvider {
+    case local
+    case gemini
+}
