@@ -28,6 +28,12 @@ jobs:
       - name: List available simulators
         run: xcrun simctl list devices available
 
+      - name: Setup API Config for CI
+        run: |
+          # Copy CI-safe APIConfig (no real secrets needed for tests)
+          cp Food1/Config/APIConfig.ci.swift Food1/Config/APIConfig.swift
+          echo "✅ Using test-safe APIConfig for CI"
+
       - name: Build for Testing
         env:
           DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
