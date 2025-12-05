@@ -4,22 +4,32 @@
 //
 //  Test-safe API configuration template for CI/CD
 //  This file is copied to APIConfig.swift during CI builds
+//  Contains dummy values - tests don't need real API keys
 //
 
 import Foundation
 
 struct APIConfig {
-    // MARK: - Vision API (Dummy values for CI)
+    // MARK: - Vision API (Dummy values for CI - tests don't call APIs)
 
+    /// Dummy proxy endpoint for CI testing
+    /// Real production value is loaded from Info.plist via Secrets.xcconfig
     static let proxyEndpoint: String = "https://test-worker.example.com/analyze"
+
+    /// Dummy auth token for CI testing
+    /// Real production value is loaded from Info.plist via Secrets.xcconfig
     static let authToken: String = "test-auth-token-for-ci"
 
     // MARK: - USDA Matching API
 
+    /// USDA matching provider for CI
+    /// Tests use .local to avoid external API calls
     static let usdaMatchingProvider: UsdaProvider = .local
 }
 
+// MARK: - Provider Types
+
 enum UsdaProvider {
-    case local
-    case gemini
+    case local   // LocalLLMReranker (Llama 3.2 1B local, memory issues)
+    case gemini  // GeminiReranker (Gemini 2.0 Flash-Lite API, better quality)
 }
