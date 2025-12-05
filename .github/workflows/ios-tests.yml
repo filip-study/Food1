@@ -32,7 +32,14 @@ jobs:
         run: |
           # Copy CI-safe APIConfig template (no real secrets needed for tests)
           cp Food1/Config/APIConfig.swift.template Food1/Config/APIConfig.swift
-          echo "✅ Using test-safe APIConfig for CI"
+
+          # Add dummy secrets to Info.plist for CI (tests don't need real values)
+          /usr/libexec/PlistBuddy -c "Add :PROXY_ENDPOINT string 'https://test-worker.example.com/analyze'" Food1/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :AUTH_TOKEN string 'test-auth-token'" Food1/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :SUPABASE_URL string 'https://test.supabase.co'" Food1/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :SUPABASE_ANON_KEY string 'test-anon-key'" Food1/Info.plist || true
+
+          echo "✅ Using test-safe config for CI"
 
       - name: Build for Testing
         env:
