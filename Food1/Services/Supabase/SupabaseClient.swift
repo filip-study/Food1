@@ -49,13 +49,34 @@ class SupabaseService: ObservableObject {
               !supabaseURL.isEmpty,
               supabaseURL != "$(SUPABASE_URL)",
               let url = URL(string: supabaseURL) else {
+            #if DEBUG
+            // In DEBUG/test builds, use dummy values instead of crashing
+            // Tests don't need real Supabase connection
+            print("⚠️  SUPABASE_URL not configured - using test dummy values")
+            client = SupabaseClient(
+                supabaseURL: URL(string: "https://test.supabase.co")!,
+                supabaseKey: "test-anon-key"
+            )
+            return
+            #else
             fatalError("SUPABASE_URL not configured. Check Secrets.xcconfig and Info.plist.")
+            #endif
         }
 
         guard let supabaseKey = Bundle.main.infoDictionary?["SUPABASE_ANON_KEY"] as? String,
               !supabaseKey.isEmpty,
               supabaseKey != "$(SUPABASE_ANON_KEY)" else {
+            #if DEBUG
+            // In DEBUG/test builds, use dummy values instead of crashing
+            print("⚠️  SUPABASE_ANON_KEY not configured - using test dummy values")
+            client = SupabaseClient(
+                supabaseURL: url,
+                supabaseKey: "test-anon-key"
+            )
+            return
+            #else
             fatalError("SUPABASE_ANON_KEY not configured. Check Secrets.xcconfig and Info.plist.")
+            #endif
         }
 
         // Initialize Supabase client
