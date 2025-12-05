@@ -1,0 +1,92 @@
+name: iOS Tests
+
+# Run tests on every push to any branch
+# Note: Tests report status but do NOT block PR merges - manual review required
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - '**'
+
+jobs:
+  test:
+    name: Run XCTest Suite
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: |
+          # Use latest available Xcode (GitHub Actions may not have Xcode 26.0.1 yet)
+          # This will use the closest available version
+          sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer || \
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+
+      - name: List available simulators
+        run: xcrun simctl list devices available
+
+      - name: Build for Testing
+        env:
+          DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+        run: |
+          xcodebuild clean build-for-testing \
+            -project Food1.xcodeproj \
+            -scheme Food1 \
+            -configuration Debug \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
+            -enableCodeCoverage YES \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Run Tests
+        env:
+          DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+        run: |
+          xcodebuild test-without-building \
+            -project Food1.xcodeproj \
+            -scheme Food1 \
+            -configuration Debug \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
+            -enableCodeCoverage YES \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Generate Code Coverage Report
+        if: always()
+        run: |
+          xcrun xccov view --report --json \
+            ~/Library/Developer/Xcode/DerivedData/Food1-*/Logs/Test/*.xcresult > coverage.json || true
+
+          # Print human-readable coverage summary
+          if [ -f coverage.json ]; then
+            echo "📊 Code Coverage Summary:"
+            cat coverage.json | python3 -m json.tool || echo "Coverage data generated"
+          else
+            echo "⚠️  Coverage report not generated (may need test target setup)"
+          fi
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            ~/Library/Developer/Xcode/DerivedData/Food1-*/Logs/Test/*.xcresult
+            coverage.json
+          if-no-files-found: warn
+
+      - name: Test Summary
+        if: always()
+        run: |
+          echo "✅ Test run completed!"
+          echo "Review test results in the Actions artifacts"
+          echo ""
+          echo "⚠️  Note: Test failures do NOT block PR merges"
+          echo "Manual review and approval required for all changes"

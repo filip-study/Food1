@@ -1,0 +1,30 @@
+{
+  "configurations" : [
+    {
+      "id" : "7CE699D4-600A-46C6-A996-E98889F46EDE",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:Food1.xcodeproj",
+      "identifier" : "DC65CB802EB8EA5900B066D7",
+      "name" : "Food1"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Food1.xcodeproj",
+        "identifier" : "DCE02B022EE2D80300E695FB",
+        "name" : "Food1Tests"
+      }
+    }
+  ],
+  "version" : 1
+}

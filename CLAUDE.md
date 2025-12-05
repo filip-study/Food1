@@ -32,6 +32,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - Don't reinvent or contradict existing architectural decisions without user approval
    - Don't remove existing functionality without explicit user approval
 
+5. **Test Policy:**
+   - Tests define expected behavior and MUST NOT be modified without explicit user approval
+   - When tests fail after code changes, fix the CODE, not the tests (unless the test itself is wrong)
+   - To add new tests, ask user for test case definitions and expected behavior first
+   - Never change test assertions or expected values without explicit confirmation
+   - Test files are located in Food1Tests/ directory
+   - All tests run automatically on GitHub Actions CI for every push
+
 ## Project Goals & User Preferences
 
 **Project Vision:**
@@ -66,31 +74,14 @@ Prismae ("Food1") is an iOS nutrition tracking app with AI-powered food recognit
 
 ### iOS App (Xcode)
 
-**IMPORTANT: This project requires Xcode 26.0+ (iOS 26.0+) and MUST use DEVELOPER_DIR environment variable.**
+**IMPORTANT: This project requires Xcode 26.0+ (iOS 26.0+) 
 
-```bash
-# Set Xcode path (REQUIRED - Xcode 26.0.1 is installed)
-export DEVELOPER_DIR=/Applications/Xcode-26.0.1.app/Contents/Developer
-
-# Build for iOS Simulator (ALWAYS use -destination)
-xcodebuild -project Food1.xcodeproj -scheme Food1 -configuration Debug \
-  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
-  build
-
-# Clean build folder
-xcodebuild -project Food1.xcodeproj -scheme Food1 clean
-
-# Open in Xcode (preferred for development)
-open Food1.xcodeproj
-```
-
-**CRITICAL BUILD RULES:**
-1. **ALWAYS** set `DEVELOPER_DIR=/Applications/Xcode-26.0.1.app/Contents/Developer` before xcodebuild
-2. **ALWAYS** specify `-destination` when building (don't build without it)
-3. **NEVER** build without destination - causes provisioning profile errors
-4. For simulator builds: Use `-destination 'platform=iOS Simulator,name=iPhone 17 Pro'`
-5. For device builds: Use `-destination 'platform=iOS,id=<device-id>'`
-6. Command line tools alone won't work - full Xcode required
+**Test Infrastructure:**
+- Test target: Food1Tests
+- Test files: Food1Tests/*.swift
+- CI/CD: GitHub Actions runs tests automatically on every push
+- See `.github/workflows/ios-tests.yml` for CI configuration
+- **Use XcodeBuildMCP tools**: After UI changes, use `xcrun simctl` to take screenshots and verify in both light/dark modes
 
 ## Architecture
 
