@@ -84,6 +84,7 @@ class FuzzyMatchingService {
         "egg scrambled": 172187,    // Egg, whole, cooked, scrambled
 
         // Proteins
+        "chicken": 171477,          // Chicken, broilers or fryers, breast, meat only, cooked, roasted (default chicken)
         "chicken breast": 171477,   // Chicken, broilers or fryers, breast, meat only, cooked, roasted
         "chicken breast fried": 171078, // Chicken, broilers or fryers, breast, meat only, cooked, fried
         "chicken breast battered": 171515, // Chicken breast tenders, breaded, uncooked
