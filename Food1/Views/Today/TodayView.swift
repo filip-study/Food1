@@ -81,14 +81,16 @@ struct TodayView: View {
                         )
                         .padding(.top, 20)
 
-                        // Daily insight
-                        InsightCard(
-                            icon: "flame.fill",
-                            title: "Great progress!",
-                            message: "You've hit your protein goal 5 days this week.",
-                            accentColor: .orange,
-                            onTap: { }
-                        )
+                        // Daily insight (only show if more than 3 meals logged today)
+                        if mealsForSelectedDate.count > 3 {
+                            InsightCard(
+                                icon: "flame.fill",
+                                title: "Great progress!",
+                                message: "You've hit your protein goal 5 days this week.",
+                                accentColor: .orange,
+                                onTap: { }
+                            )
+                        }
 
                         // Meal timeline section
                         VStack(alignment: .leading, spacing: 20) {

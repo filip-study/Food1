@@ -41,6 +41,14 @@ final class MealIngredient {
     var createdAt: Date
     var updatedAt: Date
 
+    // MARK: - Cloud Sync Fields
+
+    /// Supabase ingredient ID (different from local SwiftData id)
+    var cloudId: UUID?
+
+    /// USDA description from database (for display)
+    var usdaDescription: String?
+
     init(name: String, grams: Double, usdaFdcId: String? = nil) {
         self.id = UUID()
         self.name = name

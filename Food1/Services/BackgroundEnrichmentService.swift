@@ -21,13 +21,18 @@ import SwiftData
 class BackgroundEnrichmentService {
     static let shared = BackgroundEnrichmentService()
 
+    private let syncCoordinator = SyncCoordinator.shared
+
     private init() {}
 
     // MARK: - Public API
 
     /// Automatically enrich ingredients with USDA data in background
-    /// - Parameter ingredients: Array of MealIngredient objects to enrich
-    func enrichIngredients(_ ingredients: [MealIngredient]) async {
+    /// - Parameters:
+    ///   - ingredients: Array of MealIngredient objects to enrich
+    ///   - meal: Optional Meal to sync after enrichment completes
+    ///   - context: Optional ModelContext for syncing
+    func enrichIngredients(_ ingredients: [MealIngredient], meal: Meal? = nil, context: ModelContext? = nil) async {
         #if DEBUG
         print("\n📊 Starting background enrichment for \(ingredients.count) ingredients\n")
         #endif
@@ -55,6 +60,14 @@ class BackgroundEnrichmentService {
         #if DEBUG
         print("✅ Background enrichment complete\n")
         #endif
+
+        // Trigger sync after enrichment completes (if meal and context provided)
+        if let meal = meal, let context = context {
+            #if DEBUG
+            print("☁️  Triggering sync after enrichment...")
+            #endif
+            await syncCoordinator.syncMeal(meal, context: context)
+        }
     }
 
     // MARK: - Private Methods

@@ -2,12 +2,14 @@
 //  FoodIdentityCard.swift
 //  Food1
 //
-//  Hero card component displaying AI-detected food identity.
+//  Hero card component displaying AI-detected food identity with editable meal name.
 //  Shows EITHER emoji (text input) OR photo (camera input), never both.
 //
 //  WHY THIS ARCHITECTURE:
 //  - Mutually exclusive display: Text input uses emoji, camera uses photo
 //  - Confidence indicator provides trust signal for AI predictions
+//  - Inline editable name eliminates duplicate fields
+//  - Tap-to-edit pattern follows iOS Contacts/Notes conventions
 //  - Compact horizontal layout maximizes screen real estate
 //  - Graceful degradation when optional data (description, photo) is missing
 //
@@ -15,11 +17,15 @@
 import SwiftUI
 
 struct FoodIdentityCard: View {
+    @Binding var mealName: String  // Editable user name
     let emoji: String?
     let photo: UIImage?
-    let foodName: String
+    let foodName: String  // AI prediction (for reference)
     let description: String?
     let confidence: Double
+
+    @State private var isEditingName = false
+    @FocusState private var isNameFocused: Bool
 
     // Confidence level for display
     private var confidencePercentage: Int {
@@ -56,12 +62,37 @@ struct FoodIdentityCard: View {
 
                 // Right side: Food details
                 VStack(alignment: .leading, spacing: 8) {
-                    // Food name with confidence badge
+                    // Editable food name with confidence badge
                     HStack(alignment: .top, spacing: 8) {
-                        Text(foodName)
-                            .font(.system(size: 19, weight: .semibold))
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
+                        // Name - tap to edit inline
+                        HStack(spacing: 4) {
+                            if isEditingName {
+                                TextField("Meal name", text: $mealName)
+                                    .font(.system(size: 19, weight: .semibold))
+                                    .textFieldStyle(.plain)
+                                    .focused($isNameFocused)
+                                    .onSubmit {
+                                        isEditingName = false
+                                        HapticManager.light()
+                                    }
+                            } else {
+                                Text(mealName.isEmpty ? foodName : mealName)
+                                    .font(.system(size: 19, weight: .semibold))
+                                    .lineLimit(2)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .onTapGesture {
+                                        isEditingName = true
+                                        isNameFocused = true
+                                        HapticManager.light()
+                                    }
+
+                                if !isEditingName {
+                                    Image(systemName: "pencil.circle.fill")
+                                        .font(.system(size: 14))
+                                        .foregroundStyle(.blue.opacity(0.6))
+                                }
+                            }
+                        }
 
                         Spacer(minLength: 4)
 
@@ -100,8 +131,9 @@ struct FoodIdentityCard: View {
 #Preview("With Photo") {
     Form {
         FoodIdentityCard(
+            mealName: .constant("Grilled Chicken Salad"),
             emoji: nil,
-            photo: nil, // In real app, would be UIImage
+            photo: nil,
             foodName: "Grilled Chicken Salad",
             description: "Fresh salad with grilled chicken breast, mixed greens, and vinaigrette",
             confidence: 0.95
@@ -112,6 +144,7 @@ struct FoodIdentityCard: View {
 #Preview("With Emoji") {
     Form {
         FoodIdentityCard(
+            mealName: .constant("Caesar Salad"),
             emoji: "🥗",
             photo: nil,
             foodName: "Caesar Salad",
@@ -124,6 +157,7 @@ struct FoodIdentityCard: View {
 #Preview("No Description") {
     Form {
         FoodIdentityCard(
+            mealName: .constant("Pizza Margherita"),
             emoji: "🍕",
             photo: nil,
             foodName: "Pizza Margherita",
@@ -136,6 +170,7 @@ struct FoodIdentityCard: View {
 #Preview("Low Confidence") {
     Form {
         FoodIdentityCard(
+            mealName: .constant("Mixed Dish"),
             emoji: "🍽️",
             photo: nil,
             foodName: "Mixed Dish",

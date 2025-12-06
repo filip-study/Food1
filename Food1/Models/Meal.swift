@@ -35,6 +35,29 @@ final class Meal {
     // Matched cartoon icon name (for UI display)
     var matchedIconName: String?
 
+    // MARK: - Cloud Sync Fields
+
+    /// Supabase meal ID (different from local SwiftData id)
+    var cloudId: UUID?
+
+    /// Sync status: pending, syncing, synced, error
+    var syncStatus: String
+
+    /// Timestamp of last successful sync to Supabase
+    var lastSyncedAt: Date?
+
+    /// Device identifier that created this meal (for conflict resolution)
+    var deviceId: String?
+
+    /// Meal type for categorization (breakfast, lunch, dinner, snack)
+    var mealType: String?
+
+    /// Cloud URL for photo thumbnail (100KB max, stored in Supabase Storage)
+    var photoThumbnailUrl: String?
+
+    /// Cloud URL for cartoon image (if generated)
+    var cartoonImageUrl: String?
+
     init(
         id: UUID = UUID(),
         name: String,
@@ -48,7 +71,14 @@ final class Meal {
         notes: String? = nil,
         photoData: Data? = nil,
         ingredients: [MealIngredient]? = nil,
-        matchedIconName: String? = nil
+        matchedIconName: String? = nil,
+        cloudId: UUID? = nil,
+        syncStatus: String = "pending",
+        lastSyncedAt: Date? = nil,
+        deviceId: String? = nil,
+        mealType: String? = nil,
+        photoThumbnailUrl: String? = nil,
+        cartoonImageUrl: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -63,6 +93,13 @@ final class Meal {
         self.photoData = photoData
         self.ingredients = ingredients
         self.matchedIconName = matchedIconName
+        self.cloudId = cloudId
+        self.syncStatus = syncStatus
+        self.lastSyncedAt = lastSyncedAt
+        self.deviceId = deviceId
+        self.mealType = mealType
+        self.photoThumbnailUrl = photoThumbnailUrl
+        self.cartoonImageUrl = cartoonImageUrl
     }
 
     // MARK: - Computed Properties
@@ -121,6 +158,21 @@ final class Meal {
         return profile.toMicronutrients()
             .filter { $0.amount > 0.01 }  // Remove zero/trace amounts
             .sorted { $0.rdaPercent > $1.rdaPercent }  // Sort by RDA % descending (highest first)
+    }
+
+    /// Check if meal needs to be synced to cloud
+    var needsSync: Bool {
+        return syncStatus == "pending" || syncStatus == "error"
+    }
+
+    /// Check if meal is currently being synced
+    var isSyncing: Bool {
+        return syncStatus == "syncing"
+    }
+
+    /// Check if meal is synced and up-to-date in cloud
+    var isSynced: Bool {
+        return syncStatus == "synced" && cloudId != nil
     }
 
     // Static helper method for calculating totals

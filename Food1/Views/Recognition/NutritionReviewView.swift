@@ -59,7 +59,7 @@ struct NutritionReviewView: View {
 
     // Time selection
     @State private var mealTime: Date
-    @State private var showingTimePicker = false
+    @State private var showingTimeSheet = false
 
     init(selectedDate: Date, foodName: String, capturedImage: UIImage?, prediction: FoodRecognitionService.FoodPrediction, prefilledCalories: Double? = nil, prefilledProtein: Double? = nil, prefilledCarbs: Double? = nil, prefilledFat: Double? = nil, prefilledEstimatedGrams: Double? = nil, photoTimestamp: Date? = nil) {
         self.selectedDate = selectedDate
@@ -124,60 +124,15 @@ struct NutritionReviewView: View {
     var body: some View {
         NavigationStack {
             Form {
-                // AI-detected food identity card
+                // AI-detected food identity card with editable meal name
                 FoodIdentityCard(
+                    mealName: $mealName,
                     emoji: selectedEmoji,
                     photo: capturedImage,
                     foodName: prediction.label,
                     description: prediction.description,
                     confidence: Double(prediction.confidence)
                 )
-
-                // Meal details
-                Section("Meal Details") {
-                    TextField("Meal name", text: $mealName)
-                }
-
-                // Compact time selection
-                Section {
-                    VStack(spacing: 0) {
-                        // Collapsed view - compact display
-                        Button(action: {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                showingTimePicker.toggle()
-                            }
-                        }) {
-                            HStack(spacing: 8) {
-                                Text("Eaten:")
-                                    .foregroundColor(.secondary)
-
-                                Text(relativeTimeString)
-                                    .foregroundColor(.primary)
-
-                                Spacer()
-
-                                Image(systemName: showingTimePicker ? "chevron.up" : "chevron.down")
-                                    .foregroundColor(.secondary)
-                                    .font(.system(size: 13, weight: .medium))
-                            }
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-
-                        // Expanded DatePicker - shows both date and time
-                        if showingTimePicker {
-                            DatePicker(
-                                "",
-                                selection: $mealTime,
-                                in: ...Date(),
-                                displayedComponents: [.date, .hourAndMinute]
-                            )
-                            .datePickerStyle(.graphical)
-                            .labelsHidden()
-                            .padding(.top, 12)
-                        }
-                    }
-                }
 
                 // Loading or nutrition data
                 if isLoadingNutrition {
@@ -261,6 +216,23 @@ struct NutritionReviewView: View {
                     }
                 }
 
+                // Compact time selector in toolbar
+                ToolbarItem(placement: .principal) {
+                    Button(action: {
+                        showingTimeSheet = true
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock")
+                                .font(.system(size: 12))
+                            Text(relativeTimeString)
+                                .font(.footnote)
+                        }
+                        .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Add") {
                         saveMeal()
@@ -268,6 +240,9 @@ struct NutritionReviewView: View {
                     .disabled(mealName.isEmpty || calories.isEmpty)
                     .bold()
                 }
+            }
+            .sheet(isPresented: $showingTimeSheet) {
+                TimeSelectionSheet(mealTime: $mealTime)
             }
             .task {
                 await fetchNutritionData()
@@ -399,9 +374,19 @@ struct NutritionReviewView: View {
         }
 
         // Background: Automatically enrich ingredients with USDA micronutrient data (local database, zero API calls)
+        // THEN sync to Supabase cloud
         if let ingredients = newMeal.ingredients, !ingredients.isEmpty {
-            Task.detached {
-                await BackgroundEnrichmentService.shared.enrichIngredients(ingredients)
+            Task.detached { @MainActor in
+                await BackgroundEnrichmentService.shared.enrichIngredients(
+                    ingredients,
+                    meal: newMeal,
+                    context: modelContext
+                )
+            }
+        } else {
+            // No ingredients to enrich - trigger sync immediately
+            Task { @MainActor in
+                await SyncCoordinator.shared.syncMeal(newMeal, context: modelContext)
             }
         }
 

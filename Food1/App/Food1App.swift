@@ -25,6 +25,7 @@ struct Food1App: App {
     @State private var showingDatabaseError = false
     @State private var databaseErrorMessage = ""
     @StateObject private var authViewModel = AuthViewModel()
+    @StateObject private var migrationService = MigrationService.shared
 
     // Background task identifier
     private static let enrichmentTaskIdentifier = "com.filipolszak.Food1.enrichment"
@@ -198,11 +199,18 @@ struct Food1App: App {
                         .environmentObject(authViewModel)
                 }
 
+                // Migration progress overlay
+                if migrationService.isMigrating {
+                    MigrationProgressView()
+                        .transition(.opacity)
+                        .zIndex(2)
+                }
+
                 // Animated splash screen overlay
                 if launchScreenState.state == .animating {
                     LaunchScreenView()
                         .transition(.opacity)
-                        .zIndex(1)
+                        .zIndex(3)
                 }
             }
             .task {
@@ -217,11 +225,23 @@ struct Food1App: App {
                     launchScreenState.finish()
                 }
 
-                // THEN resume unfinished enrichment (after app is fully loaded)
-                // Only if authenticated
-                if authViewModel.isAuthenticated {
-                    await resumeUnfinishedEnrichment()
+                // Only proceed if authenticated
+                guard authViewModel.isAuthenticated else { return }
+
+                // Check if migration is needed (first-time cloud sync)
+                let context = modelContainer.mainContext
+                do {
+                    if try migrationService.needsMigration(context: context) {
+                        // Migrate existing local meals to cloud
+                        print("🚀 Starting migration of existing meals to cloud...")
+                        try await migrationService.migrateAllMeals(context: context)
+                    }
+                } catch {
+                    print("❌ Migration failed: \(error)")
                 }
+
+                // Resume unfinished enrichment (after app is fully loaded and migration complete)
+                await resumeUnfinishedEnrichment()
             }
             .onOpenURL { url in
                 // Handle deep links for authentication callbacks

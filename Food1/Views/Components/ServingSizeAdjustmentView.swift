@@ -97,96 +97,119 @@ struct ServingSizeAdjustmentView: View {
 
     var body: some View {
         Section {
-            VStack(spacing: 16) {
-                // Serving count stepper with visual feedback
-                HStack(spacing: 20) {
-                    // Minus button
-                    Button {
-                        decrementServing()
-                    } label: {
-                        Image(systemName: "minus.circle.fill")
-                            .font(.title)
-                            .foregroundStyle(canDecrease ? .blue : .gray.opacity(0.3))
+            VStack(spacing: 12) {
+                // DISPLAY LAYER - Shows current state with premium card design
+                VStack(alignment: .leading, spacing: 6) {
+                    // Primary: Total grams (most important info)
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text("\(Int(totalGrams))")
+                            .font(.system(size: 32, weight: .semibold, design: .rounded))
+                            .contentTransition(.numericText())
+
+                        Text("grams")
+                            .font(.system(size: 17, weight: .medium))
+                            .foregroundStyle(.secondary)
                     }
-                    .buttonStyle(.borderless)
+
+                    // Secondary: Calculation formula (provides context)
+                    HStack(spacing: 4) {
+                        Text(servingCountText)
+                            .font(.system(size: 15, weight: .medium))
+
+                        Text(servingCount == 1 ? "serving" : "servings")
+                            .font(.system(size: 15))
+
+                        Text("×")
+                            .font(.system(size: 15))
+                            .foregroundStyle(.tertiary)
+
+                        Text("\(Int(gramsPerServing))g")
+                            .font(.system(size: 15, weight: .medium))
+
+                        Text("per serving")
+                            .font(.system(size: 15))
+                    }
+                    .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(.ultraThinMaterial)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
+                        )
+                )
+
+                // CONTROL LAYER - Stepper controls with enhanced touch targets
+                HStack(spacing: 16) {
+                    // Decrease button
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            decrementServing()
+                        }
+                    }) {
+                        Image(systemName: "minus.circle.fill")
+                            .font(.system(size: 32))
+                            .foregroundStyle(canDecrease ? .blue : Color(.tertiaryLabel))
+                            .frame(width: 48, height: 48)
+                            .contentShape(Circle())
+                    }
+                    .buttonStyle(.plain)
                     .disabled(!canDecrease)
 
-                    // Count display
-                    VStack(spacing: 4) {
+                    // Current value display
+                    VStack(spacing: 2) {
                         Text(servingCountText)
-                            .font(.system(size: 36, weight: .semibold, design: .rounded))
+                            .font(.system(size: 20, weight: .semibold, design: .rounded))
                             .contentTransition(.numericText())
+
                         Text(servingLabel)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    .frame(minWidth: 120)
+                    .frame(maxWidth: .infinity)
 
-                    // Plus button
-                    Button {
-                        incrementServing()
-                    } label: {
+                    // Increase button
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            incrementServing()
+                        }
+                    }) {
                         Image(systemName: "plus.circle.fill")
-                            .font(.title)
-                            .foregroundStyle(canIncrease ? .blue : .gray.opacity(0.3))
-                    }
-                    .buttonStyle(.borderless)
-                    .disabled(!canIncrease)
-                }
-                .padding(.vertical, 8)
-
-                // Grams display with inline editing
-                VStack(spacing: 8) {
-                    HStack(spacing: 6) {
-                        // Grams per serving (editable)
-                        HStack(spacing: 2) {
-                            TextField("", value: $gramsPerServing, format: .number)
-                                .keyboardType(.numberPad)
-                                .multilineTextAlignment(.center)
-                                .frame(width: 60)
-                                .font(.system(size: 17, weight: .medium, design: .rounded))
-                                .focused($isEditingGrams)
-                            Text("g")
-                                .font(.system(size: 14))
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Text("×")
-                            .foregroundStyle(.secondary)
-                            .font(.system(size: 14))
-
-                        Text(servingCountText)
-                            .font(.system(size: 17, weight: .medium, design: .rounded))
-
-                        Text("=")
-                            .foregroundStyle(.secondary)
-                            .font(.system(size: 14))
-
-                        Text("\(Int(totalGrams))g total")
-                            .font(.system(size: 17, weight: .semibold, design: .rounded))
-                            .foregroundStyle(.blue)
-                    }
-
-                    // Tap to edit hint
-                    Button {
-                        isEditingGrams = true
-                    } label: {
-                        HStack(spacing: 4) {
-                            Text("per serving")
-                                .font(.caption)
-                            Image(systemName: "pencil.circle.fill")
-                                .font(.caption)
-                        }
-                        .foregroundStyle(.secondary)
+                            .font(.system(size: 32))
+                            .foregroundStyle(canIncrease ? .blue : Color(.tertiaryLabel))
+                            .frame(width: 48, height: 48)
+                            .contentShape(Circle())
                     }
                     .buttonStyle(.plain)
+                    .disabled(!canIncrease)
                 }
-                .padding(.horizontal)
-                .padding(.vertical, 12)
-                .background(Color.gray.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
+                .padding(.horizontal, 8)
             }
-        } header: {
-            Label("Portion Size", systemImage: "scalemass")
+
+            // Grams per serving editor (always visible)
+            HStack {
+                Text("Per serving:")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                TextField("Amount", value: $gramsPerServing, format: .number)
+                    .keyboardType(.numberPad)
+                    .multilineTextAlignment(.trailing)
+                    .font(.body.monospacedDigit())
+                    .focused($isEditingGrams)
+                    .frame(width: 80)
+
+                Text("g")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.vertical, 4)
         }
     }
 }
