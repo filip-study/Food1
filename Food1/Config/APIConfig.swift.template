@@ -22,14 +22,13 @@ struct APIConfig {
 
     // MARK: - USDA Matching API
 
-    /// USDA matching provider for CI
-    /// Tests use .local to avoid external API calls
-    static let usdaMatchingProvider: UsdaProvider = .local
+    /// USDA matching provider - uses Gemini 2.0 Flash-Lite API for reranking
+    /// Tests will mock GeminiReranker to avoid external API calls
+    static let usdaMatchingProvider: UsdaProvider = .gemini
 }
 
 // MARK: - Provider Types
 
 enum UsdaProvider {
-    case local   // LocalLLMReranker (Llama 3.2 1B local, memory issues)
-    case gemini  // GeminiReranker (Gemini 2.0 Flash-Lite API, better quality)
+    case gemini  // GeminiReranker (Gemini 2.0 Flash-Lite API)
 }

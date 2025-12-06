@@ -9,7 +9,7 @@
 import Foundation
 
 // MARK: - Reranker Protocol
-/// Protocol for USDA food candidate re-ranking services (local LLM or cloud API)
+/// Protocol for USDA food candidate re-ranking services
 protocol Reranker {
     func rerank(ingredientName: String, candidates: [USDAFood]) async -> USDAFood?
 }
@@ -18,7 +18,7 @@ protocol Reranker {
 enum MatchMethod: String, Codable {
     case shortcut = "Shortcut"      // Direct fdcId lookup from commonFoodShortcuts
     case exactMatch = "Exact"       // 1:1 string match with USDA description
-    case llmRerank = "LLM"          // Reranker (LocalLLMReranker or GeminiReranker) selected best candidate
+    case llmRerank = "LLM"          // GeminiReranker selected best candidate
     case blacklisted = "Blacklisted" // Skipped - ingredient has negligible micronutrients
 }
 
@@ -32,7 +32,7 @@ enum MatchMethod: String, Codable {
 // 1. Clean ingredient name (remove cooking methods, adjectives)
 // 2. Check shortcuts dictionary (instant match for common foods)
 // 3. Search USDA database with LIKE queries
-// 4. Send candidates to LocalLLMReranker for semantic selection
+// 4. Send candidates to GeminiReranker for semantic selection
 //
 // WHY THIS ARCHITECTURE:
 //
@@ -46,7 +46,7 @@ enum MatchMethod: String, Codable {
 // - FTS5 is great for text search but our problem is vocabulary mismatch
 // - GPT-4o: "Spinach" vs USDA: "Spinach, raw" / "Spinach, cooked, boiled"
 // - FTS5 can find both but can't understand "raw" is better default than "boiled"
-// - LocalLLMReranker (Llama-3.2-1B) understands semantic similarity
+// - GeminiReranker (Gemini 2.0 Flash-Lite) understands semantic similarity
 // - Note: FTS5 is configured in our DB but doesn't solve the core problem
 //
 // Why NOT Category Pre-filtering?
@@ -308,17 +308,12 @@ class FuzzyMatchingService {
 
         print("  📋 Found \(candidates.count) candidates, sending to reranker...")
 
-        // Select reranker based on configuration
-        let reranker: Reranker = APIConfig.usdaMatchingProvider == .gemini
-            ? GeminiReranker.shared
-            : LocalLLMReranker.shared as Reranker
-
+        // Use Gemini reranker for all builds
         #if DEBUG
-        let providerName = APIConfig.usdaMatchingProvider == .gemini ? "Gemini" : "Local LLM"
-        print("  🤖 Using \(providerName) for reranking '\(ingredientName)'")
+        print("  🤖 Using Gemini for reranking '\(ingredientName)'")
         #endif
 
-        if let bestMatch = await reranker.rerank(
+        if let bestMatch = await GeminiReranker.shared.rerank(
             ingredientName: ingredientName,
             candidates: candidates
         ) {
@@ -334,10 +329,10 @@ class FuzzyMatchingService {
         if !fallbackCandidates.isEmpty && fallbackCandidates.count != candidates.count {
             print("  📋 Fallback found \(fallbackCandidates.count) candidates (vs \(candidates.count) initial)")
             #if DEBUG
-            print("  🤖 Retry with \(providerName)")
+            print("  🤖 Retry with Gemini")
             #endif
 
-            if let bestMatch = await reranker.rerank(
+            if let bestMatch = await GeminiReranker.shared.rerank(
                 ingredientName: ingredientName,
                 candidates: fallbackCandidates
             ) {

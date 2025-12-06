@@ -53,6 +53,7 @@ node_modules/
 # AI/Tooling artifacts
 .claude/
 .specify/
+.mcp.json
 generated_icons/
 population_progress.json
 evaluation/images-food101-tiny/
