@@ -18,6 +18,8 @@ import SwiftUI
 struct FloatingPillNavigation: View {
     @Binding var selectedTab: NavigationTab
     @Binding var showingAddMeal: Bool
+    var calorieProgress: Double? = nil  // Optional: shows progress on add button
+    var hasLoggedMeals: Bool = false    // Controls ring visibility
 
     private let pillSpacing: CGFloat = 12
     private let horizontalPadding: CGFloat = 16
@@ -36,8 +38,13 @@ struct FloatingPillNavigation: View {
                         NavigationPill(selectedTab: $selectedTab)
                             .frame(width: navigationPillWidth)
 
-                        // Standalone add button
-                        FloatingAddButton(showingAddMeal: $showingAddMeal)
+                        // Standalone add button with optional progress visualization
+                        FloatingAddButton(
+                            showingAddMeal: $showingAddMeal,
+                            calorieProgress: calorieProgress,
+                            hasLoggedMeals: hasLoggedMeals,
+                            visualizationStyle: .ring  // Using Option A (ring) by default
+                        )
                     }
 
                     Spacer()

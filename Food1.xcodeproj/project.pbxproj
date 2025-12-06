@@ -38,7 +38,7 @@
 		DC65CB812EB8EA5900B066D7 /* Food1.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Food1.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC9FFC622ED4831E00FE62FB /* food1.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = food1.icon; sourceTree = "<group>"; };
 		DCE02B032EE2D80300E695FB /* Food1Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Food1Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		DCE02B102EE2D8A700E695FB /* Food1.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = file; path = Food1.xctestplan; sourceTree = "<group>"; };
+		DCE02B102EE2D8A700E695FB /* Food1.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = Food1.xctestplan; sourceTree = "<group>"; };
 		USDA00000000000000000002 /* usda_nutrients.db */ = {isa = PBXFileReference; lastKnownFileType = file; name = usda_nutrients.db; path = Food1/Data/usda_nutrients.db; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 

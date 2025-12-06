@@ -19,8 +19,7 @@ struct NavigationPillButton: View {
 
     var body: some View {
         Button(action: {
-            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-            impactFeedback.impactOccurred()
+            HapticManager.light()
             action()
         }) {
             VStack(spacing: 4) {
@@ -28,12 +27,6 @@ struct NavigationPillButton: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: isSelected ? 25 : 22, height: isSelected ? 25 : 22)
-                    .shadow(
-                        color: isSelected ? ColorPalette.accentPrimary.opacity(0.3) : Color.clear,
-                        radius: 2,
-                        x: 0,
-                        y: 0
-                    )
                     .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isSelected)
 
                 Text(tab.label)

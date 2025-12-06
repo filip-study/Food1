@@ -50,18 +50,7 @@ struct IngredientListView: View {
                 }
             }
         } header: {
-            HStack {
-                Text("Ingredients")
-                    .textCase(.uppercase)
-
-                Spacer()
-
-                if !ingredients.isEmpty {
-                    Text("\(ingredients.count)")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(.secondary)
-                }
-            }
+            Label("Ingredients", systemImage: "list.bullet")
         }
     }
 

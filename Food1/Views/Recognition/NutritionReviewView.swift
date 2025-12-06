@@ -57,9 +57,6 @@ struct NutritionReviewView: View {
     @State private var errorMessage: String?
     @State private var baseNutrition: NutritionData?
 
-    // Text correction
-    @State private var showingTextEntry = false
-
     // Time selection
     @State private var mealTime: Date
     @State private var showingTimePicker = false
@@ -127,113 +124,55 @@ struct NutritionReviewView: View {
     var body: some View {
         NavigationStack {
             Form {
-                // AI Prediction Card with thumbnail overlay
-                Section {
-                    HStack(alignment: .top, spacing: 12) {
-                        // Photo thumbnail on left
-                        if let image = capturedImage {
-                            Image(uiImage: image)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(width: 64, height: 64)
-                                .clipShape(RoundedRectangle(cornerRadius: 10))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .strokeBorder(Color(.systemGray5), lineWidth: 1)
-                                )
-                        }
-
-                        // Content on right
-                        VStack(alignment: .leading, spacing: 8) {
-                            // Food name with confidence badge
-                            HStack(alignment: .top, spacing: 8) {
-                                Text(prediction.label)
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .lineLimit(2)
-
-                                Spacer()
-
-                                // Confidence badge
-                                Text("\(confidencePercentage)%")
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(.blue)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 3)
-                                    .background(
-                                        Capsule()
-                                            .fill(Color.blue.opacity(0.1))
-                                    )
-                            }
-
-                            // Description if available
-                            if let description = prediction.description {
-                                Text(description)
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(2)
-                            }
-
-                            // Text correction button
-                            Button(action: {
-                                showingTextEntry = true
-                            }) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "text.bubble")
-                                        .font(.system(size: 13))
-                                    Text("Not quite right? Try text entry")
-                                        .font(.subheadline)
-                                }
-                                .foregroundColor(.blue)
-                            }
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
+                // AI-detected food identity card
+                FoodIdentityCard(
+                    emoji: selectedEmoji,
+                    photo: capturedImage,
+                    foodName: prediction.label,
+                    description: prediction.description,
+                    confidence: Double(prediction.confidence)
+                )
 
                 // Meal details
                 Section("Meal Details") {
                     TextField("Meal name", text: $mealName)
                 }
 
-                // Time selection
+                // Compact time selection
                 Section {
                     VStack(spacing: 0) {
-                        // Collapsed view
+                        // Collapsed view - compact display
                         Button(action: {
                             withAnimation(.easeInOut(duration: 0.2)) {
                                 showingTimePicker.toggle()
                             }
                         }) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "clock")
+                            HStack(spacing: 8) {
+                                Text("Eaten:")
                                     .foregroundColor(.secondary)
-                                    .font(.system(size: 16))
-
-                                Text("Eaten at")
-                                    .foregroundColor(.secondary)
-
-                                Spacer()
 
                                 Text(relativeTimeString)
                                     .foregroundColor(.primary)
 
+                                Spacer()
+
                                 Image(systemName: showingTimePicker ? "chevron.up" : "chevron.down")
                                     .foregroundColor(.secondary)
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(.system(size: 13, weight: .medium))
                             }
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
 
-                        // Expanded DatePicker
+                        // Expanded DatePicker - shows both date and time
                         if showingTimePicker {
                             DatePicker(
                                 "",
                                 selection: $mealTime,
                                 in: ...Date(),
-                                displayedComponents: [.hourAndMinute]
+                                displayedComponents: [.date, .hourAndMinute]
                             )
-                            .datePickerStyle(.wheel)
+                            .datePickerStyle(.graphical)
                             .labelsHidden()
                             .padding(.top, 12)
                         }
@@ -274,7 +213,7 @@ struct NutritionReviewView: View {
                 }
 
                 // Nutrition values (all in grams)
-                Section("Nutrition (editable)") {
+                Section {
                     HStack {
                         Text("Calories")
                         Spacer()
@@ -306,6 +245,8 @@ struct NutritionReviewView: View {
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
                     }
+                } header: {
+                    Label("Nutrition", systemImage: "chart.bar")
                 }
 
                 // Ingredients (editable)
@@ -335,12 +276,6 @@ struct NutritionReviewView: View {
                 if let predictionIngredients = prediction.ingredients {
                     ingredients = predictionIngredients.map { IngredientRowData(from: $0) }
                 }
-            }
-            .sheet(isPresented: $showingTextEntry) {
-                TextEntryView(selectedDate: selectedDate, onMealCreated: {
-                    // Close both text entry and nutrition review when meal is saved
-                    dismiss()
-                })
             }
         }
     }

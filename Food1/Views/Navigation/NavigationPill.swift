@@ -3,8 +3,8 @@
 //  Food1
 //
 //  Glassmorphic pill containing 3 navigation buttons (Meals, Stats, My Health).
-//  Uses ultra-thin material background with subtle shadows and borders.
-//  Animated selection indicator slides between active tabs.
+//  Uses liquid glass design with multi-layer depth, gradient borders, and premium shadows.
+//  Matches iOS 26 Liquid Glass app icon aesthetic.
 //
 
 import SwiftUI
@@ -52,21 +52,7 @@ struct NavigationPill: View {
     // MARK: - Background Styling
     @ViewBuilder
     private var pillBackground: some View {
-        Capsule()
-            .fill(.ultraThinMaterial)
-            .overlay(
-                Capsule()
-                    .strokeBorder(
-                        Color.primary.opacity(colorScheme == .dark ? 0.2 : 0.1),
-                        lineWidth: 0.5
-                    )
-            )
-            .shadow(
-                color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.15),
-                radius: 20,
-                x: 0,
-                y: 10
-            )
+        LiquidGlassBackground(shape: Capsule(), glowColor: ColorPalette.accentPrimary)
     }
 
 }

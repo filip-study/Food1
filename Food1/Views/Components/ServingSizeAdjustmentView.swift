@@ -98,12 +98,6 @@ struct ServingSizeAdjustmentView: View {
     var body: some View {
         Section {
             VStack(spacing: 16) {
-                // Main question
-                Text("How much are you eating?")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
                 // Serving count stepper with visual feedback
                 HStack(spacing: 20) {
                     // Minus button
@@ -193,8 +187,6 @@ struct ServingSizeAdjustmentView: View {
             }
         } header: {
             Label("Portion Size", systemImage: "scalemass")
-        } footer: {
-            Text("AI estimated \(Int(gramsPerServing))g per serving based on your photo. Tap to adjust if needed.")
         }
     }
 }

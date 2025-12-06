@@ -31,56 +31,48 @@ struct MetricsDashboardView: View {
         return currentCalories / goals.calories
     }
 
-    private var moodEmoji: String {
-        switch calorieProgress {
-        case 0..<0.3:
-            return "😢"
-        case 0.3..<0.7:
-            return "😐"
-        case 0.7..<0.95:
-            return "😊"
-        case 0.95...1.05:
-            return "🎉"
-        default:
-            return "😰"
+    private var calorieContextMessage: String {
+        let percentage = Int(calorieProgress * 100)
+        if calorieProgress >= 1.0 {
+            return "\(percentage)% of daily goal"
+        } else {
+            return "\(percentage)% of daily goal"
         }
     }
 
-    private var moodMessage: String {
+    private var calorieContextColor: Color {
         switch calorieProgress {
-        case 0..<0.3:
-            return "Let's fuel up!"
-        case 0.3..<0.7:
-            return "Keep going!"
-        case 0.7..<0.95:
-            return "Looking good!"
-        case 0.95...1.05:
-            return "Goal reached!"
+        case 0.9...1.1:
+            return ColorPalette.macroCarbs  // Green when at goal
+        case 1.1...:
+            return ColorPalette.macroFat    // Orange when over
         default:
-            return "Over goal"
+            return .secondary               // Default gray
         }
     }
 
     var body: some View {
         VStack(spacing: 24) {
-            // Motivational badge at top
-            HStack {
-                Text(moodEmoji)
-                    .font(.system(size: 32))
+            // Stacked minimalism calorie summary
+            VStack(spacing: 4) {
+                // Line 1: Current calories
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text("\(Int(currentCalories))")
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .foregroundColor(.primary)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(moodMessage.uppercased())
-                        .font(.system(size: 11, weight: .semibold, design: .rounded))
-                        .foregroundColor(.secondary)
-                        .tracking(1.2)
-
-                    Text("\(Int(currentCalories)) of \(Int(goals.calories)) cal")
-                        .font(.system(size: 13, weight: .medium))
+                    Text("calories")
+                        .font(.system(size: 14, weight: .regular))
                         .foregroundColor(.secondary)
                 }
 
-                Spacer()
+                // Line 2: Percentage context
+                Text(calorieContextMessage)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(calorieContextColor)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 4)
 
             // HERO: Macro bars
             VStack(spacing: 20) {

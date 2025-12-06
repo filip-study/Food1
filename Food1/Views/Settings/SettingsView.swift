@@ -67,9 +67,7 @@ struct SettingsView: View {
                     }
                     .buttonStyle(PlainButtonStyle())
                 } header: {
-                    Text("Cloud Account")
-                } footer: {
-                    Text("Manage your account and subscription.")
+                    Text("Account")
                 }
 
                 // Profile Section (Local)
@@ -99,8 +97,6 @@ struct SettingsView: View {
                     .buttonStyle(PlainButtonStyle())
                 } header: {
                     Text("Profile")
-                } footer: {
-                    Text("Your profile helps us provide personalized nutrition recommendations.")
                 }
 
                 // Appearance Section
@@ -113,8 +109,6 @@ struct SettingsView: View {
                     .pickerStyle(.segmented)
                 } header: {
                     Text("Appearance")
-                } footer: {
-                    Text("Choose how Food1 looks. System will match your device settings.")
                 }
 
                 // Nutrition Section
@@ -127,54 +121,8 @@ struct SettingsView: View {
                     .pickerStyle(.segmented)
                 } header: {
                     Text("Nutrition Units")
-                } footer: {
-                    Text("Choose how nutrition values are displayed throughout the app.")
                 }
 
-                // About Section
-                Section {
-                    HStack {
-                        Text("Version")
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Text("1.0.0")
-                            .foregroundColor(.secondary)
-                    }
-                } header: {
-                    Text("About")
-                }
-
-                // Medical Disclaimer Section
-                Section {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Medical Disclaimer")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(.primary)
-
-                        Text("Food1 is not a medical device and is intended for informational purposes only. Nutrition information is estimated using AI and may not be accurate.")
-                            .font(.system(size: 13))
-                            .foregroundColor(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text("Data Accuracy")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(.primary)
-                            .padding(.top, 4)
-
-                        Text("AI-powered food recognition provides estimates that may vary from actual nutritional content. For critical dietary needs, consult with a registered dietitian or healthcare professional.")
-                            .font(.system(size: 13))
-                            .foregroundColor(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text("Always verify nutrition information from product labels when available, especially for allergen and ingredient concerns.")
-                            .font(.system(size: 13))
-                            .foregroundColor(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(.vertical, 4)
-                } header: {
-                    Text("Important Information")
-                }
             }
             .navigationTitle("Settings")
             .sheet(isPresented: $showingProfileEditor) {

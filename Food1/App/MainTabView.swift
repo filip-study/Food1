@@ -13,12 +13,37 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct MainTabView: View {
     @State private var selectedTab: NavigationTab = .meals
     @State private var showingAddMeal = false
     @AppStorage("appTheme") private var selectedTheme: AppTheme = .system
     @Environment(\.colorScheme) private var colorScheme
+    @Query(sort: \Meal.timestamp, order: .reverse) private var allMeals: [Meal]
+
+    // Calculate today's meals for floating button
+    private var todayMeals: [Meal] {
+        allMeals.filter { meal in
+            Calendar.current.isDateInToday(meal.timestamp)
+        }
+    }
+
+    // Progressive disclosure: show ring only when meals are logged
+    private var hasLoggedMealsToday: Bool {
+        return !todayMeals.isEmpty  // Show on ALL tabs once meals are logged
+    }
+
+    // Calculate today's calorie progress for floating button
+    private var todayCalorieProgress: Double? {
+        guard hasLoggedMealsToday else { return nil }    // No progress if no meals
+
+        let totals = Meal.calculateTotals(for: todayMeals)
+        let goals = DailyGoals.standard
+
+        guard goals.calories > 0 else { return nil }
+        return totals.calories / goals.calories
+    }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -39,10 +64,12 @@ struct MainTabView: View {
                 Color.clear.frame(height: 76)
             }
 
-            // Floating pill navigation
+            // Floating pill navigation with calorie progress
             FloatingPillNavigation(
                 selectedTab: $selectedTab,
-                showingAddMeal: $showingAddMeal
+                showingAddMeal: $showingAddMeal,
+                calorieProgress: todayCalorieProgress,
+                hasLoggedMeals: hasLoggedMealsToday
             )
         }
         .preferredColorScheme(selectedTheme.colorScheme)
