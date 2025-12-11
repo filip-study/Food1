@@ -292,6 +292,36 @@ class StatisticsService {
             $0.protein >= goals.protein * 0.9
         }.count
 
+        // Aggregate micronutrients from daily aggregates
+        var microProfile = MicronutrientProfile()
+        for daily in dailyAggregates {
+            let nutrients = daily.micronutrients
+            // Minerals
+            microProfile.calcium += nutrients.calcium
+            microProfile.iron += nutrients.iron
+            microProfile.magnesium += nutrients.magnesium
+            microProfile.potassium += nutrients.potassium
+            microProfile.zinc += nutrients.zinc
+            microProfile.sodium += nutrients.sodium
+            microProfile.phosphorus += nutrients.phosphorus
+            microProfile.copper += nutrients.copper
+            microProfile.selenium += nutrients.selenium
+            // Vitamins
+            microProfile.vitaminA += nutrients.vitaminA
+            microProfile.vitaminC += nutrients.vitaminC
+            microProfile.vitaminD += nutrients.vitaminD
+            microProfile.vitaminE += nutrients.vitaminE
+            microProfile.vitaminB12 += nutrients.vitaminB12
+            microProfile.folate += nutrients.folate
+            microProfile.vitaminK += nutrients.vitaminK
+            microProfile.vitaminB1 += nutrients.vitaminB1
+            microProfile.vitaminB2 += nutrients.vitaminB2
+            microProfile.vitaminB3 += nutrients.vitaminB3
+            microProfile.vitaminB5 += nutrients.vitaminB5
+            microProfile.vitaminB6 += nutrients.vitaminB6
+        }
+        weeklyAggregate.updateMicronutrients(microProfile)
+
         weeklyAggregate.lastUpdated = Date()
     }
 
@@ -373,6 +403,36 @@ class StatisticsService {
             }
         }
         monthlyAggregate.longestStreak = longestStreak
+
+        // Aggregate micronutrients from daily aggregates
+        var microProfile = MicronutrientProfile()
+        for daily in dailyAggregates {
+            let nutrients = daily.micronutrients
+            // Minerals
+            microProfile.calcium += nutrients.calcium
+            microProfile.iron += nutrients.iron
+            microProfile.magnesium += nutrients.magnesium
+            microProfile.potassium += nutrients.potassium
+            microProfile.zinc += nutrients.zinc
+            microProfile.sodium += nutrients.sodium
+            microProfile.phosphorus += nutrients.phosphorus
+            microProfile.copper += nutrients.copper
+            microProfile.selenium += nutrients.selenium
+            // Vitamins
+            microProfile.vitaminA += nutrients.vitaminA
+            microProfile.vitaminC += nutrients.vitaminC
+            microProfile.vitaminD += nutrients.vitaminD
+            microProfile.vitaminE += nutrients.vitaminE
+            microProfile.vitaminB12 += nutrients.vitaminB12
+            microProfile.folate += nutrients.folate
+            microProfile.vitaminK += nutrients.vitaminK
+            microProfile.vitaminB1 += nutrients.vitaminB1
+            microProfile.vitaminB2 += nutrients.vitaminB2
+            microProfile.vitaminB3 += nutrients.vitaminB3
+            microProfile.vitaminB5 += nutrients.vitaminB5
+            microProfile.vitaminB6 += nutrients.vitaminB6
+        }
+        monthlyAggregate.updateMicronutrients(microProfile)
 
         monthlyAggregate.lastUpdated = Date()
     }

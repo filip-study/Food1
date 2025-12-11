@@ -118,20 +118,32 @@ private struct MicronutrientsSection: View {
 
     @State private var showingDetailView = false
 
-    private var sortedNutrients: [NutrientRDA] {
-        let nutrients = [
+    private var allNutrientsWithRDA: [NutrientRDA] {
+        [
+            // Minerals (7)
             NutrientRDA(name: "Calcium", amount: micronutrients.calcium, unit: "mg", nutrientKey: "calcium"),
             NutrientRDA(name: "Iron", amount: micronutrients.iron, unit: "mg", nutrientKey: "iron"),
             NutrientRDA(name: "Magnesium", amount: micronutrients.magnesium, unit: "mg", nutrientKey: "magnesium"),
-            NutrientRDA(name: "Potassium", amount: micronutrients.potassium, unit: "mg", nutrientKey: "potassium"),
             NutrientRDA(name: "Zinc", amount: micronutrients.zinc, unit: "mg", nutrientKey: "zinc"),
+            NutrientRDA(name: "Phosphorus", amount: micronutrients.phosphorus, unit: "mg", nutrientKey: "phosphorus"),
+            NutrientRDA(name: "Copper", amount: micronutrients.copper, unit: "mg", nutrientKey: "copper"),
+            NutrientRDA(name: "Selenium", amount: micronutrients.selenium, unit: "mcg", nutrientKey: "selenium"),
+            // Electrolytes (2)
+            NutrientRDA(name: "Potassium", amount: micronutrients.potassium, unit: "mg", nutrientKey: "potassium"),
+            NutrientRDA(name: "Sodium", amount: micronutrients.sodium, unit: "mg", nutrientKey: "sodium"),
+            // Vitamins (12)
             NutrientRDA(name: "Vitamin A", amount: micronutrients.vitaminA, unit: "mcg", nutrientKey: "vitamin a"),
             NutrientRDA(name: "Vitamin C", amount: micronutrients.vitaminC, unit: "mg", nutrientKey: "vitamin c"),
             NutrientRDA(name: "Vitamin D", amount: micronutrients.vitaminD, unit: "mcg", nutrientKey: "vitamin d"),
             NutrientRDA(name: "Vitamin E", amount: micronutrients.vitaminE, unit: "mg", nutrientKey: "vitamin e"),
+            NutrientRDA(name: "Vitamin K", amount: micronutrients.vitaminK, unit: "mcg", nutrientKey: "vitamin k"),
+            NutrientRDA(name: "Thiamin (B1)", amount: micronutrients.vitaminB1, unit: "mg", nutrientKey: "thiamin"),
+            NutrientRDA(name: "Riboflavin (B2)", amount: micronutrients.vitaminB2, unit: "mg", nutrientKey: "riboflavin"),
+            NutrientRDA(name: "Niacin (B3)", amount: micronutrients.vitaminB3, unit: "mg", nutrientKey: "niacin"),
+            NutrientRDA(name: "Pantothenic Acid (B5)", amount: micronutrients.vitaminB5, unit: "mg", nutrientKey: "pantothenic acid"),
+            NutrientRDA(name: "Vitamin B6", amount: micronutrients.vitaminB6, unit: "mg", nutrientKey: "vitamin b-6"),
             NutrientRDA(name: "Vitamin B12", amount: micronutrients.vitaminB12, unit: "mcg", nutrientKey: "vitamin b12"),
-            NutrientRDA(name: "Folate", amount: micronutrients.folate, unit: "mcg", nutrientKey: "folate"),
-            NutrientRDA(name: "Sodium", amount: micronutrients.sodium, unit: "mg", nutrientKey: "sodium")
+            NutrientRDA(name: "Folate (B9)", amount: micronutrients.folate, unit: "mcg", nutrientKey: "folate")
         ].map { nutrient in
             var n = nutrient
             let rda = RDAValues.getRDA(for: n.nutrientKey, gender: gender, age: age)
@@ -141,8 +153,13 @@ private struct MicronutrientsSection: View {
             }
             return n
         }
+    }
 
-        return nutrients.sorted { $0.rdaPercent > $1.rdaPercent }
+    /// Nutrients sorted by RDA%, excluding neutral-tracked ones (Vitamin D, Sodium)
+    private var sortedNutrients: [NutrientRDA] {
+        allNutrientsWithRDA
+            .filter { !neutralTrackingNutrients.contains($0.name) }
+            .sorted { $0.rdaPercent > $1.rdaPercent }
     }
 
     private var topNutrients: [NutrientRDA] {
@@ -252,11 +269,17 @@ private struct NutrientRDARow: View {
     }
 
     private var rdaColor: Color {
+        // Vitamin D and Sodium always use light gray (dietary tracking alone isn't meaningful)
+        if neutralTrackingNutrients.contains(nutrient.name) {
+            return Color.secondary.opacity(0.5)
+        }
+
+        // Soft, encouraging color scheme
         switch nutrient.rdaPercent {
-        case ..<20: return .red
-        case 20..<50: return .orange
-        case 50..<100: return .green
-        default: return .blue
+        case ..<25: return Color(red: 0.55, green: 0.6, blue: 0.7)   // Soft blue-gray
+        case 25..<75: return Color(red: 0.4, green: 0.7, blue: 0.7)  // Soft teal
+        case 75..<100: return Color(red: 0.4, green: 0.75, blue: 0.5) // Green
+        default: return Color(red: 0.3, green: 0.7, blue: 0.4)       // Deeper green
         }
     }
 

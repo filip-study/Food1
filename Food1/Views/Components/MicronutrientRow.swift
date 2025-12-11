@@ -5,11 +5,11 @@
 //  Displays individual micronutrient with color-coded RDA percentage bar.
 //
 //  WHY THIS ARCHITECTURE:
-//  - Color thresholds provide instant visual feedback on nutritional status
-//    • Red (<20%): Deficient - needs attention
-//    • Orange (20-50%): Low - room for improvement
-//    • Green (50-100%): Sufficient - on track
-//    • Blue (≥100%): Excellent - goal met or exceeded
+//  - Soft, encouraging color scheme that informs without alarming
+//    • Blue-gray (<25%): "Building up" - early progress
+//    • Teal (25-75%): "On track" - good momentum
+//    • Green (75-100%): "Great" - almost there
+//    • Deep green (≥100%): "Optimal" - goal achieved
 //  - Progress bar capped at 100% width prevents excessive overflow for 200%+ values
 //  - RDA% text shows actual percentage (can exceed 100%) for transparency
 //
@@ -70,14 +70,16 @@ struct MicronutrientRow: View {
 extension RDAColor {
     var color: Color {
         switch self {
-        case .deficient:
-            return .red
-        case .low:
-            return .orange
-        case .sufficient:
-            return .green
-        case .excellent:
-            return .blue
+        case .buildingUp:
+            return Color(red: 0.55, green: 0.6, blue: 0.7)  // Soft blue-gray
+        case .onTrack:
+            return Color(red: 0.4, green: 0.7, blue: 0.7)   // Soft teal
+        case .great:
+            return Color(red: 0.4, green: 0.75, blue: 0.5)  // Green
+        case .optimal:
+            return Color(red: 0.3, green: 0.7, blue: 0.4)   // Slightly deeper green
+        case .neutral:
+            return Color.secondary.opacity(0.5)
         }
     }
 }

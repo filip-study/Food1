@@ -2,7 +2,8 @@
 //  MonthlyAggregate.swift
 //  Food1
 //
-//  Cached monthly statistics with trends
+//  Cached monthly statistics with trends and micronutrient totals.
+//  Micronutrients are stored as JSON blob for efficient storage and query performance.
 //
 
 import Foundation
@@ -42,6 +43,9 @@ final class MonthlyAggregate {
     var consistencyScore: Double
     var longestStreak: Int
 
+    // Micronutrient totals (cached from daily aggregates)
+    var cachedMicronutrientsJSON: Data?
+
     var lastUpdated: Date
     var version: Int = 1
 
@@ -70,7 +74,22 @@ final class MonthlyAggregate {
         self.lastUpdated = Date()
     }
 
-    // MARK: - Computed Properties
+    // MARK: - Micronutrient Properties
+
+    /// Decode micronutrients from JSON cache
+    var micronutrients: MicronutrientProfile {
+        guard let data = cachedMicronutrientsJSON else {
+            return MicronutrientProfile()
+        }
+        return (try? JSONDecoder().decode(MicronutrientProfile.self, from: data)) ?? MicronutrientProfile()
+    }
+
+    /// Update micronutrients cache
+    func updateMicronutrients(_ profile: MicronutrientProfile) {
+        cachedMicronutrientsJSON = try? JSONEncoder().encode(profile)
+    }
+
+    // MARK: - Date Properties
 
     /// First day of this month
     var startDate: Date {

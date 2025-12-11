@@ -127,22 +127,35 @@ struct StatisticsSummary {
             $0.protein >= goals.protein * 0.9
         }.count
 
-        // Aggregate micronutrients
+        // Aggregate micronutrients (all 21 nutrients)
         var profile = MicronutrientProfile()
         for aggregate in aggregates {
             let nutrients = aggregate.micronutrients
+            // Original minerals (6)
             profile.calcium += nutrients.calcium
             profile.iron += nutrients.iron
             profile.magnesium += nutrients.magnesium
             profile.potassium += nutrients.potassium
             profile.zinc += nutrients.zinc
+            profile.sodium += nutrients.sodium
+            // New minerals (3)
+            profile.phosphorus += nutrients.phosphorus
+            profile.copper += nutrients.copper
+            profile.selenium += nutrients.selenium
+            // Original vitamins (6)
             profile.vitaminA += nutrients.vitaminA
             profile.vitaminC += nutrients.vitaminC
             profile.vitaminD += nutrients.vitaminD
             profile.vitaminE += nutrients.vitaminE
             profile.vitaminB12 += nutrients.vitaminB12
             profile.folate += nutrients.folate
-            profile.sodium += nutrients.sodium
+            // New vitamins (6)
+            profile.vitaminK += nutrients.vitaminK
+            profile.vitaminB1 += nutrients.vitaminB1
+            profile.vitaminB2 += nutrients.vitaminB2
+            profile.vitaminB3 += nutrients.vitaminB3
+            profile.vitaminB5 += nutrients.vitaminB5
+            profile.vitaminB6 += nutrients.vitaminB6
         }
         self.micronutrients = profile
 

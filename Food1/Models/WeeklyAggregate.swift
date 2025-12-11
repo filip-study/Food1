@@ -2,7 +2,8 @@
 //  WeeklyAggregate.swift
 //  Food1
 //
-//  Cached weekly statistics with consistency metrics
+//  Cached weekly statistics with consistency metrics and micronutrient totals.
+//  Micronutrients are stored as JSON blob for efficient storage and query performance.
 //
 
 import Foundation
@@ -35,6 +36,9 @@ final class WeeklyAggregate {
     var daysMetCalorieGoal: Int
     var daysMetProteinGoal: Int
 
+    // Micronutrient totals (cached from daily aggregates)
+    var cachedMicronutrientsJSON: Data?
+
     // Top foods tracking
     var topFoodsJSON: Data?
 
@@ -62,7 +66,22 @@ final class WeeklyAggregate {
         self.lastUpdated = Date()
     }
 
-    // MARK: - Computed Properties
+    // MARK: - Micronutrient Properties
+
+    /// Decode micronutrients from JSON cache
+    var micronutrients: MicronutrientProfile {
+        guard let data = cachedMicronutrientsJSON else {
+            return MicronutrientProfile()
+        }
+        return (try? JSONDecoder().decode(MicronutrientProfile.self, from: data)) ?? MicronutrientProfile()
+    }
+
+    /// Update micronutrients cache
+    func updateMicronutrients(_ profile: MicronutrientProfile) {
+        cachedMicronutrientsJSON = try? JSONEncoder().encode(profile)
+    }
+
+    // MARK: - Top Foods Properties
 
     var topFoods: [String: Int] {
         guard let data = topFoodsJSON else { return [:] }

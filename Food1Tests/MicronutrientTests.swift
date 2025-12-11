@@ -393,7 +393,7 @@ final class MicronutrientTests: XCTestCase {
         let nutrients = profile.toMicronutrients()
         let calcium = nutrients.first { $0.name == "Calcium" }
         XCTAssertEqual(calcium?.rdaPercent ?? 0, 25.0, accuracy: 0.1, "Calcium RDA should be 25% after reduction")
-        XCTAssertEqual(calcium?.rdaColor, .low, "25% should show as 'low' color")
+        XCTAssertEqual(calcium?.rdaColor, .onTrack, "25% should show as 'onTrack' color")
     }
 
     // MARK: - Meal Time Editing Tests
@@ -481,32 +481,74 @@ final class MicronutrientTests: XCTestCase {
 
     // MARK: - RDA Color Tests
 
-    /// Test RDA color thresholds
+    /// Test RDA color thresholds - soft, encouraging design
     func testRDAColor_Thresholds() {
         var profile = MicronutrientProfile()
 
-        // Test deficient (< 20%)
+        // Test buildingUp (< 25%)
         profile.calcium = 130  // 10% of 1300mg
         var nutrients = profile.toMicronutrients()
         var calcium = nutrients.first { $0.name == "Calcium" }
-        XCTAssertEqual(calcium?.rdaColor, .deficient, "< 20% should be deficient")
+        XCTAssertEqual(calcium?.rdaColor, .buildingUp, "< 25% should be buildingUp")
 
-        // Test low (20-50%)
-        profile.calcium = 390  // 30% of 1300mg
+        // Test onTrack (25-75%)
+        profile.calcium = 650  // 50% of 1300mg
         nutrients = profile.toMicronutrients()
         calcium = nutrients.first { $0.name == "Calcium" }
-        XCTAssertEqual(calcium?.rdaColor, .low, "20-50% should be low")
+        XCTAssertEqual(calcium?.rdaColor, .onTrack, "25-75% should be onTrack")
 
-        // Test sufficient (50-100%)
-        profile.calcium = 910  // 70% of 1300mg
+        // Test boundary: 25% should be onTrack, not buildingUp
+        profile.calcium = 325  // 25% of 1300mg
         nutrients = profile.toMicronutrients()
         calcium = nutrients.first { $0.name == "Calcium" }
-        XCTAssertEqual(calcium?.rdaColor, .sufficient, "50-100% should be sufficient")
+        XCTAssertEqual(calcium?.rdaColor, .onTrack, "exactly 25% should be onTrack")
 
-        // Test excellent (>= 100%)
+        // Test great (75-100%)
+        profile.calcium = 1105  // 85% of 1300mg
+        nutrients = profile.toMicronutrients()
+        calcium = nutrients.first { $0.name == "Calcium" }
+        XCTAssertEqual(calcium?.rdaColor, .great, "75-100% should be great")
+
+        // Test optimal (>= 100%)
         profile.calcium = 1500  // 115% of 1300mg
         nutrients = profile.toMicronutrients()
         calcium = nutrients.first { $0.name == "Calcium" }
-        XCTAssertEqual(calcium?.rdaColor, .excellent, ">= 100% should be excellent")
+        XCTAssertEqual(calcium?.rdaColor, .optimal, ">= 100% should be optimal")
+    }
+
+    /// Test that Vitamin D and Sodium always use neutral color
+    /// These nutrients have non-dietary sources (sun for D, processed foods for sodium)
+    func testRDAColor_NeutralForVitaminDAndSodium() {
+        var profile = MicronutrientProfile()
+
+        // Vitamin D at 5% should be neutral
+        profile.vitaminD = 1.0  // 5% of 20mcg RDA
+        var nutrients = profile.toMicronutrients()
+        var vitaminD = nutrients.first { $0.name == "Vitamin D" }
+        XCTAssertEqual(vitaminD?.rdaColor, .neutral, "Vitamin D should always be neutral")
+
+        // Vitamin D at 60% should still be neutral (always gray for these nutrients)
+        profile.vitaminD = 12.0  // 60% of 20mcg RDA
+        nutrients = profile.toMicronutrients()
+        vitaminD = nutrients.first { $0.name == "Vitamin D" }
+        XCTAssertEqual(vitaminD?.rdaColor, .neutral, "Vitamin D should always be neutral even at high %")
+
+        // Vitamin D at 120% should still be neutral
+        profile.vitaminD = 24.0  // 120% of 20mcg RDA
+        nutrients = profile.toMicronutrients()
+        vitaminD = nutrients.first { $0.name == "Vitamin D" }
+        XCTAssertEqual(vitaminD?.rdaColor, .neutral, "Vitamin D should always be neutral even over 100%")
+
+        // Sodium at 20% should be neutral
+        profile.sodium = 460  // 20% of 2300mg RDA
+        nutrients = profile.toMicronutrients()
+        var sodium = nutrients.first { $0.name == "Sodium" }
+        XCTAssertEqual(sodium?.rdaColor, .neutral, "Sodium should always be neutral")
+
+        // Sodium at 100% should still be neutral (always gray)
+        profile.sodium = 2300  // 100% of 2300mg RDA
+        nutrients = profile.toMicronutrients()
+        sodium = nutrients.first { $0.name == "Sodium" }
+        XCTAssertEqual(sodium?.rdaColor, .neutral, "Sodium should always be neutral even at 100%")
     }
 }

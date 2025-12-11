@@ -37,7 +37,7 @@ struct MicronutrientDetailView: View {
 
     private var allNutrients: [NutrientDetail] {
         let nutrients = [
-            // Vitamins
+            // Vitamins (12 total)
             NutrientDetail(
                 name: "Vitamin A",
                 amount: micronutrients.vitaminA,
@@ -67,6 +67,48 @@ struct MicronutrientDetailView: View {
                 category: .vitamin
             ),
             NutrientDetail(
+                name: "Vitamin K",
+                amount: micronutrients.vitaminK,
+                unit: "mcg",
+                nutrientKey: "vitamin k",
+                category: .vitamin
+            ),
+            NutrientDetail(
+                name: "Thiamin (B1)",
+                amount: micronutrients.vitaminB1,
+                unit: "mg",
+                nutrientKey: "thiamin",
+                category: .vitamin
+            ),
+            NutrientDetail(
+                name: "Riboflavin (B2)",
+                amount: micronutrients.vitaminB2,
+                unit: "mg",
+                nutrientKey: "riboflavin",
+                category: .vitamin
+            ),
+            NutrientDetail(
+                name: "Niacin (B3)",
+                amount: micronutrients.vitaminB3,
+                unit: "mg",
+                nutrientKey: "niacin",
+                category: .vitamin
+            ),
+            NutrientDetail(
+                name: "Pantothenic Acid (B5)",
+                amount: micronutrients.vitaminB5,
+                unit: "mg",
+                nutrientKey: "pantothenic acid",
+                category: .vitamin
+            ),
+            NutrientDetail(
+                name: "Vitamin B6",
+                amount: micronutrients.vitaminB6,
+                unit: "mg",
+                nutrientKey: "vitamin b-6",
+                category: .vitamin
+            ),
+            NutrientDetail(
                 name: "Vitamin B12",
                 amount: micronutrients.vitaminB12,
                 unit: "mcg",
@@ -74,13 +116,13 @@ struct MicronutrientDetailView: View {
                 category: .vitamin
             ),
             NutrientDetail(
-                name: "Folate",
+                name: "Folate (B9)",
                 amount: micronutrients.folate,
                 unit: "mcg",
                 nutrientKey: "folate",
                 category: .vitamin
             ),
-            // Minerals
+            // Minerals (7 total)
             NutrientDetail(
                 name: "Calcium",
                 amount: micronutrients.calcium,
@@ -109,7 +151,28 @@ struct MicronutrientDetailView: View {
                 nutrientKey: "zinc",
                 category: .mineral
             ),
-            // Electrolytes
+            NutrientDetail(
+                name: "Phosphorus",
+                amount: micronutrients.phosphorus,
+                unit: "mg",
+                nutrientKey: "phosphorus",
+                category: .mineral
+            ),
+            NutrientDetail(
+                name: "Copper",
+                amount: micronutrients.copper,
+                unit: "mg",
+                nutrientKey: "copper",
+                category: .mineral
+            ),
+            NutrientDetail(
+                name: "Selenium",
+                amount: micronutrients.selenium,
+                unit: "mcg",
+                nutrientKey: "selenium",
+                category: .mineral
+            ),
+            // Electrolytes (2 total)
             NutrientDetail(
                 name: "Potassium",
                 amount: micronutrients.potassium,
@@ -134,20 +197,28 @@ struct MicronutrientDetailView: View {
             return n
         }
 
-        // Apply sorting
+        // Separate neutral nutrients (Vitamin D, Sodium) - they always go at the bottom
+        let regularNutrients = nutrients.filter { !neutralTrackingNutrients.contains($0.name) }
+        let neutralNutrients = nutrients.filter { neutralTrackingNutrients.contains($0.name) }
+
+        // Apply sorting to regular nutrients only
+        let sortedRegular: [NutrientDetail]
         switch sortOption {
         case .rdaPercent:
-            return nutrients.sorted { $0.rdaPercent > $1.rdaPercent }
+            sortedRegular = regularNutrients.sorted { $0.rdaPercent > $1.rdaPercent }
         case .name:
-            return nutrients.sorted { $0.name < $1.name }
+            sortedRegular = regularNutrients.sorted { $0.name < $1.name }
         case .category:
-            return nutrients.sorted { lhs, rhs in
+            sortedRegular = regularNutrients.sorted { lhs, rhs in
                 if lhs.category == rhs.category {
                     return lhs.rdaPercent > rhs.rdaPercent
                 }
                 return lhs.category.sortOrder < rhs.category.sortOrder
             }
         }
+
+        // Always append neutral nutrients at the end
+        return sortedRegular + neutralNutrients
     }
 
     private var groupedNutrients: [(NutrientGrouping, [NutrientDetail])] {
@@ -390,20 +461,32 @@ private struct NutrientDetailRow: View {
     let nutrient: NutrientDetail
 
     private var rdaColor: Color {
+        // Vitamin D and Sodium always use light gray (dietary tracking alone isn't meaningful)
+        if neutralTrackingNutrients.contains(nutrient.name) {
+            return Color.secondary.opacity(0.5)
+        }
+
+        // Soft, encouraging color scheme
         switch nutrient.rdaPercent {
-        case ..<20: return .red
-        case 20..<50: return .orange
-        case 50..<100: return .green
-        default: return .blue
+        case ..<25: return Color(red: 0.55, green: 0.6, blue: 0.7)   // Soft blue-gray
+        case 25..<75: return Color(red: 0.4, green: 0.7, blue: 0.7)  // Soft teal
+        case 75..<100: return Color(red: 0.4, green: 0.75, blue: 0.5) // Green
+        default: return Color(red: 0.3, green: 0.7, blue: 0.4)       // Deeper green
         }
     }
 
     private var rdaIndicator: String {
+        // Vitamin D and Sodium always use neutral indicator
+        if neutralTrackingNutrients.contains(nutrient.name) {
+            return "circle.fill"
+        }
+
+        // Soft, encouraging icons - no warning symbols
         switch nutrient.rdaPercent {
-        case ..<20: return "exclamationmark.circle.fill"
-        case 20..<50: return "minus.circle.fill"
-        case 50..<100: return "checkmark.circle.fill"
-        default: return "star.circle.fill"
+        case ..<25: return "circle.dotted"              // Building up
+        case 25..<75: return "circle.bottomhalf.filled" // On track
+        case 75..<100: return "checkmark.circle"        // Great
+        default: return "checkmark.circle.fill"         // Optimal
         }
     }
 

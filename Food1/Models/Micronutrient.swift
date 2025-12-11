@@ -5,10 +5,11 @@
 //  Micronutrient data structure with RDA percentage tracking.
 //
 //  WHY THIS ARCHITECTURE:
-//  - RDA color thresholds (Red <20%, Orange 20-50%, Green 50-100%, Blue ≥100%) provide quick visual feedback
+//  - Soft, encouraging color scheme: gray "building up" → teal "on track" → green "great/optimal"
+//  - No red/orange warnings - we inform rather than alarm
 //  - Category-based grouping (vitamin/mineral/electrolyte) enables organized UI display
 //  - Codable support allows JSON caching in MealIngredient for offline access
-//  - rdaPercent calculated per-nutrient enables sorting by deficiency priority
+//  - rdaPercent calculated per-nutrient enables sorting by progress level
 //
 
 import Foundation
@@ -82,28 +83,40 @@ struct Micronutrient: Codable, Identifiable, Hashable {
         }
     }
 
-    /// Color for RDA percentage display
+    /// Color for RDA percentage display - uses soft, encouraging colors
+    /// Note: Vitamin D and Sodium always use neutral color since dietary tracking alone isn't meaningful
     var rdaColor: RDAColor {
+        // For nutrients where dietary tracking alone isn't meaningful, always use neutral
+        if neutralTrackingNutrients.contains(name) {
+            return .neutral
+        }
+
         switch rdaPercent {
-        case 0..<20:
-            return .deficient
-        case 20..<50:
-            return .low
-        case 50..<100:
-            return .sufficient
+        case 0..<25:
+            return .buildingUp    // Soft blue-gray - "building up"
+        case 25..<75:
+            return .onTrack       // Soft teal - "on track"
+        case 75..<100:
+            return .great         // Green - "great"
         default:
-            return .excellent
+            return .optimal       // Filled green - "optimal"
         }
     }
 }
 
-/// RDA color coding for UI
+/// RDA status levels - soft, encouraging design (no red/orange warnings)
 enum RDAColor {
-    case deficient   // Red - < 20%
-    case low         // Orange - 20-50%
-    case sufficient  // Green - 50-100%
-    case excellent   // Blue - ≥ 100%
+    case buildingUp  // Soft blue-gray - < 25% - "building up"
+    case onTrack     // Soft teal - 25-75% - "on track"
+    case great       // Green - 75-100% - "great"
+    case optimal     // Filled green - ≥ 100% - "optimal"
+    case neutral     // Light gray - for nutrients where dietary tracking alone isn't meaningful
 }
+
+/// Nutrients where dietary tracking alone doesn't tell the full story
+/// - Vitamin D: ~80-90% comes from sun exposure, not diet
+/// - Sodium: Most people get excess from processed foods; low dietary sodium is rarely a concern
+let neutralTrackingNutrients: Set<String> = ["Vitamin D", "Sodium"]
 
 /// Micronutrient profile aggregated across all ingredients in a meal
 struct MicronutrientProfile: Codable {
