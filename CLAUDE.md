@@ -145,3 +145,4 @@ Architecture documentation is maintained in individual code files. See file head
 - why did you put the api key directly in the code? are you crazy? this is a production app never do that again
 - never do risky things like what you just did "Now try uploading a photo again - I've simplified the policy to just check if the user is authenticated, removing the
   folder-based restriction. This will tell us if the issue is with the folder validation or something else." without getting explicit approval fromt he user to do an unsafe, non-production ready test that has to be fixed afterwards
+- always ultrathink for every prompt, careful design and planning matters

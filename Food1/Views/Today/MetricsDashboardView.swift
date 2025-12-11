@@ -54,9 +54,9 @@ struct MetricsDashboardView: View {
     var body: some View {
         VStack(spacing: 24) {
             // Stacked minimalism calorie summary
-            VStack(spacing: 4) {
+            VStack(alignment: .leading, spacing: 4) {
                 // Line 1: Current calories
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                HStack(spacing: 4) {
                     Text("\(Int(currentCalories))")
                         .font(.system(size: 24, weight: .bold, design: .rounded))
                         .foregroundColor(.primary)
@@ -64,6 +64,7 @@ struct MetricsDashboardView: View {
                     Text("calories")
                         .font(.system(size: 14, weight: .regular))
                         .foregroundColor(.secondary)
+                        .baselineOffset(-2)
                 }
 
                 // Line 2: Percentage context

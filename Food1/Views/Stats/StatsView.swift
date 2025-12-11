@@ -60,7 +60,7 @@ struct StatsView: View {
                             .padding(.top, 24)
                             .padding(.horizontal, 16)
 
-                            Spacer(minLength: 40)
+                            Spacer(minLength: 80)
                         } else {
                             EmptyTrendsView()
                         }
