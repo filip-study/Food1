@@ -14,9 +14,14 @@
 //  WHEN SYNC TRIGGERS:
 //  - App launch (if authenticated)
 //  - After meal creation/edit
-//  - Every 5 minutes (background timer)
+//  - Every 5 minutes (automatic timer, enabled via configure())
 //  - On network reconnection
 //  - Manual user pull-to-refresh
+//
+//  SYNC PHASES (in order):
+//  1. Upload pending meals (syncStatus = pending/error)
+//  2. Retry failed photo uploads (photoData exists but photoThumbnailUrl is nil)
+//  3. Download recent meals from cloud (last 30 days)
 //
 
 import Foundation
@@ -39,9 +44,13 @@ class SyncCoordinator: ObservableObject {
     @Published var lastSyncDate: Date?
     @Published var syncError: String?
     @Published var pendingMealsCount = 0
+    @Published var pendingPhotosCount = 0
 
     private var syncTimer: Timer?
     private var cancellables = Set<AnyCancellable>()
+
+    /// Weak reference to ModelContainer for periodic sync (set via configure)
+    private weak var modelContainer: ModelContainer?
 
     // MARK: - Configuration
 
@@ -53,6 +62,20 @@ class SyncCoordinator: ObservableObject {
 
     private init() {
         setupAuthListener()
+    }
+
+    // MARK: - Container Configuration
+
+    /// Configure with ModelContainer for periodic sync
+    /// Called from Food1App after SwiftData initialization
+    func configure(with container: ModelContainer) {
+        self.modelContainer = container
+        print("✅ SyncCoordinator configured with ModelContainer")
+
+        // If already authenticated, start periodic sync now
+        if supabase.isAuthenticated {
+            startPeriodicSync()
+        }
     }
 
     /// Listen for authentication state changes
@@ -71,18 +94,38 @@ class SyncCoordinator: ObservableObject {
     // MARK: - Periodic Sync
 
     /// Start automatic sync timer (every 5 minutes)
-    /// NOTE: Disabled for now - requires ModelContext injection
-    /// TODO: Implement with proper ModelContainer dependency injection
     private func startPeriodicSync() {
         guard syncTimer == nil else { return }
 
-        print("⏰ Periodic sync disabled (requires ModelContext)")
+        guard modelContainer != nil else {
+            print("⏰ Periodic sync waiting for ModelContainer configuration")
+            return
+        }
 
-        // Periodic sync disabled - will rely on manual triggers:
-        // - After meal creation
-        // - After USDA enrichment
-        // - On app launch
-        // - Pull-to-refresh
+        print("⏰ Starting periodic sync (every \(Int(syncIntervalSeconds/60)) minutes)")
+
+        syncTimer = Timer.scheduledTimer(withTimeInterval: syncIntervalSeconds, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                await self?.performPeriodicSync()
+            }
+        }
+
+        // Perform initial sync immediately
+        Task {
+            await performPeriodicSync()
+        }
+    }
+
+    /// Perform periodic sync using configured ModelContainer
+    private func performPeriodicSync() async {
+        guard let container = modelContainer else {
+            print("⚠️  Cannot sync: ModelContainer is nil")
+            stopPeriodicSync()
+            return
+        }
+
+        let context = container.mainContext
+        await syncAll(context: context)
     }
 
     /// Stop automatic sync timer
@@ -94,7 +137,7 @@ class SyncCoordinator: ObservableObject {
 
     // MARK: - Manual Sync
 
-    /// Trigger full sync (upload pending + download recent)
+    /// Trigger full sync (upload pending + retry failed photos + download recent)
     /// - Parameter context: ModelContext (required for data access)
     func syncAll(context: ModelContext) async {
         guard supabase.isAuthenticated else {
@@ -111,15 +154,18 @@ class SyncCoordinator: ObservableObject {
         syncError = nil
 
         do {
-            // Upload pending meals
+            // Step 1: Upload pending meals
             let uploadedCount = try await uploadPendingMeals(context: context)
 
-            // Download recent meals (last 30 days)
+            // Step 2: Retry failed photo uploads
+            let photoRetryCount = try await retryPendingPhotoUploads(context: context)
+
+            // Step 3: Download recent meals (last 30 days)
             let downloadedCount = try await syncService.downloadRecentMeals(context: context, days: 30)
 
             // Update state
             lastSyncDate = Date()
-            print("✅ Sync complete: uploaded \(uploadedCount), downloaded \(downloadedCount)")
+            print("✅ Sync complete: uploaded \(uploadedCount), photos retried \(photoRetryCount), downloaded \(downloadedCount)")
 
         } catch {
             syncError = error.localizedDescription
@@ -166,6 +212,33 @@ class SyncCoordinator: ObservableObject {
 
         pendingMealsCount = 0
         return uploadedCount
+    }
+
+    /// Retry uploading photos that failed during initial meal sync
+    private func retryPendingPhotoUploads(context: ModelContext) async throws -> Int {
+        // Count pending photos first
+        let fetchDescriptor = FetchDescriptor<Meal>(
+            predicate: #Predicate { meal in
+                meal.photoData != nil &&
+                meal.photoThumbnailUrl == nil &&
+                meal.syncStatus == "synced" &&
+                meal.cloudId != nil
+            }
+        )
+
+        let pendingPhotos = try context.fetch(fetchDescriptor)
+        pendingPhotosCount = pendingPhotos.count
+
+        guard pendingPhotosCount > 0 else {
+            return 0
+        }
+
+        print("📸 Found \(pendingPhotosCount) photos needing retry...")
+
+        let retriedCount = try await syncService.retryPendingPhotoUploads(context: context)
+
+        pendingPhotosCount = 0
+        return retriedCount
     }
 
     // MARK: - Single Meal Sync

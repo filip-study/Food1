@@ -17,6 +17,12 @@
 //  3. Upload completes → syncStatus = "synced", cloudId populated
 //  4. On download → Merge cloud data into SwiftData (or skip if already synced)
 //
+//  PHOTO RETRY:
+//  - If photo upload fails during meal sync, meal still syncs (photo is non-blocking)
+//  - Failed photos detected by: photoData exists, photoThumbnailUrl nil, syncStatus "synced"
+//  - retryPendingPhotoUploads() called automatically on each sync cycle
+//  - On success: uploads to Storage, updates cloud meal record, sets local photoThumbnailUrl
+//
 //  CONFLICT RESOLUTION:
 //  - Last-write-wins based on updatedAt timestamp
 //  - Local meal with newer timestamp overwrites cloud
@@ -67,8 +73,8 @@ class SyncService: ObservableObject {
                         )
                     } catch {
                         // Log photo upload failure but continue with meal sync
-                        print("⚠️  Photo upload failed (continuing meal sync): \(error)")
-                        // TODO: Queue photo for retry later
+                        // Photo will be retried via retryPendingPhotoUploads() on next sync
+                        print("⚠️  Photo upload failed (will retry on next sync): \(error)")
                     }
                 }
             }
@@ -320,6 +326,93 @@ class SyncService: ObservableObject {
             photoThumbnailUrl: cloudMeal.photoThumbnailUrl,
             cartoonImageUrl: cloudMeal.cartoonImageUrl
         )
+    }
+
+    // MARK: - Photo Retry
+
+    /// Retry uploading photos for meals where photo upload previously failed
+    /// Detects failed uploads by: photoData exists, photoThumbnailUrl is nil, but meal is synced
+    func retryPendingPhotoUploads(context: ModelContext) async throws -> Int {
+        guard let userId = try? await supabase.requireUserId() else {
+            throw SyncError.notAuthenticated
+        }
+
+        // Fetch meals needing photo upload retry
+        // Can't use computed property in #Predicate, so replicate the logic
+        let fetchDescriptor = FetchDescriptor<Meal>(
+            predicate: #Predicate { meal in
+                meal.photoData != nil &&
+                meal.photoThumbnailUrl == nil &&
+                meal.syncStatus == "synced" &&
+                meal.cloudId != nil
+            },
+            sortBy: [SortDescriptor(\Meal.timestamp, order: .reverse)]
+        )
+
+        let mealsNeedingPhotoUpload = try context.fetch(fetchDescriptor)
+
+        guard !mealsNeedingPhotoUpload.isEmpty else {
+            return 0
+        }
+
+        print("📸 Retrying photo upload for \(mealsNeedingPhotoUpload.count) meals...")
+
+        var successCount = 0
+
+        for meal in mealsNeedingPhotoUpload {
+            guard let photoData = meal.photoData,
+                  let cloudId = meal.cloudId else {
+                continue
+            }
+
+            do {
+                // Compress thumbnail
+                guard let thumbnailData = photoService.compressThumbnail(from: photoData) else {
+                    print("⚠️  Failed to compress thumbnail for meal \(meal.id)")
+                    continue
+                }
+
+                // Upload to Supabase Storage
+                let photoUrl = try await photoService.uploadThumbnail(
+                    thumbnailData,
+                    mealId: meal.id,
+                    userId: userId
+                )
+
+                // Update cloud meal record with the new photo URL
+                try await updateMealPhotoUrl(cloudId: cloudId, photoUrl: photoUrl)
+
+                // Update local meal
+                meal.photoThumbnailUrl = photoUrl
+                try context.save()
+
+                successCount += 1
+                print("✅ Retried photo upload for meal \(meal.id)")
+
+            } catch {
+                print("❌ Photo retry failed for meal \(meal.id): \(error)")
+                // Continue with next meal - don't throw, allow partial success
+            }
+        }
+
+        print("📸 Photo retry complete: \(successCount)/\(mealsNeedingPhotoUpload.count) succeeded")
+        return successCount
+    }
+
+    /// Update the photo_thumbnail_url field for an existing cloud meal
+    private func updateMealPhotoUrl(cloudId: UUID, photoUrl: String) async throws {
+        let updateData: [String: AnyEncodable] = [
+            "photo_thumbnail_url": AnyEncodable(photoUrl),
+            "last_synced_at": AnyEncodable(ISO8601DateFormatter().string(from: Date()))
+        ]
+
+        try await supabase.client
+            .from("meals")
+            .update(updateData)
+            .eq("id", value: cloudId.uuidString)
+            .execute()
+
+        print("✅ Updated cloud meal \(cloudId) with photo URL")
     }
 
     // MARK: - Delete Meal

@@ -175,6 +175,15 @@ final class Meal {
         return syncStatus == "synced" && cloudId != nil
     }
 
+    /// Check if meal has a photo that failed to upload and needs retry
+    /// Condition: has local photo, no cloud URL, but meal is synced (so photo upload must have failed)
+    var needsPhotoUpload: Bool {
+        return photoData != nil &&
+               photoThumbnailUrl == nil &&
+               syncStatus == "synced" &&
+               cloudId != nil
+    }
+
     // Static helper method for calculating totals
     static func calculateTotals(for meals: [Meal]) -> (calories: Double, protein: Double, carbs: Double, fat: Double) {
         let totalCalories = meals.reduce(0) { $0 + $1.calories }
