@@ -339,6 +339,7 @@ extension RDAValues {
     /// Get RDA value for nutrient name (maps USDA names to our RDA constants)
     static func getRDA(for nutrientName: String) -> Double {
         switch nutrientName {
+        // Original minerals
         case "Calcium":
             return calcium
         case "Iron":
@@ -349,6 +350,16 @@ extension RDAValues {
             return potassium
         case "Zinc":
             return zinc
+        case "Sodium":
+            return sodium
+        // New minerals
+        case "Phosphorus":
+            return phosphorus
+        case "Copper":
+            return copper
+        case "Selenium":
+            return selenium
+        // Original vitamins
         case "Vitamin A":
             return vitaminA
         case "Vitamin C":
@@ -359,10 +370,21 @@ extension RDAValues {
             return vitaminE
         case "Vitamin B12":
             return vitaminB12
-        case "Folate":
+        case "Folate", "Folate (Vitamin B9)":
             return folate
-        case "Sodium":
-            return sodium
+        // New vitamins
+        case "Vitamin K":
+            return vitaminK
+        case "Thiamin", "Vitamin B1 (Thiamin)":
+            return vitaminB1
+        case "Riboflavin", "Vitamin B2 (Riboflavin)":
+            return vitaminB2
+        case "Niacin", "Vitamin B3 (Niacin)":
+            return vitaminB3
+        case "Pantothenic acid", "Vitamin B5 (Pantothenic Acid)":
+            return vitaminB5
+        case "Vitamin B-6", "Vitamin B6":
+            return vitaminB6
         default:
             return 0.0
         }

@@ -474,13 +474,22 @@ private struct NutrientDetailRow: View {
             magnesium: 980,
             potassium: 8900,
             zinc: 28,
+            sodium: 4200,
+            phosphorus: 1400,
+            copper: 1.8,
+            selenium: 110,
             vitaminA: 2100,
             vitaminC: 180,
             vitaminD: 35,
             vitaminE: 42,
             vitaminB12: 6.8,
             folate: 890,
-            sodium: 4200
+            vitaminK: 240,
+            vitaminB1: 2.4,
+            vitaminB2: 2.6,
+            vitaminB3: 32,
+            vitaminB5: 10,
+            vitaminB6: 2.6
         ),
         daysWithMeals: 7,
         selectedPeriod: .week

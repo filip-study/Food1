@@ -379,18 +379,31 @@ class StatisticsService {
 
     private func addNutrient(_ nutrient: Micronutrient, to profile: inout MicronutrientProfile) {
         switch nutrient.name {
+        // Original minerals
         case "Calcium": profile.calcium += nutrient.amount
         case "Iron": profile.iron += nutrient.amount
         case "Magnesium": profile.magnesium += nutrient.amount
         case "Potassium": profile.potassium += nutrient.amount
         case "Zinc": profile.zinc += nutrient.amount
+        case "Sodium": profile.sodium += nutrient.amount
+        // New minerals
+        case "Phosphorus": profile.phosphorus += nutrient.amount
+        case "Copper": profile.copper += nutrient.amount
+        case "Selenium": profile.selenium += nutrient.amount
+        // Original vitamins
         case "Vitamin A": profile.vitaminA += nutrient.amount
         case "Vitamin C": profile.vitaminC += nutrient.amount
         case "Vitamin D": profile.vitaminD += nutrient.amount
         case "Vitamin E": profile.vitaminE += nutrient.amount
         case "Vitamin B12": profile.vitaminB12 += nutrient.amount
-        case "Folate": profile.folate += nutrient.amount
-        case "Sodium": profile.sodium += nutrient.amount
+        case "Folate", "Folate (Vitamin B9)": profile.folate += nutrient.amount
+        // New vitamins
+        case "Vitamin K": profile.vitaminK += nutrient.amount
+        case "Thiamin", "Vitamin B1 (Thiamin)": profile.vitaminB1 += nutrient.amount
+        case "Riboflavin", "Vitamin B2 (Riboflavin)": profile.vitaminB2 += nutrient.amount
+        case "Niacin", "Vitamin B3 (Niacin)": profile.vitaminB3 += nutrient.amount
+        case "Pantothenic acid", "Vitamin B5 (Pantothenic Acid)": profile.vitaminB5 += nutrient.amount
+        case "Vitamin B-6", "Vitamin B6": profile.vitaminB6 += nutrient.amount
         default: break
         }
     }

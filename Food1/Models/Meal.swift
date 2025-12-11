@@ -125,6 +125,7 @@ final class Meal {
 
             for nutrient in nutrients {
                 switch nutrient.name {
+                // Original minerals
                 case "Calcium":
                     profile.calcium += nutrient.amount
                 case "Iron":
@@ -135,6 +136,16 @@ final class Meal {
                     profile.potassium += nutrient.amount
                 case "Zinc":
                     profile.zinc += nutrient.amount
+                case "Sodium":
+                    profile.sodium += nutrient.amount
+                // New minerals
+                case "Phosphorus":
+                    profile.phosphorus += nutrient.amount
+                case "Copper":
+                    profile.copper += nutrient.amount
+                case "Selenium":
+                    profile.selenium += nutrient.amount
+                // Original vitamins
                 case "Vitamin A":
                     profile.vitaminA += nutrient.amount
                 case "Vitamin C":
@@ -145,10 +156,21 @@ final class Meal {
                     profile.vitaminE += nutrient.amount
                 case "Vitamin B12":
                     profile.vitaminB12 += nutrient.amount
-                case "Folate":
+                case "Folate", "Folate (Vitamin B9)":
                     profile.folate += nutrient.amount
-                case "Sodium":
-                    profile.sodium += nutrient.amount
+                // New vitamins
+                case "Vitamin K":
+                    profile.vitaminK += nutrient.amount
+                case "Thiamin", "Vitamin B1 (Thiamin)":
+                    profile.vitaminB1 += nutrient.amount
+                case "Riboflavin", "Vitamin B2 (Riboflavin)":
+                    profile.vitaminB2 += nutrient.amount
+                case "Niacin", "Vitamin B3 (Niacin)":
+                    profile.vitaminB3 += nutrient.amount
+                case "Pantothenic acid", "Vitamin B5 (Pantothenic Acid)":
+                    profile.vitaminB5 += nutrient.amount
+                case "Vitamin B-6", "Vitamin B6":
+                    profile.vitaminB6 += nutrient.amount
                 default:
                     break
                 }

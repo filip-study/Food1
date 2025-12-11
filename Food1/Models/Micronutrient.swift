@@ -107,18 +107,34 @@ enum RDAColor {
 
 /// Micronutrient profile aggregated across all ingredients in a meal
 struct MicronutrientProfile: Codable {
+    // Original minerals
     var calcium: Double = 0.0
     var iron: Double = 0.0
     var magnesium: Double = 0.0
     var potassium: Double = 0.0
     var zinc: Double = 0.0
+    var sodium: Double = 0.0
+
+    // New minerals
+    var phosphorus: Double = 0.0
+    var copper: Double = 0.0
+    var selenium: Double = 0.0
+
+    // Original vitamins
     var vitaminA: Double = 0.0
     var vitaminC: Double = 0.0
     var vitaminD: Double = 0.0
     var vitaminE: Double = 0.0
     var vitaminB12: Double = 0.0
     var folate: Double = 0.0
-    var sodium: Double = 0.0
+
+    // New vitamins
+    var vitaminK: Double = 0.0
+    var vitaminB1: Double = 0.0
+    var vitaminB2: Double = 0.0
+    var vitaminB3: Double = 0.0
+    var vitaminB5: Double = 0.0
+    var vitaminB6: Double = 0.0
 
     /// Convert to array of Micronutrient objects with RDA percentages
     func toMicronutrients() -> [Micronutrient] {
@@ -206,6 +222,71 @@ struct MicronutrientProfile: Codable {
                 unit: "mg",
                 rdaPercent: (sodium / RDAValues.sodium) * 100,
                 category: .electrolyte
+            ),
+            // New minerals
+            Micronutrient(
+                name: "Phosphorus",
+                amount: phosphorus,
+                unit: "mg",
+                rdaPercent: (phosphorus / RDAValues.phosphorus) * 100,
+                category: .mineral
+            ),
+            Micronutrient(
+                name: "Copper",
+                amount: copper,
+                unit: "mg",
+                rdaPercent: (copper / RDAValues.copper) * 100,
+                category: .mineral
+            ),
+            Micronutrient(
+                name: "Selenium",
+                amount: selenium,
+                unit: "mcg",
+                rdaPercent: (selenium / RDAValues.selenium) * 100,
+                category: .mineral
+            ),
+            // New vitamins
+            Micronutrient(
+                name: "Vitamin K",
+                amount: vitaminK,
+                unit: "mcg",
+                rdaPercent: (vitaminK / RDAValues.vitaminK) * 100,
+                category: .vitamin
+            ),
+            Micronutrient(
+                name: "Thiamin",
+                amount: vitaminB1,
+                unit: "mg",
+                rdaPercent: (vitaminB1 / RDAValues.vitaminB1) * 100,
+                category: .vitamin
+            ),
+            Micronutrient(
+                name: "Riboflavin",
+                amount: vitaminB2,
+                unit: "mg",
+                rdaPercent: (vitaminB2 / RDAValues.vitaminB2) * 100,
+                category: .vitamin
+            ),
+            Micronutrient(
+                name: "Niacin",
+                amount: vitaminB3,
+                unit: "mg",
+                rdaPercent: (vitaminB3 / RDAValues.vitaminB3) * 100,
+                category: .vitamin
+            ),
+            Micronutrient(
+                name: "Pantothenic acid",
+                amount: vitaminB5,
+                unit: "mg",
+                rdaPercent: (vitaminB5 / RDAValues.vitaminB5) * 100,
+                category: .vitamin
+            ),
+            Micronutrient(
+                name: "Vitamin B-6",
+                amount: vitaminB6,
+                unit: "mg",
+                rdaPercent: (vitaminB6 / RDAValues.vitaminB6) * 100,
+                category: .vitamin
             )
         ]
     }
