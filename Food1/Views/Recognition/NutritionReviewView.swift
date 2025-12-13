@@ -331,6 +331,7 @@ struct NutritionReviewView: View {
 
     /// Recalculate meal macros from sum of ingredient macros
     /// Called when ingredients are edited (deleted or modified)
+    /// Only updates if ingredients have macro data (sum > 0), preserving prefilled values otherwise
     private func recalculateMacrosFromIngredients() {
         guard !ingredients.isEmpty else { return }
 
@@ -339,6 +340,15 @@ struct NutritionReviewView: View {
         let totalProtein = ingredients.reduce(0) { $0 + $1.protein }
         let totalCarbs = ingredients.reduce(0) { $0 + $1.carbs }
         let totalFat = ingredients.reduce(0) { $0 + $1.fat }
+
+        // Only update if ingredients have macro data (prevents overwriting prefilled values with zeros)
+        // This handles the transition period where AI may not return per-ingredient macros yet
+        guard totalCalories > 0 || totalProtein > 0 || totalCarbs > 0 || totalFat > 0 else {
+            #if DEBUG
+            print("⏭️ Skipping macro recalculation - ingredients have no macro data")
+            #endif
+            return
+        }
 
         // Update display values
         calories = String(format: "%.0f", totalCalories)
