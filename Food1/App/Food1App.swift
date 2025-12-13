@@ -214,6 +214,9 @@ struct Food1App: App {
                 }
             }
             .task {
+                // Configure SyncCoordinator FIRST so it's ready when auth triggers sync
+                SyncCoordinator.shared.configure(with: modelContainer)
+
                 // Check for existing session on launch
                 await authViewModel.checkSession()
 
@@ -242,9 +245,6 @@ struct Food1App: App {
 
                 // Resume unfinished enrichment (after app is fully loaded and migration complete)
                 await resumeUnfinishedEnrichment()
-
-                // Configure SyncCoordinator for automatic periodic sync
-                SyncCoordinator.shared.configure(with: modelContainer)
             }
             .onOpenURL { url in
                 // Handle deep links for authentication callbacks
