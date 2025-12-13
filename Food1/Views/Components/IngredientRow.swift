@@ -90,7 +90,8 @@ struct IngredientRow: View {
     }
 
     private func adjustGrams(by delta: Double) {
-        ingredient.grams = max(5, ingredient.grams + delta)
+        let newGrams = max(5, ingredient.grams + delta)
+        ingredient.updateGrams(newGrams)  // Scale macros proportionally with gram changes
         HapticManager.light()
     }
 }

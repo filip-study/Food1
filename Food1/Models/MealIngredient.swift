@@ -21,6 +21,12 @@ final class MealIngredient {
     var name: String
     var grams: Double
 
+    // Per-ingredient macros (from AI prediction, enables recalculation on edit)
+    var calories: Double
+    var protein: Double
+    var carbs: Double
+    var fat: Double
+
     // USDA FoodData Central ID (nil if not matched yet)
     var usdaFdcId: String?
 
@@ -49,10 +55,14 @@ final class MealIngredient {
     /// USDA description from database (for display)
     var usdaDescription: String?
 
-    init(name: String, grams: Double, usdaFdcId: String? = nil) {
+    init(name: String, grams: Double, calories: Double = 0, protein: Double = 0, carbs: Double = 0, fat: Double = 0, usdaFdcId: String? = nil) {
         self.id = UUID()
         self.name = name
         self.grams = grams
+        self.calories = calories
+        self.protein = protein
+        self.carbs = carbs
+        self.fat = fat
         self.usdaFdcId = usdaFdcId
         self.isUserEdited = false
         self.createdAt = Date()

@@ -148,8 +148,10 @@ struct NutritionReviewView: View {
                         servingCount: $servingCount,
                         gramsPerServing: $gramsPerServing
                     )
-                    .onChange(of: servingCount) { _, _ in
+                    .onChange(of: servingCount) { oldValue, newValue in
                         updateNutritionValues()
+                        // Scale ingredient grams proportionally when portion changes
+                        scaleIngredientsForPortion(oldMultiplier: oldValue, newMultiplier: newValue)
                     }
                     .onChange(of: gramsPerServing) { _, _ in
                         updateNutritionValues()
@@ -206,6 +208,9 @@ struct NutritionReviewView: View {
 
                 // Ingredients (editable)
                 IngredientListView(ingredients: $ingredients)
+                    .onChange(of: ingredients) { _, _ in
+                        recalculateMacrosFromIngredients()
+                    }
             }
             .navigationTitle("Review Meal")
             .navigationBarTitleDisplayMode(.inline)
@@ -324,6 +329,47 @@ struct NutritionReviewView: View {
         fat = String(format: "%.1f", nutrition.fat * multiplier)
     }
 
+    /// Recalculate meal macros from sum of ingredient macros
+    /// Called when ingredients are edited (deleted or modified)
+    private func recalculateMacrosFromIngredients() {
+        guard !ingredients.isEmpty else { return }
+
+        // Sum up all ingredient macros
+        let totalCalories = ingredients.reduce(0) { $0 + $1.calories }
+        let totalProtein = ingredients.reduce(0) { $0 + $1.protein }
+        let totalCarbs = ingredients.reduce(0) { $0 + $1.carbs }
+        let totalFat = ingredients.reduce(0) { $0 + $1.fat }
+
+        // Update display values
+        calories = String(format: "%.0f", totalCalories)
+        protein = String(format: "%.1f", totalProtein)
+        carbs = String(format: "%.1f", totalCarbs)
+        fat = String(format: "%.1f", totalFat)
+
+        #if DEBUG
+        print("🔄 Recalculated macros from \(ingredients.count) ingredients:")
+        print("   Calories: \(calories), Protein: \(protein)g, Carbs: \(carbs)g, Fat: \(fat)g")
+        #endif
+    }
+
+    /// Scale all ingredient grams when portion size changes
+    /// Multiplier represents the new serving count (e.g., 0.75, 1.5, 2.0)
+    private func scaleIngredientsForPortion(oldMultiplier: Double, newMultiplier: Double) {
+        guard oldMultiplier > 0, !ingredients.isEmpty else { return }
+
+        // Apply the new portion multiplier to all ingredients
+        for i in ingredients.indices {
+            ingredients[i].applyPortionMultiplier(newMultiplier)
+        }
+
+        #if DEBUG
+        print("📐 Scaled ingredients for portion \(newMultiplier)x:")
+        for ingredient in ingredients {
+            print("   \(ingredient.name): \(String(format: "%.0f", ingredient.grams))g")
+        }
+        #endif
+    }
+
     private func saveMeal() {
         // Values are already in grams (no conversion needed)
         let proteinValue = Double(protein) ?? 0
@@ -333,11 +379,15 @@ struct NutritionReviewView: View {
         // Convert photo to JPEG data if available (0.8 quality for good balance of size/quality)
         let photoData: Data? = capturedImage?.jpegData(compressionQuality: 0.8)
 
-        // Convert ingredients from edited state to MealIngredient models
+        // Convert ingredients from edited state to MealIngredient models (include per-ingredient macros)
         let mealIngredients = ingredients.isEmpty ? nil : ingredients.map { ingredientData in
             MealIngredient(
                 name: ingredientData.name,
-                grams: ingredientData.grams
+                grams: ingredientData.grams,
+                calories: ingredientData.calories,
+                protein: ingredientData.protein,
+                carbs: ingredientData.carbs,
+                fat: ingredientData.fat
             )
         }
 
@@ -416,9 +466,9 @@ struct NutritionReviewView: View {
         estimatedGrams: 250.0,
         hasPackaging: false,
         ingredients: [
-            FoodRecognitionService.IngredientData(name: "Chicken breast, grilled", grams: 150),
-            FoodRecognitionService.IngredientData(name: "Lettuce, romaine", grams: 50),
-            FoodRecognitionService.IngredientData(name: "Tomatoes, cherry", grams: 30)
+            FoodRecognitionService.IngredientData(name: "Chicken breast, grilled", grams: 150, calories: 248, protein: 46.5, carbs: 0, fat: 5.4),
+            FoodRecognitionService.IngredientData(name: "Lettuce, romaine", grams: 50, calories: 8, protein: 0.6, carbs: 1.5, fat: 0.2),
+            FoodRecognitionService.IngredientData(name: "Tomatoes, cherry", grams: 30, calories: 5, protein: 0.3, carbs: 1.2, fat: 0.1)
         ]
     )
 

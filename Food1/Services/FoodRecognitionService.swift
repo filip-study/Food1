@@ -63,10 +63,14 @@ class FoodRecognitionService: ObservableObject {
         }
     }
 
-    /// Ingredient data from GPT-4o (for micronutrient tracking)
+    /// Ingredient data from GPT-4o (for micronutrient tracking and macro recalculation)
     struct IngredientData: Codable {
         let name: String     // e.g., "grilled chicken breast", "romaine lettuce"
         let grams: Double    // Estimated grams (15% conservative reduction already applied by GPT-4o)
+        let calories: Double?  // Per-ingredient calories (enables recalculation when editing)
+        let protein: Double?   // Per-ingredient protein
+        let carbs: Double?     // Per-ingredient carbs
+        let fat: Double?       // Per-ingredient fat
     }
 
     // MARK: - Food Recognition

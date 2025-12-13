@@ -394,7 +394,11 @@ class OpenAIVisionService: ObservableObject {
             let ingredients = predData.ingredients?.map { ingredientData in
                 FoodRecognitionService.IngredientData(
                     name: ingredientData.name,
-                    grams: ingredientData.grams
+                    grams: ingredientData.grams,
+                    calories: ingredientData.calories,
+                    protein: ingredientData.protein,
+                    carbs: ingredientData.carbs,
+                    fat: ingredientData.fat
                 )
             }
 
@@ -499,6 +503,10 @@ private struct ProxyResponse: Decodable {
     struct IngredientData: Decodable {
         let name: String
         let grams: Double
+        let calories: Double?
+        let protein: Double?
+        let carbs: Double?
+        let fat: Double?
     }
 
     struct NutritionData: Decodable {
