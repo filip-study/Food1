@@ -201,6 +201,10 @@ class AuthViewModel: ObservableObject {
 
         // Load profile data
         await loadUserData()
+
+        // Trigger initial sync after successful sign-in
+        print("🔄 Triggering initial sync after Apple Sign In...")
+        SyncCoordinator.shared.triggerInitialSync()
     }
 
     // MARK: - Sign Out

@@ -71,17 +71,25 @@ class SyncCoordinator: ObservableObject {
     func configure(with container: ModelContainer) {
         self.modelContainer = container
         print("✅ SyncCoordinator configured with ModelContainer")
+        print("   isAuthenticated: \(supabase.isAuthenticated)")
 
         // If already authenticated, start periodic sync now
         if supabase.isAuthenticated {
+            print("   → User already authenticated, starting sync...")
             startPeriodicSync()
+        } else {
+            print("   → Waiting for authentication...")
         }
     }
 
     /// Listen for authentication state changes
     private func setupAuthListener() {
+        // Use dropFirst(0) to also receive the current value on subscription
         supabase.$isAuthenticated
+            .dropFirst(0)  // Ensures we get the current value immediately
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] isAuthenticated in
+                print("🔐 Auth state changed: \(isAuthenticated)")
                 if isAuthenticated {
                     self?.startPeriodicSync()
                 } else {
@@ -136,6 +144,19 @@ class SyncCoordinator: ObservableObject {
     }
 
     // MARK: - Manual Sync
+
+    /// Trigger initial sync after sign-in (uses configured ModelContainer)
+    func triggerInitialSync() {
+        guard let container = modelContainer else {
+            print("⚠️  Cannot trigger sync: ModelContainer not configured yet")
+            return
+        }
+
+        Task {
+            print("🔄 Starting initial sync...")
+            await syncAll(context: container.mainContext)
+        }
+    }
 
     /// Trigger full sync (upload pending + retry failed photos + download recent)
     /// - Parameter context: ModelContext (required for data access)
