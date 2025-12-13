@@ -329,11 +329,17 @@ struct NutritionReviewView: View {
         fat = String(format: "%.1f", nutrition.fat * multiplier)
     }
 
-    /// Recalculate meal macros from sum of ingredient macros
+    /// Recalculate meal macros and serving size from sum of ingredients
     /// Called when ingredients are edited (deleted or modified)
-    /// Only updates if ingredients have macro data (sum > 0), preserving prefilled values otherwise
+    /// Only updates macros if ingredients have macro data (sum > 0), preserving prefilled values otherwise
     private func recalculateMacrosFromIngredients() {
         guard !ingredients.isEmpty else { return }
+
+        // Always update total serving size to match ingredient sum
+        let totalGrams = ingredients.reduce(0) { $0 + $1.grams }
+        if totalGrams > 0 {
+            gramsPerServing = totalGrams / servingCount
+        }
 
         // Sum up all ingredient macros
         let totalCalories = ingredients.reduce(0) { $0 + $1.calories }
@@ -341,11 +347,11 @@ struct NutritionReviewView: View {
         let totalCarbs = ingredients.reduce(0) { $0 + $1.carbs }
         let totalFat = ingredients.reduce(0) { $0 + $1.fat }
 
-        // Only update if ingredients have macro data (prevents overwriting prefilled values with zeros)
+        // Only update macros if ingredients have macro data (prevents overwriting prefilled values with zeros)
         // This handles the transition period where AI may not return per-ingredient macros yet
         guard totalCalories > 0 || totalProtein > 0 || totalCarbs > 0 || totalFat > 0 else {
             #if DEBUG
-            print("⏭️ Skipping macro recalculation - ingredients have no macro data")
+            print("⏭️ Skipping macro recalculation - ingredients have no macro data (grams updated: \(Int(totalGrams))g)")
             #endif
             return
         }
@@ -357,8 +363,7 @@ struct NutritionReviewView: View {
         fat = String(format: "%.1f", totalFat)
 
         #if DEBUG
-        print("🔄 Recalculated macros from \(ingredients.count) ingredients:")
-        print("   Calories: \(calories), Protein: \(protein)g, Carbs: \(carbs)g, Fat: \(fat)g")
+        print("🔄 Recalculated from \(ingredients.count) ingredients: \(Int(totalGrams))g, \(calories) cal")
         #endif
     }
 
