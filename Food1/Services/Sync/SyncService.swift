@@ -83,6 +83,8 @@ class SyncService: ObservableObject {
             let mealData: [String: AnyEncodable] = [
                 "user_id": AnyEncodable(userId.uuidString),
                 "local_id": AnyEncodable(meal.id.uuidString),
+                "name": AnyEncodable(meal.name),
+                "emoji": AnyEncodable(meal.emoji),
                 "meal_type": AnyEncodable(meal.mealType ?? inferMealType(from: meal.timestamp)),
                 "timestamp": AnyEncodable(ISO8601DateFormatter().string(from: meal.timestamp)),
                 "photo_thumbnail_url": AnyEncodable(photoThumbnailUrl),
@@ -288,7 +290,8 @@ class SyncService: ObservableObject {
     /// Update local meal with cloud data
     private func updateLocalMeal(_ localMeal: Meal, from cloudMeal: CloudMeal) {
         localMeal.cloudId = cloudMeal.id
-        localMeal.name = cloudMeal.notes ?? localMeal.name
+        localMeal.name = cloudMeal.name ?? cloudMeal.notes ?? localMeal.name
+        localMeal.emoji = cloudMeal.emoji ?? localMeal.emoji
         localMeal.timestamp = cloudMeal.timestamp
         localMeal.calories = Double(cloudMeal.totalCalories ?? 0)
         localMeal.protein = cloudMeal.totalProteinG ?? 0
@@ -306,8 +309,8 @@ class SyncService: ObservableObject {
     private func createLocalMeal(from cloudMeal: CloudMeal) -> Meal {
         return Meal(
             id: cloudMeal.localId ?? UUID(),
-            name: cloudMeal.notes ?? "Meal",
-            emoji: "🍽️",
+            name: cloudMeal.name ?? cloudMeal.notes ?? "Meal",
+            emoji: cloudMeal.emoji ?? "🍽️",
             timestamp: cloudMeal.timestamp,
             calories: Double(cloudMeal.totalCalories ?? 0),
             protein: cloudMeal.totalProteinG ?? 0,
@@ -315,8 +318,8 @@ class SyncService: ObservableObject {
             fat: cloudMeal.totalFatG ?? 0,
             fiber: 0,
             notes: cloudMeal.notes,
-            photoData: nil,  // Download thumbnail separately if needed
-            ingredients: nil,  // Download ingredients separately
+            photoData: nil,  // Photos stored in cloud, thumbnail URL used for display
+            ingredients: nil,  // Populated by downloadIngredients()
             matchedIconName: nil,
             cloudId: cloudMeal.id,
             syncStatus: "synced",
@@ -326,6 +329,68 @@ class SyncService: ObservableObject {
             photoThumbnailUrl: cloudMeal.photoThumbnailUrl,
             cartoonImageUrl: cloudMeal.cartoonImageUrl
         )
+    }
+
+    // MARK: - Download Ingredients
+
+    /// Download ingredients for meals that have a cloudId but no local ingredients
+    func downloadIngredients(for meals: [Meal], context: ModelContext) async throws {
+        // Filter meals that need ingredient download
+        let mealsNeedingIngredients = meals.filter { meal in
+            meal.cloudId != nil && (meal.ingredients == nil || meal.ingredients!.isEmpty)
+        }
+
+        guard !mealsNeedingIngredients.isEmpty else { return }
+
+        print("📥 Downloading ingredients for \(mealsNeedingIngredients.count) meals...")
+
+        for meal in mealsNeedingIngredients {
+            guard let cloudId = meal.cloudId else { continue }
+
+            do {
+                let cloudIngredients: [CloudIngredientFull] = try await supabase.client
+                    .from("meal_ingredients")
+                    .select()
+                    .eq("meal_id", value: cloudId.uuidString)
+                    .execute()
+                    .value
+
+                if !cloudIngredients.isEmpty {
+                    var localIngredients: [MealIngredient] = []
+
+                    for cloudIng in cloudIngredients {
+                        let ingredient = MealIngredient(
+                            name: cloudIng.name,
+                            grams: cloudIng.quantity,
+                            calories: Double(cloudIng.calories ?? 0),
+                            protein: cloudIng.proteinG ?? 0,
+                            carbs: cloudIng.carbsG ?? 0,
+                            fat: cloudIng.fatG ?? 0,
+                            usdaFdcId: cloudIng.usdaFdcId != nil ? String(cloudIng.usdaFdcId!) : nil
+                        )
+                        ingredient.cloudId = cloudIng.id
+                        ingredient.usdaDescription = cloudIng.usdaDescription
+                        ingredient.enrichmentAttempted = cloudIng.enrichmentAttempted ?? false
+
+                        // Restore micronutrients from JSON
+                        if let jsonString = cloudIng.micronutrientsJson,
+                           let jsonData = jsonString.data(using: .utf8) {
+                            ingredient.cachedMicronutrientsJSON = jsonData
+                        }
+
+                        localIngredients.append(ingredient)
+                    }
+
+                    meal.ingredients = localIngredients
+                    print("  ✅ Downloaded \(localIngredients.count) ingredients for meal \(meal.name)")
+                }
+            } catch {
+                print("  ⚠️ Failed to download ingredients for meal \(meal.id): \(error)")
+                // Continue with other meals
+            }
+        }
+
+        try context.save()
     }
 
     // MARK: - Photo Retry
@@ -476,6 +541,8 @@ struct CloudMeal: Codable {
     let id: UUID?
     let userId: UUID?
     let localId: UUID?
+    let name: String?
+    let emoji: String?
     let mealType: String?
     let timestamp: Date
     let photoThumbnailUrl: String?
@@ -495,6 +562,8 @@ struct CloudMeal: Codable {
         case id
         case userId = "user_id"
         case localId = "local_id"
+        case name
+        case emoji
         case mealType = "meal_type"
         case timestamp
         case photoThumbnailUrl = "photo_thumbnail_url"
@@ -527,6 +596,51 @@ struct CloudIngredient: Codable {
         case name
         case quantity
         case unit
+    }
+}
+
+/// Full ingredient data for download (includes all fields)
+struct CloudIngredientFull: Codable {
+    let id: UUID
+    let mealId: UUID
+    let localId: UUID?
+    let name: String
+    let quantity: Double
+    let unit: String
+    let calories: Int?
+    let proteinG: Double?
+    let carbsG: Double?
+    let fatG: Double?
+    let fiberG: Double?
+    let sugarG: Double?
+    let saturatedFatG: Double?
+    let sodiumMg: Double?
+    let usdaFdcId: Int?
+    let usdaDescription: String?
+    let enrichmentAttempted: Bool?
+    let enrichmentMethod: String?
+    let micronutrientsJson: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case mealId = "meal_id"
+        case localId = "local_id"
+        case name
+        case quantity
+        case unit
+        case calories
+        case proteinG = "protein_g"
+        case carbsG = "carbs_g"
+        case fatG = "fat_g"
+        case fiberG = "fiber_g"
+        case sugarG = "sugar_g"
+        case saturatedFatG = "saturated_fat_g"
+        case sodiumMg = "sodium_mg"
+        case usdaFdcId = "usda_fdc_id"
+        case usdaDescription = "usda_description"
+        case enrichmentAttempted = "enrichment_attempted"
+        case enrichmentMethod = "enrichment_method"
+        case micronutrientsJson = "micronutrients_json"
     }
 }
 

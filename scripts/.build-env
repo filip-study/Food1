@@ -1,0 +1,4 @@
+# App Store Connect API Credentials
+# This file is gitignored - NEVER commit to version control
+export ASC_KEY_ID="W9M6J9T5GS"
+export ASC_ISSUER_ID="87e7ba41-d534-41c1-a7db-7e2c239a1e73"

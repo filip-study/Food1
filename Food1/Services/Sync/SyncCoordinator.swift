@@ -163,6 +163,14 @@ class SyncCoordinator: ObservableObject {
             // Step 3: Download recent meals (last 30 days)
             let downloadedCount = try await syncService.downloadRecentMeals(context: context, days: 30)
 
+            // Step 4: Download ingredients for meals missing them
+            let mealsNeedingIngredients = try context.fetch(FetchDescriptor<Meal>(
+                predicate: #Predicate { meal in
+                    meal.cloudId != nil
+                }
+            ))
+            try await syncService.downloadIngredients(for: mealsNeedingIngredients, context: context)
+
             // Update state
             lastSyncDate = Date()
             print("✅ Sync complete: uploaded \(uploadedCount), photos retried \(photoRetryCount), downloaded \(downloadedCount)")

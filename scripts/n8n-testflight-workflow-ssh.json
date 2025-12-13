@@ -1,0 +1,194 @@
+{
+  "name": "Food1 Daily TestFlight Build (SSH)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 5 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Daily 5 AM Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "execute",
+        "command": "/Users/filip/Documents/git/Food1/scripts/build-testflight.sh"
+      },
+      "id": "ssh-build",
+      "name": "Build & Upload to TestFlight",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [500, 300],
+      "credentials": {
+        "sshPassword": {
+          "id": "CONFIGURE_ME",
+          "name": "Mac Host SSH"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-success",
+              "leftValue": "={{ $json.exitCode }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-result",
+      "name": "Check Build Result",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "status",
+              "name": "status",
+              "value": "success",
+              "type": "string"
+            },
+            {
+              "id": "message",
+              "name": "message",
+              "value": "=Food1 TestFlight build completed successfully at {{ $now.format('yyyy-MM-dd HH:mm') }}",
+              "type": "string"
+            },
+            {
+              "id": "output",
+              "name": "output",
+              "value": "={{ $json.stdout }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "success-output",
+      "name": "Build Succeeded",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1000, 200]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "status",
+              "name": "status",
+              "value": "failed",
+              "type": "string"
+            },
+            {
+              "id": "message",
+              "name": "message",
+              "value": "=Food1 TestFlight build FAILED at {{ $now.format('yyyy-MM-dd HH:mm') }}",
+              "type": "string"
+            },
+            {
+              "id": "error",
+              "name": "error",
+              "value": "={{ $json.stderr }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "failure-output",
+      "name": "Build Failed",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1000, 400]
+    }
+  ],
+  "connections": {
+    "Daily 5 AM Trigger": {
+      "main": [
+        [
+          {
+            "node": "Build & Upload to TestFlight",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build & Upload to TestFlight": {
+      "main": [
+        [
+          {
+            "node": "Check Build Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Build Result": {
+      "main": [
+        [
+          {
+            "node": "Build Succeeded",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "errorWorkflow": "",
+    "timezone": "Europe/Warsaw"
+  },
+  "tags": [
+    {
+      "name": "iOS",
+      "id": "ios-tag"
+    },
+    {
+      "name": "CI/CD",
+      "id": "cicd-tag"
+    }
+  ],
+  "meta": {
+    "instanceId": "local"
+  }
+}
