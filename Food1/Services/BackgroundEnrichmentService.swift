@@ -47,6 +47,14 @@ class BackgroundEnrichmentService {
                 continue
             }
 
+            // Skip if enrichment was already attempted (prevents re-trying failed matches)
+            guard !ingredient.enrichmentAttempted else {
+                #if DEBUG
+                print("⏭️  [\(index + 1)/\(ingredients.count)] Skipping '\(ingredient.name)' (already attempted, no match)\n")
+                #endif
+                continue
+            }
+
             #if DEBUG
             print("🔄 [\(index + 1)/\(ingredients.count)] Processing: '\(ingredient.name)'")
             print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
