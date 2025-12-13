@@ -5,7 +5,7 @@
 //  Detailed meal view with photo, macros, micronutrients, and notes.
 //
 //  WHY THIS ARCHITECTURE:
-//  - FlippableImageView (photo/cartoon flip) adds interactive delight
+//  - Uses MealImageView for 3-layer image hierarchy: photoData → photoThumbnailUrl → emoji
 //  - Macro section displays nutrition in compact rows with color-coded icons
 //  - Micronutrient section shows RDA progress bars with color thresholds (deficient→excellent)
 //  - Enrichment progress indicator shows real-time status during background USDA lookups
@@ -86,22 +86,8 @@ struct MealDetailView: View {
             VStack(spacing: 24) {
                 // Header with photo/emoji
                 VStack(spacing: 12) {
-                    // Show photo or emoji
-                    if let imageData = meal.photoData,
-                       let uiImage = UIImage(data: imageData) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: 120, height: 120)
-                            .clipShape(RoundedRectangle(cornerRadius: 20))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 20)
-                                    .strokeBorder(Color(.separator).opacity(0.3), lineWidth: 1)
-                            )
-                    } else {
-                        Text(meal.emoji)
-                            .font(.system(size: 80))
-                    }
+                    // Show photo or emoji - uses 3-layer hierarchy: photoData → photoThumbnailUrl → emoji
+                    MealImageView(meal: meal, size: 120, cornerRadius: 20)
 
                     Text(meal.name)
                         .font(.system(size: 28, weight: .bold))

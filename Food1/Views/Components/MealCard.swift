@@ -5,7 +5,7 @@
 //  Meal summary card with 3-layer image hierarchy and macro indicators.
 //
 //  WHY THIS ARCHITECTURE:
-//  - 3-layer image hierarchy: photo (if available) → cartoon icon → emoji fallback
+//  - Uses MealImageView for 3-layer image hierarchy: photoData → photoThumbnailUrl → emoji
 //  - Sparkle badge on AI-generated cartoon icons (visual indicator of AI magic)
 //  - 2-line .lineLimit for food names handles 40-char names without overflow
 //  - Time moved below name (not inline) provides more horizontal space for longer names
@@ -38,36 +38,8 @@ struct MealCard: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            // Photo or Emoji (cleaner, more compact)
-            Group {
-                if let imageData = meal.photoData,
-                   let uiImage = UIImage(data: imageData) {
-                    // Layer 1: Show captured food photo
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 80, height: 80)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 14)
-                                .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
-                        )
-                        .shadow(color: Color.black.opacity(0.15), radius: 6, x: 0, y: 3)
-                } else {
-                    // Layer 2: Fallback to emoji
-                    Text(meal.emoji)
-                        .font(.system(size: 44))
-                        .frame(width: 80, height: 80)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14)
-                                .fill(Color(.systemGray6).opacity(0.3))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 14)
-                                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
-                                )
-                        )
-                }
-            }
+            // Photo or Emoji - uses 3-layer hierarchy: photoData → photoThumbnailUrl → emoji
+            MealImageView(meal: meal, size: 80, cornerRadius: 14)
 
             // Meal info with clean hierarchy
             VStack(alignment: .leading, spacing: 6) {
