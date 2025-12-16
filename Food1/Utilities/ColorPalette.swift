@@ -57,6 +57,9 @@ struct ColorPalette {
     /// Fat macro color - Warm Coral
     static let macroFat = Color(hex: "#FB7185")
 
+    /// Calories color - Warm Amber (for area fills/totals)
+    static let calories = Color(hex: "#F59E0B")
+
     // MARK: - Helper Method for Progress Band Selection
 
     /// Returns appropriate gradient for given progress percentage

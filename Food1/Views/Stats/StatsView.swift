@@ -29,7 +29,6 @@ struct StatsView: View {
                             VStack(spacing: 0) {
                                 MacroTrendsChart(dailyData: stats.dailyData, period: selectedPeriod)
                                     .padding(.vertical, 20)
-                                    .padding(.horizontal, 12)
                             }
                             .background(
                                 RoundedRectangle(cornerRadius: 0)
