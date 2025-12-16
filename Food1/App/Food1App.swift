@@ -26,6 +26,7 @@ struct Food1App: App {
     @State private var databaseErrorMessage = ""
     @StateObject private var authViewModel = AuthViewModel()
     @StateObject private var migrationService = MigrationService.shared
+    @Environment(\.scenePhase) private var scenePhase
 
     // Background task identifier
     private static let enrichmentTaskIdentifier = "com.filipolszak.Food1.enrichment"
@@ -254,6 +255,16 @@ struct Food1App: App {
             }
         }
         .modelContainer(modelContainer)
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            // Refresh subscription status when app comes to foreground
+            if newPhase == .active && authViewModel.isAuthenticated {
+                Task {
+                    await authViewModel.refreshSubscription()
+                    // Also refresh StoreKit entitlements
+                    await SubscriptionService.shared.updateSubscriptionStatus()
+                }
+            }
+        }
     }
 
     /// Resume enrichment for any ingredients that weren't processed

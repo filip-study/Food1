@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		DC4C17092EF18211007E07F9 /* Products.storekit in Resources */ = {isa = PBXBuildFile; fileRef = DC4C17072EF18211007E07F9 /* Products.storekit */; };
 		DC9FFC632ED4831E00FE62FB /* food1.icon in Resources */ = {isa = PBXBuildFile; fileRef = DC9FFC622ED4831E00FE62FB /* food1.icon */; };
 		DCD841F72EE038F800563D18 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = DCD841F62EE038F800563D18 /* Auth */; };
 		DCD841F92EE038F800563D18 /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = DCD841F82EE038F800563D18 /* Functions */; };
@@ -28,6 +29,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		DC4C17072EF18211007E07F9 /* Products.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Products.storekit; sourceTree = "<group>"; };
 		DC65CB812EB8EA5900B066D7 /* Food1.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Food1.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC9FFC622ED4831E00FE62FB /* food1.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = food1.icon; sourceTree = "<group>"; };
 		DCE02B032EE2D80300E695FB /* Food1Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Food1Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -102,6 +104,7 @@
 				DC5B52B62EBBA39500D0439E /* Frameworks */,
 				DCBD08E72EBFA23400F8867C /* Recovered References */,
 				DC9FFC622ED4831E00FE62FB /* food1.icon */,
+				DC4C17072EF18211007E07F9 /* Products.storekit */,
 			);
 			sourceTree = "<group>";
 		};
@@ -223,6 +226,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DC4C17092EF18211007E07F9 /* Products.storekit in Resources */,
 				DC9FFC632ED4831E00FE62FB /* food1.icon in Resources */,
 				USDA00000000000000000001 /* usda_nutrients.db in Resources */,
 			);

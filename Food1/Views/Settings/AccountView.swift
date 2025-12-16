@@ -16,6 +16,7 @@ struct AccountView: View {
 
     @State private var showingSignOutConfirmation = false
     @State private var isSigningOut = false
+    @State private var showingPaywall = false
 
     var body: some View {
         NavigationStack {
@@ -47,8 +48,24 @@ struct AccountView: View {
                 // Subscription Section
                 Section {
                     if let subscription = authViewModel.subscription {
+                        // Premium active (paid subscription)
+                        if authViewModel.hasPaidSubscription {
+                            HStack {
+                                Image(systemName: "crown.fill")
+                                    .foregroundColor(.yellow)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Premium Active")
+                                        .font(.system(size: 16, weight: .semibold))
+                                    if let expiresAt = subscription.subscriptionExpiresAt {
+                                        Text("Renews \(expiresAt.formatted(date: .abbreviated, time: .omitted))")
+                                            .font(.system(size: 14))
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                            }
+                        }
                         // Trial status
-                        if subscription.isInTrial {
+                        else if subscription.isInTrial {
                             HStack {
                                 Image(systemName: "gift.fill")
                                     .foregroundColor(.green)
@@ -60,20 +77,46 @@ struct AccountView: View {
                                         .foregroundColor(.secondary)
                                 }
                             }
-                        } else {
-                            HStack {
-                                Image(systemName: subscription.isActive ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                    .foregroundColor(subscription.isActive ? .green : .red)
-                                Text(subscription.subscriptionType.rawValue.capitalized)
+
+                            // Trial expiration warning
+                            if authViewModel.shouldShowTrialWarning {
+                                Text("Your trial expires soon. Subscribe to keep access.")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.orange)
+                                    .padding(.top, 4)
+                            }
+
+                            // Upgrade button during trial
+                            Button(action: { showingPaywall = true }) {
+                                HStack {
+                                    Image(systemName: "sparkles")
+                                    Text("Upgrade to Premium")
+                                }
+                                .foregroundColor(.blue)
                             }
                         }
+                        // Expired/cancelled - no access
+                        else {
+                            HStack {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.red)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Subscription Expired")
+                                        .font(.system(size: 16, weight: .semibold))
+                                    Text("Subscribe to continue logging meals")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
 
-                        // Trial expiration warning
-                        if authViewModel.shouldShowTrialWarning {
-                            Text("Your trial expires soon. Consider subscribing to keep access.")
-                                .font(.system(size: 13))
-                                .foregroundColor(.orange)
-                                .padding(.top, 4)
+                            // Resubscribe button
+                            Button(action: { showingPaywall = true }) {
+                                HStack {
+                                    Image(systemName: "sparkles")
+                                    Text("Subscribe to Premium")
+                                }
+                                .foregroundColor(.blue)
+                            }
                         }
                     }
                 } header: {
@@ -115,6 +158,9 @@ struct AccountView: View {
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("Are you sure you want to sign out?")
+            }
+            .sheet(isPresented: $showingPaywall) {
+                PaywallView()
             }
         }
     }

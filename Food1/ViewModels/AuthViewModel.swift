@@ -299,7 +299,7 @@ class AuthViewModel: ObservableObject {
 
     /// Is trial still active?
     var isTrialActive: Bool {
-        subscription?.isActive ?? false
+        subscription?.isInTrial ?? false
     }
 
     /// Days remaining in trial
@@ -310,6 +310,52 @@ class AuthViewModel: ObservableObject {
     /// Should show trial expiration warning?
     var shouldShowTrialWarning: Bool {
         isTrialActive && trialDaysRemaining <= 3
+    }
+
+    /// Has user paid for subscription (not just trial)?
+    /// Also verifies the subscription hasn't expired based on Supabase data
+    var hasPaidSubscription: Bool {
+        guard subscription?.subscriptionType == .active else { return false }
+
+        // If we have an expiration date, verify it hasn't passed
+        if let expiresAt = subscription?.subscriptionExpiresAt {
+            return expiresAt > Date()
+        }
+
+        // No expiration date means indefinite (shouldn't happen for subscriptions, but safe fallback)
+        return true
+    }
+
+    /// Does user have access to premium features? (trial OR paid subscription)
+    /// This is the main gate for premium features
+    var hasAccess: Bool {
+        isTrialActive || hasPaidSubscription
+    }
+
+    // MARK: - Refresh Subscription
+
+    /// Reload subscription status from Supabase (call after purchase)
+    func refreshSubscription() async {
+        do {
+            let userId = try await supabase.requireUserId()
+
+            let subscriptionResponse: SubscriptionStatus = try await supabase.client.database
+                .from("subscription_status")
+                .select()
+                .eq("user_id", value: userId.uuidString)
+                .single()
+                .execute()
+                .value
+
+            await MainActor.run {
+                self.subscription = subscriptionResponse
+            }
+
+            print("✅ Refreshed subscription: \(subscriptionResponse.subscriptionType.rawValue)")
+
+        } catch {
+            print("⚠️ Failed to refresh subscription: \(error)")
+        }
     }
 
     // MARK: - Email Confirmation

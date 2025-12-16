@@ -18,8 +18,10 @@ import SwiftData
 struct MainTabView: View {
     @State private var selectedTab: NavigationTab = .meals
     @State private var selectedEntryMode: MealEntryMode? = nil  // Triggers fullScreenCover when set
+    @State private var showingPaywall = false  // Paywall gate for expired/no subscription
     @AppStorage("appTheme") private var selectedTheme: AppTheme = .system
     @Environment(\.colorScheme) private var colorScheme
+    @EnvironmentObject var authViewModel: AuthViewModel
     @Query(sort: \Meal.timestamp, order: .reverse) private var allMeals: [Meal]
 
     // Calculate today's meals for floating button
@@ -68,7 +70,14 @@ struct MainTabView: View {
             FloatingPillNavigation(
                 selectedTab: $selectedTab,
                 onEntryModeSelected: { mode in
-                    selectedEntryMode = mode
+                    // Paywall gate: check if user has access before allowing meal entry
+                    if authViewModel.hasAccess {
+                        selectedEntryMode = mode
+                    } else {
+                        // Show paywall instead - trial expired or no subscription
+                        HapticManager.medium()
+                        showingPaywall = true
+                    }
                 },
                 calorieProgress: todayCalorieProgress,
                 hasLoggedMeals: hasLoggedMealsToday
@@ -78,9 +87,13 @@ struct MainTabView: View {
         .fullScreenCover(item: $selectedEntryMode) { mode in
             QuickAddMealView(selectedDate: Date(), initialEntryMode: mode)
         }
+        .sheet(isPresented: $showingPaywall) {
+            PaywallView()
+        }
     }
 }
 
 #Preview {
     MainTabView()
+        .environmentObject(AuthViewModel())
 }
