@@ -57,6 +57,18 @@ struct MacroTrendsChart: View {
         return segments
     }
 
+    /// Isolated data points - single-day segments that can't form lines
+    /// These are the ONLY points that need dots (no adjacent days to connect to)
+    /// Note: First and last segments always have edge extensions, so they're never truly isolated
+    private var isolatedPoints: [DailyDataPoint] {
+        // Need at least 3 segments for any to be "middle" (truly isolated)
+        guard dataSegments.count >= 3 else { return [] }
+
+        // Only middle segments can be isolated (first has left edge, last has right edge)
+        let middleSegments = Array(dataSegments.dropFirst().dropLast())
+        return middleSegments.filter { $0.count == 1 }.compactMap { $0.first }
+    }
+
     /// Gap bridges - pairs of consecutive data points that have a gap between them
     private var gapBridges: [(from: DailyDataPoint, to: DailyDataPoint)] {
         let sortedData = dailyData.sorted { $0.date < $1.date }
@@ -243,28 +255,28 @@ struct MacroTrendsChart: View {
                     }
                 }
 
-                // DOTS at actual data points (not on synthetic edge points)
-                ForEach(daysWithData) { day in
+                // DOTS only for isolated points (single days with no adjacent data to form lines)
+                ForEach(isolatedPoints) { day in
                     PointMark(
                         x: .value("Date", day.date),
                         y: .value("Protein", day.protein)
                     )
                     .foregroundStyle(proteinColor)
-                    .symbolSize(25)
+                    .symbolSize(30)
 
                     PointMark(
                         x: .value("Date", day.date),
                         y: .value("Carbs", day.carbs)
                     )
                     .foregroundStyle(carbsColor)
-                    .symbolSize(25)
+                    .symbolSize(30)
 
                     PointMark(
                         x: .value("Date", day.date),
                         y: .value("Fat", day.fat)
                     )
                     .foregroundStyle(fatColor)
-                    .symbolSize(25)
+                    .symbolSize(30)
                 }
 
                 // DASHED LINES FOR GAPS - connect data points across missing days
@@ -409,6 +421,31 @@ private struct StaticChartHeader: View {
     let fatColor: Color
     let caloriesColor: Color
 
+    // Compute period averages (only days with actual data)
+    private var daysWithData: [DailyDataPoint] {
+        dailyData.filter { $0.mealCount > 0 }
+    }
+
+    private var avgProtein: Double {
+        guard !daysWithData.isEmpty else { return 0 }
+        return daysWithData.reduce(0) { $0 + $1.protein } / Double(daysWithData.count)
+    }
+
+    private var avgCarbs: Double {
+        guard !daysWithData.isEmpty else { return 0 }
+        return daysWithData.reduce(0) { $0 + $1.carbs } / Double(daysWithData.count)
+    }
+
+    private var avgFat: Double {
+        guard !daysWithData.isEmpty else { return 0 }
+        return daysWithData.reduce(0) { $0 + $1.fat } / Double(daysWithData.count)
+    }
+
+    private var avgCalories: Double {
+        guard !daysWithData.isEmpty else { return 0 }
+        return daysWithData.reduce(0) { $0 + $1.calories } / Double(daysWithData.count)
+    }
+
     private var periodDescription: String {
         guard let firstDate = dailyData.first?.date,
               let lastDate = dailyData.last?.date else {
@@ -423,12 +460,21 @@ private struct StaticChartHeader: View {
         return "\(start) – \(end)"
     }
 
+    /// Display string for selected day: day name for week view, date for other periods
+    private func selectedDayLabel(_ data: DailyDataPoint) -> String {
+        if period == .week {
+            return data.dayOfWeek  // "Mon", "Tue", etc.
+        } else {
+            return data.shortDate  // "12/14"
+        }
+    }
+
     var body: some View {
         VStack(spacing: 12) {
             // Context row - shows period or selected date
             HStack {
                 if let data = selectedData {
-                    Text(data.shortDate)
+                    Text(selectedDayLabel(data))
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.primary)
                         .transition(.asymmetric(
@@ -436,10 +482,20 @@ private struct StaticChartHeader: View {
                             removal: .opacity
                         ))
                 } else {
-                    Text(periodDescription)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
-                        .transition(.opacity)
+                    HStack(spacing: 6) {
+                        Text(periodDescription)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.secondary)
+
+                        Text("avg")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.secondary.opacity(0.7))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.secondary.opacity(0.12))
+                            .cornerRadius(4)
+                    }
+                    .transition(.opacity)
                 }
 
                 Spacer()
@@ -451,31 +507,35 @@ private struct StaticChartHeader: View {
             HStack(spacing: 16) {
                 MacroLegendValue(
                     label: "Protein",
-                    value: selectedData?.protein,
+                    value: selectedData?.protein ?? avgProtein,
                     unit: "g",
-                    color: proteinColor
+                    color: proteinColor,
+                    isAverage: selectedData == nil
                 )
 
                 MacroLegendValue(
                     label: "Carbs",
-                    value: selectedData?.carbs,
+                    value: selectedData?.carbs ?? avgCarbs,
                     unit: "g",
-                    color: carbsColor
+                    color: carbsColor,
+                    isAverage: selectedData == nil
                 )
 
                 MacroLegendValue(
                     label: "Fat",
-                    value: selectedData?.fat,
+                    value: selectedData?.fat ?? avgFat,
                     unit: "g",
-                    color: fatColor
+                    color: fatColor,
+                    isAverage: selectedData == nil
                 )
 
                 MacroLegendValue(
                     label: "Cal",
-                    value: selectedData?.calories,
+                    value: selectedData?.calories ?? avgCalories,
                     unit: "",
                     color: caloriesColor,
-                    isGradientIndicator: true
+                    isGradientIndicator: true,
+                    isAverage: selectedData == nil
                 )
 
                 Spacer()
@@ -490,6 +550,7 @@ private struct MacroLegendValue: View {
     let unit: String
     let color: Color
     var isGradientIndicator: Bool = false
+    var isAverage: Bool = false  // When true, shows value with softer styling
 
     var body: some View {
         HStack(alignment: .center, spacing: 6) {
@@ -516,10 +577,16 @@ private struct MacroLegendValue: View {
                     .font(.system(size: 11, weight: .medium))
                     .foregroundColor(.secondary)
 
-                // Value row - always present to maintain layout, just changes content
-                Text(value != nil ? formatValue(value!, unit: unit) : "–")
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundColor(value != nil ? color : .secondary.opacity(0.5))
+                // Value row - averages shown with "~" prefix and softer color
+                if let val = value, val > 0 {
+                    Text(isAverage ? "~\(formatValue(val, unit: unit))" : formatValue(val, unit: unit))
+                        .font(.system(size: 14, weight: isAverage ? .semibold : .bold, design: .rounded))
+                        .foregroundColor(isAverage ? color.opacity(0.7) : color)
+                } else {
+                    Text("–")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundColor(.secondary.opacity(0.5))
+                }
             }
             .frame(minWidth: 50, alignment: .leading)
         }

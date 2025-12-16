@@ -29,6 +29,19 @@ struct MealEditView: View {
     // Default emoji for all meals
     private let selectedEmoji = "🍽️"
 
+    // Dynamic time range: only restrict to "now" if editing a meal for today
+    private var timeRange: PartialRangeThrough<Date> {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(mealDate) {
+            // Today: can't log future meals
+            return ...Date()
+        } else {
+            // Past date: allow any time (end of that day)
+            let endOfSelectedDay = calendar.date(bySettingHour: 23, minute: 59, second: 59, of: mealDate) ?? mealDate
+            return ...endOfSelectedDay
+        }
+    }
+
     init(editingMeal: Meal) {
         self.editingMeal = editingMeal
 
@@ -68,7 +81,7 @@ struct MealEditView: View {
                     DatePicker(
                         "Time",
                         selection: $mealTime,
-                        in: ...Date(),
+                        in: timeRange,
                         displayedComponents: .hourAndMinute
                     )
                     .datePickerStyle(.compact)
@@ -178,6 +191,9 @@ struct MealEditView: View {
             editingMeal.carbs = carbsValue
             editingMeal.fat = fatValue
             editingMeal.notes = notes.isEmpty ? nil : notes
+
+            // Mark for sync so changes are uploaded to backend
+            editingMeal.syncStatus = "pending"
         }
 
         // If date changed, invalidate statistics for both old and new dates

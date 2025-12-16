@@ -19,11 +19,63 @@ struct StatsView: View {
     @State private var statistics: StatisticsSummary?
     @State private var isLoading = true
 
+    // Unlock tracking
+    @Query(sort: \Meal.timestamp, order: .reverse) private var allMeals: [Meal]
+
+    // MARK: - Period Unlock Logic
+
+    /// Days with at least 1 meal in the past 30 days
+    private var daysWithDataLast30: Int {
+        let calendar = Calendar.current
+        let thirtyDaysAgo = calendar.date(byAdding: .day, value: -30, to: Date())!
+        let recentMeals = allMeals.filter { $0.timestamp >= thirtyDaysAgo }
+        let uniqueDays = Set(recentMeals.map { calendar.startOfDay(for: $0.timestamp) })
+        return uniqueDays.count
+    }
+
+    /// Oldest meal timestamp (nil if no meals)
+    private var oldestMealDate: Date? {
+        allMeals.min(by: { $0.timestamp < $1.timestamp })?.timestamp
+    }
+
+    /// Days since oldest meal
+    private var daysSinceOldestMeal: Int {
+        guard let oldest = oldestMealDate else { return 0 }
+        return Calendar.current.dateComponents([.day], from: oldest, to: Date()).day ?? 0
+    }
+
+    /// Month view: 10+ days with data in past 30 days
+    private var isMonthUnlocked: Bool {
+        daysWithDataLast30 >= 10
+    }
+
+    /// Quarter view: Month unlocked + at least 1 meal 40+ days ago
+    private var isQuarterUnlocked: Bool {
+        isMonthUnlocked && daysSinceOldestMeal >= 40
+    }
+
+    /// Year view: 50+ total meals + at least 1 meal 100+ days ago
+    private var isYearUnlocked: Bool {
+        allMeals.count >= 50 && daysSinceOldestMeal >= 100
+    }
+
+    private func isPeriodUnlocked(_ period: StatsPeriod) -> Bool {
+        switch period {
+        case .week: return true
+        case .month: return isMonthUnlocked
+        case .quarter: return isQuarterUnlocked
+        case .year: return isYearUnlocked
+        }
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 0) {
-                    if let stats = statistics {
+                    // Check if selected period is locked
+                    if !isPeriodUnlocked(selectedPeriod) {
+                        LockedPeriodView(period: selectedPeriod)
+                    } else if let stats = statistics {
                         if stats.totalMeals >= 1 {
                             // Chart section - edge-to-edge immersive
                             VStack(spacing: 0) {
@@ -86,14 +138,21 @@ struct StatsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    CapsulePeriodSelector(selectedPeriod: $selectedPeriod)
+                    CapsulePeriodSelector(
+                        selectedPeriod: $selectedPeriod,
+                        isPeriodUnlocked: isPeriodUnlocked
+                    )
                 }
             }
             .task(id: selectedPeriod) {
-                await loadStatistics()
+                if isPeriodUnlocked(selectedPeriod) {
+                    await loadStatistics()
+                }
             }
             .refreshable {
-                await loadStatistics()
+                if isPeriodUnlocked(selectedPeriod) {
+                    await loadStatistics()
+                }
             }
         }
     }
@@ -326,6 +385,7 @@ private struct NutrientRDARow: View {
 
 private struct CapsulePeriodSelector: View {
     @Binding var selectedPeriod: StatsPeriod
+    let isPeriodUnlocked: (StatsPeriod) -> Bool
     @Namespace private var animation
 
     private let periods: [(StatsPeriod, String)] = [
@@ -338,32 +398,45 @@ private struct CapsulePeriodSelector: View {
     var body: some View {
         HStack(spacing: 0) {
             ForEach(periods, id: \.0) { period, label in
+                let isUnlocked = isPeriodUnlocked(period)
+                let isSelected = selectedPeriod == period
+
                 Button {
                     withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
                         selectedPeriod = period
                     }
                     HapticManager.light()
                 } label: {
-                    Text(label)
-                        .font(.system(size: 13, weight: selectedPeriod == period ? .semibold : .medium, design: .rounded))
-                        .foregroundColor(selectedPeriod == period ? .white : .secondary)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 6)
-                        .background(
-                            ZStack {
-                                if selectedPeriod == period {
-                                    Capsule()
-                                        .fill(
-                                            LinearGradient(
-                                                colors: [Color.blue, Color.blue.opacity(0.85)],
-                                                startPoint: .topLeading,
-                                                endPoint: .bottomTrailing
-                                            )
+                    HStack(spacing: 4) {
+                        Text(label)
+                            .font(.system(size: 13, weight: isSelected ? .semibold : .medium, design: .rounded))
+
+                        if !isUnlocked {
+                            Image(systemName: "lock.fill")
+                                .font(.system(size: 8))
+                                .opacity(0.7)
+                        }
+                    }
+                    .foregroundColor(isSelected ? .white : (isUnlocked ? .secondary : .secondary.opacity(0.5)))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(
+                        ZStack {
+                            if isSelected {
+                                Capsule()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: isUnlocked
+                                                ? [Color.blue, Color.blue.opacity(0.85)]
+                                                : [Color.gray.opacity(0.6), Color.gray.opacity(0.4)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
                                         )
-                                        .matchedGeometryEffect(id: "selector", in: animation)
-                                }
+                                    )
+                                    .matchedGeometryEffect(id: "selector", in: animation)
                             }
-                        )
+                        }
+                    )
                 }
                 .buttonStyle(.plain)
             }
@@ -377,6 +450,36 @@ private struct CapsulePeriodSelector: View {
                         .strokeBorder(Color.white.opacity(0.1), lineWidth: 0.5)
                 )
         )
+    }
+}
+
+// MARK: - Locked Period View
+
+private struct LockedPeriodView: View {
+    let period: StatsPeriod
+
+    var body: some View {
+        VStack(spacing: 20) {
+            Spacer()
+
+            Image(systemName: "lock")
+                .font(.system(size: 48, weight: .light))
+                .foregroundColor(.secondary.opacity(0.6))
+
+            VStack(spacing: 8) {
+                Text("Not enough data yet")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.primary)
+
+                Text("Keep logging meals to unlock this view")
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 40)
     }
 }
 

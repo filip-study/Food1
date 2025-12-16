@@ -81,16 +81,11 @@ struct TodayView: View {
                         )
                         .padding(.top, 20)
 
-                        // Daily insight (only show if more than 3 meals logged today)
-                        if mealsForSelectedDate.count > 3 {
-                            InsightCard(
-                                icon: "flame.fill",
-                                title: "Great progress!",
-                                message: "You've hit your protein goal 5 days this week.",
-                                accentColor: .orange,
-                                onTap: { }
-                            )
-                        }
+                        // Daily insight - disabled pending redesign
+                        // TODO: Redesign with meaningful, data-driven insights
+                        // if mealsForSelectedDate.count > 3 {
+                        //     InsightCard(...)
+                        // }
 
                         // Meal timeline section
                         VStack(alignment: .leading, spacing: 20) {
@@ -135,7 +130,8 @@ struct TodayView: View {
                         }
                     }
                     .padding(.top, 8)
-                    }
+                    .padding(.bottom, 100)  // Clearance for tab bar + FAB
+                }
                 }
             }
             .offset(x: dragOffset)

@@ -9,7 +9,7 @@
 //  - Macro section displays nutrition in compact rows with color-coded icons
 //  - Micronutrient section shows RDA progress bars with color thresholds (deficient→excellent)
 //  - Enrichment progress indicator shows real-time status during background USDA lookups
-//  - "Show All" toggle prevents overwhelming users with 12+ micronutrients (shows top 5 by default)
+//  - "Show All" toggle prevents overwhelming users with many micronutrients (shows top 3 by default)
 //
 
 import SwiftUI
@@ -61,9 +61,9 @@ struct MealDetailView: View {
         return ingredients.contains { $0.usdaFdcId == nil }
     }
 
-    // Priority micronutrients (top 10 by RDA%)
+    // Priority micronutrients (top 3 by RDA%)
     private var priorityMicronutrients: [Micronutrient] {
-        Array(meal.micronutrients.prefix(10))
+        Array(meal.micronutrients.prefix(3))
     }
 
     // Micronutrients grouped by category
@@ -277,7 +277,7 @@ struct MealDetailView: View {
                                 }
                             }
                         } else {
-                            // Top 10 priority micronutrients
+                            // Top 3 priority micronutrients
                             ForEach(priorityMicronutrients) { micronutrient in
                                 MicronutrientRow(micronutrient: micronutrient)
 
@@ -288,7 +288,7 @@ struct MealDetailView: View {
                         }
 
                         // Show All / Show Less button
-                        if meal.micronutrients.count > 10 {
+                        if meal.micronutrients.count > 3 {
                             Button(action: {
                                 withAnimation {
                                     showAllMicronutrients.toggle()
@@ -491,6 +491,13 @@ struct MealDetailView: View {
 
     private func deleteMeal() {
         let mealDate = meal.timestamp
+
+        // Sync deletion to cloud BEFORE local deletion
+        // (Task captures meal reference, cloudId accessed before context invalidates object)
+        Task {
+            await SyncCoordinator.shared.deleteMeal(meal)
+        }
+
         withAnimation {
             modelContext.delete(meal)
         }

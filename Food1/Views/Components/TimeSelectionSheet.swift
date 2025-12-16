@@ -19,6 +19,19 @@ struct TimeSelectionSheet: View {
     @Binding var mealTime: Date
     @State private var showingDatePicker = false
 
+    // Dynamic time range: only restrict to "now" if meal is for today
+    private var timeRange: PartialRangeThrough<Date> {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(mealTime) {
+            // Today: can't log future meals
+            return ...Date()
+        } else {
+            // Past date: allow any time (end of that day)
+            let endOfSelectedDay = calendar.date(bySettingHour: 23, minute: 59, second: 59, of: mealTime) ?? mealTime
+            return ...endOfSelectedDay
+        }
+    }
+
     // Relative time description for display
     private var timeDescription: String {
         let formatter = DateFormatter()
@@ -53,7 +66,7 @@ struct TimeSelectionSheet: View {
                         DatePicker(
                             "",
                             selection: $mealTime,
-                            in: ...Date(),
+                            in: timeRange,
                             displayedComponents: .hourAndMinute
                         )
                         .datePickerStyle(.wheel)
