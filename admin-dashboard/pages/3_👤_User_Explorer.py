@@ -2,11 +2,15 @@
 
 import streamlit as st
 import pandas as pd
+from datetime import datetime, timezone
 
 st.set_page_config(page_title="User Explorer", page_icon="👤", layout="wide")
 
 try:
-    from utils.queries import get_all_users, get_user_meals, get_meal_ingredients, get_user_by_id
+    from utils.queries import (
+        get_all_users, get_user_meals, get_meal_ingredients, get_user_by_id,
+        get_user_subscription, extend_user_trial
+    )
     from utils.filters import render_filters, filter_by_time
 
     users_df = get_all_users()
@@ -34,6 +38,78 @@ try:
         joined = str(user.get("created_at", ""))[:10]
         info = f"**{email}**" + (f" ({name})" if name else "") + f" · {status} · joined {joined}"
         st.caption(info)
+
+    # ═══════════════════════════════════════════════════════════════════
+    # Subscription Management Section
+    # ═══════════════════════════════════════════════════════════════════
+    with st.expander("🔐 Subscription Management", expanded=False):
+        sub = get_user_subscription(user_id)
+
+        if sub:
+            col_status, col_trial, col_action = st.columns([1, 1, 1.5])
+
+            with col_status:
+                sub_type = sub.get("subscription_type", "unknown")
+                if sub_type == "active":
+                    st.success(f"**Status:** {sub_type.upper()} ✓")
+                elif sub_type == "trial":
+                    st.info(f"**Status:** {sub_type.upper()}")
+                else:
+                    st.error(f"**Status:** {sub_type.upper()}")
+
+            with col_trial:
+                trial_end = sub.get("trial_end_date")
+                if trial_end:
+                    try:
+                        end_dt = datetime.fromisoformat(trial_end.replace("Z", "+00:00"))
+                        now = datetime.now(timezone.utc)
+                        days_remaining = (end_dt - now).days
+
+                        if days_remaining > 0:
+                            st.metric("Trial Days Left", f"{days_remaining} days")
+                        else:
+                            st.metric("Trial Days Left", f"Expired ({abs(days_remaining)}d ago)")
+                    except:
+                        st.caption(f"Trial end: {trial_end[:10]}")
+                else:
+                    st.caption("No trial date set")
+
+            with col_action:
+                st.markdown("**Extend/Reset Trial:**")
+                ext_col1, ext_col2 = st.columns([2, 1])
+                with ext_col1:
+                    days_to_add = st.number_input(
+                        "Days",
+                        min_value=1,
+                        max_value=365,
+                        value=30,
+                        key="extend_days",
+                        label_visibility="collapsed"
+                    )
+                with ext_col2:
+                    if st.button("➕ Extend", key="extend_btn", type="primary"):
+                        if extend_user_trial(user_id, days_to_add):
+                            st.success(f"✅ Added {days_to_add} days!")
+                            st.rerun()
+                        else:
+                            st.error("Failed to extend trial")
+
+            # Show subscription details
+            st.markdown("---")
+            detail_cols = st.columns(4)
+            with detail_cols[0]:
+                st.caption(f"**Trial Start:** {str(sub.get('trial_start_date', ''))[:10]}")
+            with detail_cols[1]:
+                st.caption(f"**Trial End:** {str(sub.get('trial_end_date', ''))[:10]}")
+            with detail_cols[2]:
+                sub_exp = sub.get("subscription_expires_at")
+                st.caption(f"**Sub Expires:** {str(sub_exp)[:10] if sub_exp else '—'}")
+            with detail_cols[3]:
+                last_pay = sub.get("last_payment_date")
+                st.caption(f"**Last Payment:** {str(last_pay)[:10] if last_pay else '—'}")
+        else:
+            st.warning("No subscription record found for this user")
+    # ═══════════════════════════════════════════════════════════════════
 
     if user_meals.empty:
         st.info("No meals in this time range")

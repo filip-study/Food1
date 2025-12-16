@@ -435,3 +435,110 @@ def get_avg_macros_by_meal_type() -> pd.DataFrame:
     avg_macros.columns = ["meal_type", "avg_calories", "avg_protein", "avg_carbs", "avg_fat"]
 
     return avg_macros
+
+
+def get_user_subscription(user_id: str) -> Optional[dict]:
+    """
+    Fetch subscription status for a specific user.
+
+    Args:
+        user_id: UUID string of the user
+
+    Returns dict with subscription data, or None if not found.
+    """
+    client = get_supabase_client()
+
+    result = client.table("subscription_status")\
+        .select("*")\
+        .eq("user_id", user_id)\
+        .execute()
+
+    return result.data[0] if result.data else None
+
+
+def update_user_subscription(
+    user_id: str,
+    trial_end_date: Optional[datetime] = None,
+    subscription_type: Optional[str] = None,
+    subscription_expires_at: Optional[datetime] = None
+) -> bool:
+    """
+    Update a user's subscription status.
+
+    Args:
+        user_id: UUID string of the user
+        trial_end_date: New trial end date (to extend/reset trial)
+        subscription_type: New subscription type ('trial', 'active', 'expired', 'cancelled')
+        subscription_expires_at: Subscription expiration date (for paid subscriptions)
+
+    Returns True if successful, False otherwise.
+    """
+    client = get_supabase_client()
+
+    update_data = {
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+
+    if trial_end_date is not None:
+        update_data["trial_end_date"] = trial_end_date.isoformat()
+
+    if subscription_type is not None:
+        update_data["subscription_type"] = subscription_type
+
+    if subscription_expires_at is not None:
+        update_data["subscription_expires_at"] = subscription_expires_at.isoformat()
+
+    try:
+        client.table("subscription_status")\
+            .update(update_data)\
+            .eq("user_id", user_id)\
+            .execute()
+
+        # Clear cache so changes are reflected immediately
+        get_all_users.clear()
+
+        return True
+    except Exception as e:
+        print(f"Error updating subscription: {e}")
+        return False
+
+
+def extend_user_trial(user_id: str, days: int) -> bool:
+    """
+    Extend a user's trial by a specified number of days.
+    If trial has expired, resets subscription_type to 'trial' and sets new end date.
+
+    Args:
+        user_id: UUID string of the user
+        days: Number of days to add (from today if trial expired, from current end date if active)
+
+    Returns True if successful, False otherwise.
+    """
+    sub = get_user_subscription(user_id)
+    if not sub:
+        return False
+
+    now = datetime.now(timezone.utc)
+
+    # Parse current trial end date
+    current_end = None
+    if sub.get("trial_end_date"):
+        try:
+            current_end = datetime.fromisoformat(sub["trial_end_date"].replace("Z", "+00:00"))
+        except:
+            current_end = None
+
+    # Calculate new end date
+    if current_end and current_end > now:
+        # Trial still active - extend from current end date
+        new_end = current_end + timedelta(days=days)
+    else:
+        # Trial expired - extend from today
+        new_end = now + timedelta(days=days)
+
+    # Update subscription: set trial end date and ensure type is 'trial'
+    return update_user_subscription(
+        user_id=user_id,
+        trial_end_date=new_end,
+        subscription_type="trial"
+    )
