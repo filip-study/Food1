@@ -236,6 +236,7 @@ class SyncService: ObservableObject {
             print("📥 Downloaded \(cloudMeals.count) meals from cloud")
 
             var newCount = 0
+            var mealsNeedingAggregateUpdate: [Meal] = []
 
             for cloudMeal in cloudMeals {
                 // Check if meal already exists locally (by cloudId or localId)
@@ -265,6 +266,7 @@ class SyncService: ObservableObject {
                     // Conflict resolution: last-write-wins
                     if cloudMeal.updatedAt > localMeal.timestamp {
                         updateLocalMeal(localMeal, from: cloudMeal)
+                        mealsNeedingAggregateUpdate.append(localMeal)
                         print("🔄 Updated local meal from cloud: \(cloudMeal.id)")
                     } else {
                         print("⏭️  Skipping cloud meal (local is newer): \(cloudMeal.id)")
@@ -273,12 +275,26 @@ class SyncService: ObservableObject {
                     // Create new local meal from cloud data
                     let newMeal = createLocalMeal(from: cloudMeal)
                     context.insert(newMeal)
+                    mealsNeedingAggregateUpdate.append(newMeal)
                     newCount += 1
                     print("➕ Created new local meal from cloud: \(cloudMeal.id)")
                 }
             }
 
             try context.save()
+
+            // Update statistics aggregates for all downloaded/updated meals
+            // Batch by unique dates to avoid redundant recomputes
+            if !mealsNeedingAggregateUpdate.isEmpty {
+                let uniqueDates = Set(mealsNeedingAggregateUpdate.map {
+                    Calendar.current.startOfDay(for: $0.timestamp)
+                })
+                print("📊 Updating aggregates for \(uniqueDates.count) days after sync")
+                for meal in mealsNeedingAggregateUpdate {
+                    await StatisticsService.shared.updateAggregates(for: meal, in: context)
+                }
+            }
+
             return newCount
 
         } catch {
