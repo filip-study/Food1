@@ -19,6 +19,7 @@ struct TodayView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.accessibilityReduceMotion) var reduceMotion
     @Environment(\.colorScheme) var colorScheme
+    @EnvironmentObject var authViewModel: AuthViewModel
     @Query(sort: \Meal.timestamp, order: .reverse) private var allMeals: [Meal]
 
     @State private var showingQuickCamera = false
@@ -26,6 +27,38 @@ struct TodayView: View {
     @State private var showingSettings = false
     @State private var selectedDate = Date()
     @State private var dragOffset: CGFloat = 0
+
+    /// User's first name extracted from profile (for personalized greeting)
+    private var userFirstName: String? {
+        guard let fullName = authViewModel.profile?.fullName, !fullName.isEmpty else {
+            return nil
+        }
+        // Extract first name (first word before space)
+        return fullName.components(separatedBy: " ").first
+    }
+
+    /// Time-based greeting with optional personalization
+    private var greetingText: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        let timeGreeting: String
+
+        switch hour {
+        case 5..<12:
+            timeGreeting = "Good morning"
+        case 12..<17:
+            timeGreeting = "Good afternoon"
+        case 17..<22:
+            timeGreeting = "Good evening"
+        default:
+            timeGreeting = "Hello"
+        }
+
+        if let name = userFirstName {
+            return "\(timeGreeting), \(name)"
+        } else {
+            return timeGreeting
+        }
+    }
 
     private var mealsForSelectedDate: [Meal] {
         allMeals.filter { meal in
@@ -71,6 +104,16 @@ struct TodayView: View {
 
                 ScrollView {
                     VStack(spacing: 32) {
+                        // Personalized greeting
+                        HStack {
+                            Text(greetingText)
+                                .font(.system(size: 28, weight: .bold))
+                                .foregroundColor(.primary)
+                            Spacer()
+                        }
+                        .padding(.horizontal)
+                        .padding(.top, 16)
+
                         // Macro-focused dashboard
                         MetricsDashboardView(
                             currentCalories: totals.calories,
@@ -79,7 +122,6 @@ struct TodayView: View {
                             currentFat: totals.fat,
                             goals: .standard
                         )
-                        .padding(.top, 20)
 
                         // Daily insight - disabled pending redesign
                         // TODO: Redesign with meaningful, data-driven insights
@@ -221,4 +263,5 @@ struct EmptyStateView: View {
     let preview = PreviewContainer()
     return TodayView()
         .modelContainer(preview.container)
+        .environmentObject(AuthViewModel())
 }

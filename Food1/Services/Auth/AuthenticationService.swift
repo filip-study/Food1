@@ -163,6 +163,7 @@ class AuthenticationService: ObservableObject {
     // MARK: - Apple Sign In
 
     /// Sign in with Apple using native Apple authentication
+    /// Note: Apple only provides the user's name on FIRST sign-in, so we must capture and save it immediately
     @MainActor
     func signInWithApple(authorization: ASAuthorization) async throws {
         isLoading = true
@@ -182,6 +183,9 @@ class AuthenticationService: ObservableObject {
                 throw AuthError.unknown("Failed to get identity token from Apple")
             }
 
+            // Extract name from Apple credentials (only available on first sign-in!)
+            let fullName = extractFullName(from: appleIDCredential.fullName)
+
             // Sign in with Supabase using Apple ID token
             let response = try await supabase.client.auth.signInWithIdToken(
                 credentials: .init(
@@ -194,6 +198,11 @@ class AuthenticationService: ObservableObject {
 
             // Profile and subscription_status are auto-created by database trigger
 
+            // If Apple provided a name (first sign-in only), save it to profile
+            if let name = fullName, !name.isEmpty {
+                await saveNameToProfile(userId: response.user.id, fullName: name)
+            }
+
         } catch let error as AuthError {
             errorMessage = error.userMessage
             throw error
@@ -201,6 +210,49 @@ class AuthenticationService: ObservableObject {
             let authError = AuthError.from(error)
             errorMessage = authError.userMessage
             throw authError
+        }
+    }
+
+    /// Extract full name string from Apple's PersonNameComponents
+    /// Returns nil if no name parts are available
+    private func extractFullName(from nameComponents: PersonNameComponents?) -> String? {
+        guard let components = nameComponents else { return nil }
+
+        var parts: [String] = []
+
+        if let givenName = components.givenName, !givenName.isEmpty {
+            parts.append(givenName)
+        }
+        if let familyName = components.familyName, !familyName.isEmpty {
+            parts.append(familyName)
+        }
+
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
+    }
+
+    /// Save the user's name to their Supabase profile
+    private func saveNameToProfile(userId: UUID, fullName: String) async {
+        do {
+            struct NameUpdate: Encodable {
+                let full_name: String
+                let updated_at: String
+            }
+
+            let update = NameUpdate(
+                full_name: fullName,
+                updated_at: ISO8601DateFormatter().string(from: Date())
+            )
+
+            try await supabase.client
+                .from("profiles")
+                .update(update)
+                .eq("id", value: userId.uuidString)
+                .execute()
+
+            print("✅ Saved Apple name to profile: \(fullName)")
+        } catch {
+            // Don't fail sign-in if name save fails - it's not critical
+            print("⚠️ Failed to save name to profile: \(error)")
         }
     }
 
