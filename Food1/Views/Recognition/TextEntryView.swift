@@ -48,7 +48,7 @@ struct TextEntryView: View {
     @State private var predictions: [FoodRecognitionService.FoodPrediction] = []
     @State private var showingReview = false
 
-    private let maxCharacterLimit = 100
+    private let maxCharacterLimit = 200
 
     private var isInputValid: Bool {
         let trimmed = mealDescription.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -60,7 +60,7 @@ struct TextEntryView: View {
     }
 
     private var showCharacterCount: Bool {
-        characterCount >= 80
+        characterCount >= 160
     }
 
     private let loadingMessages: [(title: String, subtitle: String)] = [
@@ -350,7 +350,7 @@ struct TextEntryView: View {
 
     private func startExampleRotation() {
         exampleTimer?.invalidate()
-        exampleTimer = Timer.scheduledTimer(withTimeInterval: 4.0, repeats: true) { _ in
+        exampleTimer = Timer.scheduledTimer(withTimeInterval: 15.0, repeats: true) { _ in
             withAnimation(.easeInOut(duration: 0.3)) {
                 currentExampleIndex = (currentExampleIndex + 1) % exampleMeals.count
             }
