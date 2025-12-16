@@ -3,11 +3,25 @@
 //  Food1
 //
 //  Floating circular button with liquid glass design and animated gradient overlay.
-//  Primary action button for adding new meals.
+//  Primary action button for adding new meals via context menu.
 //  Uses glassmorphic backdrop blur with semi-transparent animated gradient.
+//
+//  CONTEXT MENU:
+//  - Camera: Opens camera for photo-based meal logging (default flow)
+//  - Gallery: Opens photo library to select existing photo
+//  - Text: Opens natural language text entry for manual logging
 //
 
 import SwiftUI
+
+/// Entry mode for meal logging - determines which input method to start with
+enum MealEntryMode: Identifiable {
+    case camera     // Default: capture photo with camera
+    case gallery    // Select from photo library
+    case text       // Natural language text entry
+
+    var id: Self { self }
+}
 
 enum ProgressVisualizationStyle {
     case ring           // Option A: Subtle 2pt ring around edge
@@ -15,12 +29,16 @@ enum ProgressVisualizationStyle {
 }
 
 struct FloatingAddButton: View {
-    @Binding var showingAddMeal: Bool
+    /// Callback when user selects an entry mode from the menu
+    var onEntryModeSelected: (MealEntryMode) -> Void
     var calorieProgress: Double? = nil  // Optional: shows progress when provided
     var hasLoggedMeals: Bool = false    // Controls ring visibility
     var visualizationStyle: ProgressVisualizationStyle = .ring  // Default to ring
+    @Binding var selectedTab: NavigationTab  // For dismissing menu on tab switch
 
     @State private var isPressed = false
+    @Binding var showingMenu: Bool  // Controlled by parent for tap-outside dismissal
+    @State private var isLongPressing = false  // Track long press state
     @State private var gradientRotation: Double = 0
     @State private var shouldPulse = false
     @State private var hasShownRingThisSession = false  // Prevent re-animation on tab switches
@@ -38,14 +56,26 @@ struct FloatingAddButton: View {
     private let ringOpacity: CGFloat = 0.6           // Increased from 0.5
     private let ringTrackOpacity: CGFloat = 0.15     // Subtle track
 
+    // Menu configuration
+    private let menuSpacing: CGFloat = 8            // Space between button and menu
+    private let menuItemHeight: CGFloat = 44        // Standard tap target height
+
     private var effectiveButtonSize: CGFloat {
         hasLoggedMeals ? buttonSizeWithRing : buttonSizeDefault
     }
 
     var body: some View {
+        // Main floating button
         Button {
+            // Only toggle menu if not long pressing (long press opens camera directly)
+            guard !isLongPressing else {
+                isLongPressing = false
+                return
+            }
             HapticManager.medium()
-            showingAddMeal = true
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                showingMenu.toggle()
+            }
         } label: {
             ZStack {
                 // Semi-transparent animated gradient overlay
@@ -69,11 +99,13 @@ struct FloatingAddButton: View {
                     .frame(width: effectiveButtonSize, height: effectiveButtonSize)
                     .blendMode(.overlay)
 
-                // Plus icon
+                // Plus icon (rotates to X when menu is open)
                 Image(systemName: "plus")
                     .font(.system(size: 24, weight: .semibold))
                     .foregroundColor(.white)
                     .shadow(color: Color.black.opacity(0.2), radius: 2, x: 0, y: 1)
+                    .rotationEffect(.degrees(showingMenu ? 45 : 0))
+                    .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showingMenu)
             }
             .background(
                 LiquidGlassBackground(shape: Circle(), glowColor: ColorPalette.accentPrimary)
@@ -109,8 +141,38 @@ struct FloatingAddButton: View {
                     }
                 }
         )
+        .simultaneousGesture(
+            // Long press (0.4s) opens camera directly - quick shortcut
+            LongPressGesture(minimumDuration: 0.4)
+                .onEnded { _ in
+                    isLongPressing = true
+                    HapticManager.heavy()  // Strong haptic for long press action
+                    onEntryModeSelected(.camera)
+                }
+        )
+        .overlay(alignment: .topTrailing) {
+            // Custom popup menu - positioned above the button, aligned to trailing edge
+            if showingMenu {
+                VStack(spacing: 0) {
+                    menuItem(title: "Camera", icon: "camera.fill", mode: .camera)
+                    Divider().opacity(0.3)
+                    menuItem(title: "Gallery", icon: "photo.on.rectangle", mode: .gallery)
+                    Divider().opacity(0.3)
+                    menuItem(title: "Text", icon: "pencil.line", mode: .text)
+                }
+                .fixedSize()
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(.ultraThinMaterial)
+                        .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: 4)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .offset(x: 8, y: -(menuItemHeight * 3 + menuSpacing + 12))
+                .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .bottomTrailing)))
+            }
+        }
         .accessibilityLabel("Add meal")
-        .accessibilityHint("Double tap to log a meal by photo or manual entry")
+        .accessibilityHint("Double tap to choose how to log a meal: camera, gallery, or text")
         .accessibilityAddTraits(.isButton)
         .onAppear {
             // Initialize ring state based on current state (no animation on appear)
@@ -132,6 +194,14 @@ struct FloatingAddButton: View {
         }
         .onChange(of: hasLoggedMeals) { oldValue, newValue in
             handleProgressiveDisclosure(hasLoggedMeals: newValue)
+        }
+        .onChange(of: selectedTab) { _, _ in
+            // Close menu when user switches tabs
+            if showingMenu {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    showingMenu = false
+                }
+            }
         }
     }
 
@@ -297,14 +367,64 @@ struct FloatingAddButton: View {
             hasShownRingThisSession = false
         }
     }
+
+    // MARK: - Menu Item View
+    @ViewBuilder
+    private func menuItem(title: String, icon: String, mode: MealEntryMode) -> some View {
+        Button {
+            HapticManager.medium()
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                showingMenu = false
+            }
+            // Small delay to let menu close animation start
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                onEntryModeSelected(mode)
+            }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.primary)
+                    .frame(width: 20)
+
+                Text(title)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.primary)
+
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .frame(height: menuItemHeight)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(MenuItemButtonStyle())
+    }
+}
+
+// MARK: - Menu Item Button Style
+/// Custom button style for menu items with subtle highlight on press
+struct MenuItemButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(
+                configuration.isPressed
+                    ? Color.primary.opacity(0.1)
+                    : Color.clear
+            )
+    }
 }
 
 #Preview("Light Mode") {
+    @Previewable @State var showingMenu = false
     VStack {
         Spacer()
         HStack {
             Spacer()
-            FloatingAddButton(showingAddMeal: .constant(false))
+            FloatingAddButton(
+                onEntryModeSelected: { mode in print("Selected mode: \(mode)") },
+                selectedTab: .constant(.meals),
+                showingMenu: $showingMenu
+            )
             Spacer()
         }
         .padding(.bottom, 40)
@@ -314,11 +434,16 @@ struct FloatingAddButton: View {
 }
 
 #Preview("Dark Mode") {
+    @Previewable @State var showingMenu = false
     VStack {
         Spacer()
         HStack {
             Spacer()
-            FloatingAddButton(showingAddMeal: .constant(false))
+            FloatingAddButton(
+                onEntryModeSelected: { mode in print("Selected mode: \(mode)") },
+                selectedTab: .constant(.meals),
+                showingMenu: $showingMenu
+            )
             Spacer()
         }
         .padding(.bottom, 40)

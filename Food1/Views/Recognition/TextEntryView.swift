@@ -21,6 +21,7 @@ struct TextEntryView: View {
 
     let selectedDate: Date
     let onMealCreated: () -> Void
+    var onCancel: (() -> Void)? = nil  // Optional cancel callback for embedded usage
 
     // Text input state
     @State private var mealDescription = ""
@@ -142,7 +143,13 @@ struct TextEntryView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
-                        dismiss()
+                        // Use explicit callback if provided (for embedded usage)
+                        // Otherwise fall back to environment dismiss
+                        if let onCancel = onCancel {
+                            onCancel()
+                        } else {
+                            dismiss()
+                        }
                     }
                 }
             }
@@ -169,7 +176,8 @@ struct TextEntryView: View {
                         prefilledProtein: prediction.protein,
                         prefilledCarbs: prediction.carbs,
                         prefilledFat: prediction.fat,
-                        prefilledEstimatedGrams: prediction.estimatedGrams
+                        prefilledEstimatedGrams: prediction.estimatedGrams,
+                        userPrompt: mealDescription  // Store original user input
                     )
                     .onDisappear {
                         dismiss()

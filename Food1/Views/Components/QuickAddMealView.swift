@@ -2,16 +2,19 @@
 //  QuickAddMealView.swift
 //  Food1
 //
-//  Coordinator view that manages the quick add meal flow:
-//  Custom camera → Photo capture → Recognition → Review → Save
-//  Also handles gallery and manual entry alternatives.
+//  Coordinator view that manages the quick add meal flow based on entry mode:
+//  - Camera: Custom camera → Photo capture → Recognition → Review → Save
+//  - Gallery: Photo picker → Preview/Crop → Recognition → Review → Save
+//  - Text: Direct text entry → Save
 //
 //  WHY THIS ARCHITECTURE:
-//  - Custom AVFoundation camera (not UIImagePickerController) provides better UX with integrated gallery/manual buttons
-//  - Blurred photo background during recognition (not camera viewfinder) shows context without distraction
-//  - Rotating sparkles + dynamic messages make 2-5s API wait feel shorter and more engaging
+//  - Each entry mode has its own dedicated flow - no unnecessary camera loading
+//  - Camera mode: Custom AVFoundation camera with integrated gallery/manual buttons
+//  - Gallery mode: Direct photo picker without camera initialization
+//  - Text mode: Immediate TextEntryView - simplest, fastest path
+//  - Blurred photo background during recognition shows context without distraction
+//  - Rotating sparkles + dynamic messages make 2-5s API wait feel shorter
 //  - 800ms minimum display prevents jarring flash on quick responses (<1s)
-//  - Photo thumbnail in loading state reinforces what's being analyzed
 //
 
 import SwiftUI
@@ -21,15 +24,15 @@ struct QuickAddMealView: View {
     @Environment(\.modelContext) private var modelContext
 
     let selectedDate: Date
+    let initialEntryMode: MealEntryMode
 
     @StateObject private var recognitionService = FoodRecognitionService()
 
-    // Navigation state
-    @State private var showingGallery = false
-    @State private var showingPhotoPreview = false  // Lightweight preview for quick submit (90% case)
-    @State private var showingCropView = false  // Crop view for focused selection (10% case)
+    // Navigation state for gallery flow
+    @State private var showingGalleryPicker = true   // Controls gallery picker sheet (starts true for gallery mode)
+    @State private var showingPhotoPreview = false   // Lightweight preview for quick submit (90% case)
+    @State private var showingCropView = false       // Crop view for focused selection (10% case)
     @State private var selectedGalleryImage: UIImage?
-    @State private var showingTextEntry = false
     @State private var showingPackagingPrompt = false
     @State private var showingNoFoodAlert = false
     @State private var nutritionReviewPrediction: FoodRecognitionService.FoodPrediction? = nil
@@ -50,6 +53,89 @@ struct QuickAddMealView: View {
     @Environment(\.accessibilityReduceMotion) var reduceMotion
 
     var body: some View {
+        Group {
+            switch initialEntryMode {
+            case .text:
+                // Text mode: Direct to TextEntryView - no camera, no sheets
+                TextEntryView(
+                    selectedDate: selectedDate,
+                    onMealCreated: { dismiss() },
+                    onCancel: { dismiss() }  // Explicit cancel to ensure proper fullScreenCover dismissal
+                )
+
+            case .gallery:
+                // Gallery mode: Start with photo picker, not camera
+                galleryFlowView
+
+            case .camera:
+                // Camera mode: Full camera flow with recognition
+                cameraFlowView
+            }
+        }
+        // Shared sheets for recognition flows (camera & gallery)
+        .sheet(isPresented: $showingPackagingPrompt) {
+            if let image = capturedImage {
+                PackagingPromptView(
+                    capturedImage: image,
+                    onScanLabel: {
+                        showingLabelCamera = true
+                    },
+                    onSkipToAI: {
+                        nutritionReviewPrediction = predictions.first
+                    }
+                )
+            }
+        }
+        .sheet(item: $nutritionReviewPrediction) { prediction in
+            NutritionReviewView(
+                selectedDate: selectedDate,
+                foodName: prediction.displayName,
+                capturedImage: capturedImage,
+                prediction: prediction,
+                prefilledCalories: labelData?.nutrition.calories ?? prediction.calories,
+                prefilledProtein: labelData?.nutrition.protein ?? prediction.protein,
+                prefilledCarbs: labelData?.nutrition.carbs ?? prediction.carbs,
+                prefilledFat: labelData?.nutrition.fat ?? prediction.fat,
+                prefilledEstimatedGrams: labelData?.estimatedGrams ?? prediction.estimatedGrams,
+                photoTimestamp: photoTimestamp
+            )
+            .onDisappear {
+                dismiss()
+            }
+        }
+        .sheet(isPresented: $showingLabelCamera) {
+            CustomCameraView(
+                selectedDate: selectedDate,
+                onPhotoCaptured: { labelImage, _ in
+                    nutritionLabelImage = labelImage
+                    showingLabelCamera = false
+                    Task {
+                        await analyzeNutritionLabel()
+                    }
+                },
+                onGalleryTap: { },
+                onTextEntryTap: {
+                    showingLabelCamera = false
+                }
+            )
+            .onDisappear {
+                if nutritionLabelImage == nil && !predictions.isEmpty && nutritionReviewPrediction == nil {
+                    nutritionReviewPrediction = predictions.first
+                }
+            }
+        }
+        .alert("No Food Detected", isPresented: $showingNoFoodAlert) {
+            Button("Try Again", role: .cancel) {
+                capturedImage = nil
+                predictions = []
+            }
+        } message: {
+            Text("We couldn't identify any food in this image. Try taking another photo with better lighting.")
+        }
+    }
+
+    // MARK: - Camera Flow
+    private var cameraFlowView: some View {
         ZStack {
             // Show camera only if we haven't captured a photo yet
             if capturedImage == nil {
@@ -58,16 +144,11 @@ struct QuickAddMealView: View {
                     onPhotoCaptured: { image, timestamp in
                         handlePhotoCaptured(image, timestamp: timestamp)
                     },
-                    onGalleryTap: {
-                        showingGallery = true
-                    },
-                    onTextEntryTap: {
-                        showingTextEntry = true
-                    }
+                    onGalleryTap: { },  // Not used - gallery accessed via menu
+                    onTextEntryTap: { } // Not used - text accessed via menu
                 )
             } else {
                 // Show captured photo as static background once captured
-                // This prevents camera from showing during sheet dismissals
                 Image(uiImage: capturedImage!)
                     .resizable()
                     .scaledToFill()
@@ -79,28 +160,43 @@ struct QuickAddMealView: View {
                 recognitionLoadingOverlay
             }
         }
-        .sheet(isPresented: $showingGallery) {
+    }
+
+    // MARK: - Gallery Flow
+    private var galleryFlowView: some View {
+        ZStack {
+            // Background color while gallery is open
+            Color(.systemBackground)
+                .ignoresSafeArea()
+
+            // Show captured photo background during recognition
+            if let image = capturedImage {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .ignoresSafeArea()
+            }
+
+            // Loading overlay during recognition
+            if recognitionService.isProcessing {
+                recognitionLoadingOverlay
+            }
+        }
+        .sheet(isPresented: $showingGalleryPicker, onDismiss: {
+            // If dismissed without selecting an image, close the entire flow
+            if selectedGalleryImage == nil && capturedImage == nil {
+                dismiss()
+            } else if selectedGalleryImage != nil {
+                // Image selected - show preview after brief delay
+                Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(300))
+                    showingPhotoPreview = true
+                }
+            }
+        }) {
             GalleryPicker { image in
                 selectedGalleryImage = image
-            }
-        }
-        .onChange(of: selectedGalleryImage) { _, newImage in
-            // When image is loaded, wait for gallery sheet to dismiss then show preview
-            if newImage != nil && !showingGallery {
-                // Gallery already dismissed, show preview immediately
-                Task { @MainActor in
-                    try? await Task.sleep(for: .milliseconds(300))
-                    showingPhotoPreview = true
-                }
-            }
-        }
-        .onChange(of: showingGallery) { _, isShowing in
-            // If gallery dismisses while we have an image waiting, show preview
-            if !isShowing && selectedGalleryImage != nil && !showingPhotoPreview {
-                Task { @MainActor in
-                    try? await Task.sleep(for: .milliseconds(300))
-                    showingPhotoPreview = true
-                }
+                showingGalleryPicker = false
             }
         }
         .sheet(isPresented: $showingPhotoPreview) {
@@ -109,11 +205,10 @@ struct QuickAddMealView: View {
                     image: image,
                     onAnalyze: { finalImage in
                         showingPhotoPreview = false
-                        handlePhotoCaptured(finalImage, timestamp: nil)  // Gallery photos: no EXIF timestamp extraction yet
+                        handlePhotoCaptured(finalImage, timestamp: nil)
                     },
                     onRequestCrop: {
                         showingPhotoPreview = false
-                        // Small delay for smooth transition
                         Task { @MainActor in
                             try? await Task.sleep(for: .milliseconds(300))
                             showingCropView = true
@@ -128,99 +223,11 @@ struct QuickAddMealView: View {
                     originalImage: image,
                     onCropComplete: { croppedImage in
                         showingCropView = false
-                        handlePhotoCaptured(croppedImage, timestamp: nil)  // Gallery photos: no EXIF timestamp extraction yet
+                        handlePhotoCaptured(croppedImage, timestamp: nil)
                     }
                 )
-                .interactiveDismissDisabled(true)  // Prevent accidental dismissal while panning
+                .interactiveDismissDisabled(true)
             }
-        }
-        .sheet(isPresented: $showingTextEntry) {
-            TextEntryView(selectedDate: selectedDate, onMealCreated: {
-                // Close the entire flow when meal is saved
-                dismiss()
-            })
-        }
-        .sheet(isPresented: $showingPackagingPrompt) {
-            if let image = capturedImage {
-                PackagingPromptView(
-                    capturedImage: image,
-                    onScanLabel: {
-                        showingLabelCamera = true
-                    },
-                    onSkipToAI: {
-                        // Go directly to NutritionReviewView with first prediction
-                        nutritionReviewPrediction = predictions.first
-                    }
-                )
-            }
-        }
-        // PredictionsView removed - now go directly to NutritionReviewView
-        .sheet(item: $nutritionReviewPrediction) { prediction in
-            let _ = {
-                print("🍽️ Opening NutritionReviewView for: \(prediction.displayName)")
-                print("   Prediction nutrition: cals=\(prediction.calories?.description ?? "nil"), prot=\(prediction.protein?.description ?? "nil"), carbs=\(prediction.carbs?.description ?? "nil"), fat=\(prediction.fat?.description ?? "nil"), grams=\(prediction.estimatedGrams)")
-                if let label = labelData {
-                    print("   Label data nutrition: cals=\(label.nutrition.calories), prot=\(label.nutrition.protein), carbs=\(label.nutrition.carbs), fat=\(label.nutrition.fat), grams=\(label.estimatedGrams?.description ?? "nil")")
-                }
-                let prefillCals = labelData?.nutrition.calories ?? prediction.calories
-                let prefillProt = labelData?.nutrition.protein ?? prediction.protein
-                let prefillCarbs = labelData?.nutrition.carbs ?? prediction.carbs
-                let prefillFat = labelData?.nutrition.fat ?? prediction.fat
-                let prefillGrams = labelData?.estimatedGrams ?? prediction.estimatedGrams
-                print("   Passing to NutritionReviewView: cals=\(prefillCals?.description ?? "nil"), prot=\(prefillProt?.description ?? "nil"), carbs=\(prefillCarbs?.description ?? "nil"), fat=\(prefillFat?.description ?? "nil"), grams=\(prefillGrams)")
-            }()
-
-            NutritionReviewView(
-                selectedDate: selectedDate,
-                foodName: prediction.displayName,
-                capturedImage: capturedImage,
-                prediction: prediction,
-                prefilledCalories: labelData?.nutrition.calories ?? prediction.calories,
-                prefilledProtein: labelData?.nutrition.protein ?? prediction.protein,
-                prefilledCarbs: labelData?.nutrition.carbs ?? prediction.carbs,
-                prefilledFat: labelData?.nutrition.fat ?? prediction.fat,
-                prefilledEstimatedGrams: labelData?.estimatedGrams ?? prediction.estimatedGrams,
-                photoTimestamp: photoTimestamp
-            )
-            .onDisappear {
-                // Close the entire flow when meal is saved
-                dismiss()
-            }
-        }
-        .sheet(isPresented: $showingLabelCamera) {
-            CustomCameraView(
-                selectedDate: selectedDate,
-                onPhotoCaptured: { labelImage, _ in  // Ignore timestamp for label scan
-                    nutritionLabelImage = labelImage
-                    showingLabelCamera = false
-                    Task {
-                        await analyzeNutritionLabel()
-                    }
-                },
-                onGalleryTap: {
-                    // Not needed for label scan, but keep for consistency
-                },
-                onTextEntryTap: {
-                    showingLabelCamera = false
-                }
-            )
-            .onDisappear {
-                // If label scanning dismissed without capture, show nutrition review
-                if nutritionLabelImage == nil && !predictions.isEmpty && nutritionReviewPrediction == nil {
-                    nutritionReviewPrediction = predictions.first
-                }
-            }
-        }
-        .alert("No Food Detected", isPresented: $showingNoFoodAlert) {
-            Button("Try Again", role: .cancel) {
-                capturedImage = nil
-                predictions = []
-            }
-            Button("Describe with Text") {
-                showingTextEntry = true
-            }
-        } message: {
-            Text("We couldn't identify any food in this image. Try taking another photo with better lighting, or describe your meal with text.")
         }
     }
 
@@ -473,6 +480,6 @@ struct GalleryPicker: UIViewControllerRepresentable {
 // Users now see AI prediction directly in the review screen
 
 #Preview {
-    QuickAddMealView(selectedDate: Date())
+    QuickAddMealView(selectedDate: Date(), initialEntryMode: .camera)
         .modelContainer(PreviewContainer().container)
 }

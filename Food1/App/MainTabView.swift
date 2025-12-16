@@ -17,7 +17,7 @@ import SwiftData
 
 struct MainTabView: View {
     @State private var selectedTab: NavigationTab = .meals
-    @State private var showingAddMeal = false
+    @State private var selectedEntryMode: MealEntryMode? = nil  // Triggers fullScreenCover when set
     @AppStorage("appTheme") private var selectedTheme: AppTheme = .system
     @Environment(\.colorScheme) private var colorScheme
     @Query(sort: \Meal.timestamp, order: .reverse) private var allMeals: [Meal]
@@ -67,14 +67,16 @@ struct MainTabView: View {
             // Floating pill navigation with calorie progress
             FloatingPillNavigation(
                 selectedTab: $selectedTab,
-                showingAddMeal: $showingAddMeal,
+                onEntryModeSelected: { mode in
+                    selectedEntryMode = mode
+                },
                 calorieProgress: todayCalorieProgress,
                 hasLoggedMeals: hasLoggedMealsToday
             )
         }
         .preferredColorScheme(selectedTheme.colorScheme)
-        .fullScreenCover(isPresented: $showingAddMeal) {
-            QuickAddMealView(selectedDate: Date())
+        .fullScreenCover(item: $selectedEntryMode) { mode in
+            QuickAddMealView(selectedDate: Date(), initialEntryMode: mode)
         }
     }
 }

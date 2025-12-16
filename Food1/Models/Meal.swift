@@ -58,6 +58,10 @@ final class Meal {
     /// Cloud URL for cartoon image (if generated)
     var cartoonImageUrl: String?
 
+    /// Original user prompt for text-based meal entries (e.g., "3 eggs with mayo and bacon")
+    /// Useful for analytics, debugging AI recognition, and improving prompts
+    var userPrompt: String?
+
     init(
         id: UUID = UUID(),
         name: String,
@@ -78,7 +82,8 @@ final class Meal {
         deviceId: String? = nil,
         mealType: String? = nil,
         photoThumbnailUrl: String? = nil,
-        cartoonImageUrl: String? = nil
+        cartoonImageUrl: String? = nil,
+        userPrompt: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -100,6 +105,7 @@ final class Meal {
         self.mealType = mealType
         self.photoThumbnailUrl = photoThumbnailUrl
         self.cartoonImageUrl = cartoonImageUrl
+        self.userPrompt = userPrompt
     }
 
     // MARK: - Computed Properties

@@ -169,7 +169,7 @@ struct TodayView: View {
             )
             .navigationBarTitleDisplayMode(.inline)
             .fullScreenCover(isPresented: $showingQuickCamera) {
-                QuickAddMealView(selectedDate: selectedDate)
+                QuickAddMealView(selectedDate: selectedDate, initialEntryMode: .camera)
             }
             .sheet(isPresented: $showingManualEntry) {
                 TextEntryView(selectedDate: selectedDate, onMealCreated: {

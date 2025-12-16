@@ -95,7 +95,8 @@ class SyncService: ObservableObject {
                 "total_carbs_g": AnyEncodable(meal.carbs),
                 "total_fat_g": AnyEncodable(meal.fat),
                 "sync_status": AnyEncodable("synced"),
-                "last_synced_at": AnyEncodable(ISO8601DateFormatter().string(from: Date()))
+                "last_synced_at": AnyEncodable(ISO8601DateFormatter().string(from: Date())),
+                "user_prompt": AnyEncodable(meal.userPrompt)
             ]
 
             // Upsert meal (insert or update if exists)
@@ -557,6 +558,7 @@ struct CloudMeal: Codable {
     let createdAt: Date
     let updatedAt: Date
     let deletedAt: Date?
+    let userPrompt: String?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -578,6 +580,7 @@ struct CloudMeal: Codable {
         case createdAt = "created_at"
         case updatedAt = "updated_at"
         case deletedAt = "deleted_at"
+        case userPrompt = "user_prompt"
     }
 }
 

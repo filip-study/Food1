@@ -42,6 +42,9 @@ struct NutritionReviewView: View {
     let prefilledFat: Double?
     let prefilledEstimatedGrams: Double?
 
+    /// Original user prompt for text-based entries (nil for photo-based)
+    let userPrompt: String?
+
     @State private var mealName = ""
     @State private var calories = ""
     @State private var protein = ""
@@ -61,7 +64,7 @@ struct NutritionReviewView: View {
     @State private var mealTime: Date
     @State private var showingTimeSheet = false
 
-    init(selectedDate: Date, foodName: String, capturedImage: UIImage?, prediction: FoodRecognitionService.FoodPrediction, prefilledCalories: Double? = nil, prefilledProtein: Double? = nil, prefilledCarbs: Double? = nil, prefilledFat: Double? = nil, prefilledEstimatedGrams: Double? = nil, photoTimestamp: Date? = nil) {
+    init(selectedDate: Date, foodName: String, capturedImage: UIImage?, prediction: FoodRecognitionService.FoodPrediction, prefilledCalories: Double? = nil, prefilledProtein: Double? = nil, prefilledCarbs: Double? = nil, prefilledFat: Double? = nil, prefilledEstimatedGrams: Double? = nil, photoTimestamp: Date? = nil, userPrompt: String? = nil) {
         self.selectedDate = selectedDate
         self.foodName = foodName
         self.capturedImage = capturedImage
@@ -71,6 +74,7 @@ struct NutritionReviewView: View {
         self.prefilledCarbs = prefilledCarbs
         self.prefilledFat = prefilledFat
         self.prefilledEstimatedGrams = prefilledEstimatedGrams
+        self.userPrompt = userPrompt
 
         // Initialize mealTime with photo timestamp if available, otherwise current time
         self._mealTime = State(initialValue: photoTimestamp ?? Date())
@@ -431,7 +435,8 @@ struct NutritionReviewView: View {
             fat: fatValue,
             notes: nil,
             photoData: photoData,
-            ingredients: mealIngredients
+            ingredients: mealIngredients,
+            userPrompt: userPrompt
         )
 
         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
