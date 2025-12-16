@@ -41,6 +41,8 @@ struct TextEntryView: View {
     @State private var currentLoadingMessageIndex = 0
     @State private var errorMessage: String?
     @State private var showError = false
+    @State private var currentExampleIndex = 0
+    @State private var exampleTimer: Timer?
 
     // Navigation state
     @State private var predictions: [FoodRecognitionService.FoodPrediction] = []
@@ -68,12 +70,17 @@ struct TextEntryView: View {
         ("Almost ready", "Finalizing your meal breakdown")
     ]
 
-    private let exampleMeals = [
-        "Chicken breast with rice and broccoli",
-        "2 scrambled eggs with toast",
-        "Oatmeal with banana and honey",
-        "Grilled salmon with quinoa",
-        "Greek yogurt with berries"
+    // Verbose examples that demonstrate effective description patterns for better AI accuracy
+    // Each example shows: quantities, cooking methods, and specific ingredients
+    private let exampleMeals: [(text: String, tip: String)] = [
+        ("2 large eggs scrambled with butter and 2 strips of crispy bacon", "Include quantities and cooking style"),
+        ("6oz grilled chicken breast with 1 cup steamed rice and roasted broccoli", "Specify weights and portions"),
+        ("Large bowl of oatmeal with sliced banana, 2 tbsp honey, and almonds", "Describe size and toppings"),
+        ("Turkey sandwich on whole wheat with lettuce, tomato, mayo, and swiss cheese", "List all ingredients"),
+        ("Greek yogurt parfait with mixed berries, granola, and a drizzle of honey", "Be specific about components"),
+        ("Salmon filet about 5oz pan-seared with olive oil, side of quinoa", "Include cooking method and fats used"),
+        ("Protein shake with 1 scoop whey, banana, peanut butter, and almond milk", "Mention all additions"),
+        ("Bowl of spaghetti with meat sauce, about 2 cups pasta with parmesan", "Estimate portion sizes")
     ]
 
     private var accentGradient: LinearGradient {
@@ -138,7 +145,7 @@ struct TextEntryView: View {
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
             }
-            .navigationTitle("Describe Your Meal")
+            .navigationTitle("Log Meal")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -154,16 +161,20 @@ struct TextEntryView: View {
                 }
             }
             .onAppear {
-                // Show examples after a delay
+                // Show examples after a short delay and start rotation
                 Task { @MainActor in
-                    try? await Task.sleep(for: .seconds(2))
-                    withAnimation {
+                    try? await Task.sleep(for: .seconds(1.5))
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                         showExamples = true
                     }
+                    startExampleRotation()
                 }
 
                 // Request microphone permission
                 requestMicrophonePermission()
+            }
+            .onDisappear {
+                stopExampleRotation()
             }
             .sheet(isPresented: $showingReview) {
                 if let prediction = predictions.first {
@@ -273,24 +284,30 @@ struct TextEntryView: View {
 
     private var mainContent: some View {
         ScrollView {
-            VStack(spacing: 24) {
-                // Prompt
-                HStack {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 20))
-                        .foregroundStyle(accentGradient)
+            VStack(spacing: 20) {
+                // Header section
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "pencil.line")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundStyle(accentGradient)
 
-                    Text("What did you eat?")
-                        .font(.system(size: 22, weight: .semibold))
+                        Text("Describe your meal")
+                            .font(.system(size: 20, weight: .semibold))
 
-                    Spacer()
+                        Spacer()
+                    }
+
+                    Text("Include quantities and ingredients for accurate nutrition")
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
                 }
                 .padding(.horizontal)
-                .padding(.top, 8)
+                .padding(.top, 12)
 
                 // Text input field
                 textInputField
-                .padding(.horizontal)
+                    .padding(.horizontal)
 
                 examplesSection
 
@@ -303,52 +320,52 @@ struct TextEntryView: View {
     @ViewBuilder
     private var examplesSection: some View {
         if showExamples {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Image(systemName: "lightbulb.fill")
-                        .font(.system(size: 14))
+            VStack(alignment: .leading, spacing: 10) {
+                // Example text with tip
+                HStack(spacing: 6) {
+                    Image(systemName: "lightbulb.min.fill")
+                        .font(.system(size: 11))
                         .foregroundColor(.orange)
 
-                    Text("Examples:")
-                        .font(.system(size: 14, weight: .medium))
+                    Text("Tip: \(exampleMeals[currentExampleIndex].tip.lowercased())")
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.secondary)
-
-                    Spacer()
-
-                    Button(action: { withAnimation { showExamples = false } }) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 16))
-                            .foregroundColor(.secondary)
-                    }
                 }
 
-                ForEach(exampleMeals.prefix(3), id: \.self) { example in
-                    Button(action: {
-                        mealDescription = example
-                        textFieldFocused = true
-                        HapticManager.light()
-                    }) {
-                        HStack {
-                            Text("• " + example)
-                                .font(.system(size: 14))
-                                .foregroundColor(.secondary)
-                            Spacer()
-                        }
-                    }
-                }
+                Text("\"\(exampleMeals[currentExampleIndex].text)\"")
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+                    .italic()
+                    .lineLimit(2)
+                    .id("example-\(currentExampleIndex)")
             }
-            .padding(16)
-            .background(Color(.tertiarySystemBackground))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
+            .background(Color(.secondarySystemBackground))
             .cornerRadius(12)
             .padding(.horizontal)
-            .transition(.opacity.combined(with: .scale(scale: 0.95)))
+            .transition(.opacity)
         }
+    }
+
+    private func startExampleRotation() {
+        exampleTimer?.invalidate()
+        exampleTimer = Timer.scheduledTimer(withTimeInterval: 4.0, repeats: true) { _ in
+            withAnimation(.easeInOut(duration: 0.3)) {
+                currentExampleIndex = (currentExampleIndex + 1) % exampleMeals.count
+            }
+        }
+    }
+
+    private func stopExampleRotation() {
+        exampleTimer?.invalidate()
+        exampleTimer = nil
     }
 
     private var textInputField: some View {
         VStack(spacing: 8) {
             HStack(alignment: .top, spacing: 12) {
-                TextField("e.g., 3 eggs with mayo and 2 strips of bacon", text: $mealDescription, axis: .vertical)
+                TextField("What did you eat?", text: $mealDescription, axis: .vertical)
                     .font(.system(size: 17))
                     .focused($textFieldFocused)
                     .lineLimit(2...5)
