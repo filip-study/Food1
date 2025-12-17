@@ -11,7 +11,9 @@
 //  Key differences (LPI vs RDA):
 //  - Vitamin D: 50 mcg (2000 IU) vs 15-20 mcg (600-800 IU) - most impactful change
 //  - Vitamin C: 400 mg vs 75-90 mg - antioxidant saturation point
+//  - Vitamin K: 250 mcg vs 90-120 mcg - bone health (Framingham Heart Study)
 //  - Vitamin B12: 100-400 mcg for ages 50+ vs 2.4 mcg - absorption decreases with age
+//  - Potassium: 2600-3400 mg vs older 4700 mg - revised AI values
 //
 //  References:
 //  - FDA: https://www.fda.gov/food/nutrition-facts-label/daily-value-nutrition-and-supplement-facts-labels
@@ -265,6 +267,10 @@ enum RDAValues {
     /// LPI Optimal: Vitamin E - 15mg (same as RDA; LPI doesn't recommend supplementation above RDA)
     static let optimalVitaminE: Double = 15.0  // mg (same as RDA)
 
+    /// LPI Optimal: Vitamin K - 250mcg (based on Framingham Heart Study for bone health)
+    /// Note: RDA is only 90-120mcg
+    static let optimalVitaminK: Double = 250.0  // mcg (vs RDA 90-120 mcg)
+
     /// LPI Optimal: Vitamin B12 - 100-400mcg for ages 50+ (absorption decreases with age)
     /// For under 50, same as RDA (2.4mcg is adequate)
     static let optimalVitaminB12Under50: Double = 2.4   // mcg (same as RDA)
@@ -276,14 +282,16 @@ enum RDAValues {
     /// LPI Optimal: Magnesium - 400-420mg (most adults don't meet RDA; slight increase beneficial)
     static let optimalMagnesium: Double = 420.0  // mg (vs RDA 310-420mg depending on gender)
 
-    /// LPI Optimal: Zinc - 11-15mg (modest increase for immune support)
-    static let optimalZinc: Double = 15.0  // mg (vs RDA 8-11mg)
+    /// LPI Optimal: Zinc - LPI explicitly endorses RDA (8-11mg)
+    /// Note: LPI does NOT recommend above RDA; total intake should not exceed 40mg/day
+    static let optimalZinc: Double = 11.0  // mg (same as RDA for males)
 
     /// LPI Optimal: Calcium - 1000-1200mg (same as RDA; avoid excess - kidney stone risk)
     static let optimalCalcium: Double = 1000.0  // mg (same as RDA for most adults)
 
-    /// LPI Optimal: Potassium - 4700mg (same as RDA; critical but hard to get from diet)
-    static let optimalPotassium: Double = 4700.0  // mg (same as RDA)
+    /// LPI Optimal: Potassium - 2600-3400mg (revised AI values, lower than old 4700mg)
+    /// Note: LPI endorses these updated values; 3000mg is a reasonable middle target
+    static let optimalPotassium: Double = 3000.0  // mg (vs older RDA 4700mg)
 
     /// LPI Optimal: Iron - varies by gender/age (same as RDA; avoid excess for men)
     static let optimalIronFemalePreMenopause: Double = 18.0  // mg (same as RDA)
@@ -318,6 +326,9 @@ enum RDAValues {
         if lower.contains("vitamin b12") || lower == "vitaminb12" {
             return isOlder ? optimalVitaminB12Over50 : optimalVitaminB12Under50
         }
+        if lower.contains("vitamin k") || lower == "vitamink" {
+            return optimalVitaminK
+        }
 
         // Minerals with LPI-specific recommendations
         if lower.contains("magnesium") {
@@ -325,6 +336,9 @@ enum RDAValues {
         }
         if lower.contains("zinc") {
             return optimalZinc
+        }
+        if lower.contains("potassium") {
+            return optimalPotassium
         }
 
         // For all other nutrients, LPI generally agrees with RDA

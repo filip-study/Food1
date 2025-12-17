@@ -225,21 +225,31 @@ struct NutritionReviewView: View {
                     }
                 }
 
-                // Compact time selector in toolbar
+                // Time selector pill in toolbar - prominent and tappable
                 ToolbarItem(placement: .principal) {
                     Button(action: {
                         showingTimeSheet = true
+                        HapticManager.light()
                     }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "clock")
-                                .font(.system(size: 12))
+                        HStack(spacing: 6) {
+                            Image(systemName: "clock.fill")
+                                .font(.system(size: 14, weight: .medium))
                             Text(relativeTimeString)
-                                .font(.footnote)
+                                .font(.system(size: 14, weight: .medium))
                         }
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(
+                            Capsule()
+                                .fill(Color(.systemGray5))
+                        )
+                        .overlay(
+                            Capsule()
+                                .strokeBorder(Color(.systemGray3), lineWidth: 0.5)
+                        )
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
+                    .buttonStyle(.plain)
                 }
 
                 ToolbarItem(placement: .confirmationAction) {

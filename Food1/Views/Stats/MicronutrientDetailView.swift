@@ -14,23 +14,21 @@ struct MicronutrientDetailView: View {
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage("userGender") private var userGender: Gender = .preferNotToSay
     @AppStorage("userAge") private var userAge: Int = 25
-    @AppStorage("micronutrientStandard") private var micronutrientStandard: MicronutrientStandard = .optimal
 
     let micronutrients: MicronutrientProfile
     let daysWithMeals: Int
     let selectedPeriod: StatsPeriod
 
-    @State private var sortOption: SortOption = .rdaPercent
+    @State private var sortOption: SortOption = .percent
+    @State private var selectedStandard: MicronutrientStandard = .optimal
 
     private enum SortOption: String, CaseIterable {
-        case rdaPercent = "RDA%"
-        case name = "Name"
+        case percent = "%"
         case category = "Category"
 
         var icon: String {
             switch self {
-            case .rdaPercent: return "percent"
-            case .name: return "textformat.abc"
+            case .percent: return "percent"
             case .category: return "square.grid.2x2"
             }
         }
@@ -190,8 +188,8 @@ struct MicronutrientDetailView: View {
             )
         ].map { nutrient in
             var n = nutrient
-            // Use unified getValue() that respects selected standard (Optimal or RDA)
-            let target = RDAValues.getValue(for: n.nutrientKey, gender: userGender, age: userAge, standard: micronutrientStandard)
+            // Use the locally selected standard (Optimal or RDA)
+            let target = RDAValues.getValue(for: n.nutrientKey, gender: userGender, age: userAge, standard: selectedStandard)
             if target > 0 && daysWithMeals > 0 {
                 n.rdaPercent = (n.amount / Double(daysWithMeals) / target) * 100
                 n.dailyAverage = n.amount / Double(daysWithMeals)
@@ -206,10 +204,8 @@ struct MicronutrientDetailView: View {
         // Apply sorting to regular nutrients only
         let sortedRegular: [NutrientDetail]
         switch sortOption {
-        case .rdaPercent:
+        case .percent:
             sortedRegular = regularNutrients.sorted { $0.rdaPercent > $1.rdaPercent }
-        case .name:
-            sortedRegular = regularNutrients.sorted { $0.name < $1.name }
         case .category:
             sortedRegular = regularNutrients.sorted { lhs, rhs in
                 if lhs.category == rhs.category {
@@ -323,43 +319,73 @@ struct MicronutrientDetailView: View {
     }
 
     private var sortSelector: some View {
-        HStack(spacing: 8) {
-            Text("Sort by:")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.secondary)
-
-            ForEach(SortOption.allCases, id: \.self) { option in
-                Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                        sortOption = option
-                    }
-                    HapticManager.light()
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: option.icon)
-                            .font(.system(size: 11))
-                        Text(option.rawValue)
-                            .font(.system(size: 12, weight: sortOption == option ? .semibold : .medium))
-                    }
-                    .foregroundColor(sortOption == option ? .white : .secondary)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(
-                        Capsule()
-                            .fill(sortOption == option ? Color.blue : Color.clear)
-                            .overlay(
+        HStack(spacing: 12) {
+            // Standard toggle (Optimal / RDA)
+            HStack(spacing: 0) {
+                ForEach([MicronutrientStandard.optimal, MicronutrientStandard.rda], id: \.self) { standard in
+                    Button {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            selectedStandard = standard
+                        }
+                        HapticManager.light()
+                    } label: {
+                        Text(standard == .optimal ? "Optimal" : "RDA")
+                            .font(.system(size: 12, weight: selectedStandard == standard ? .semibold : .medium))
+                            .foregroundColor(selectedStandard == standard ? .white : .secondary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
                                 Capsule()
-                                    .strokeBorder(
-                                        sortOption == option ? Color.clear : Color.secondary.opacity(0.2),
-                                        lineWidth: 1
-                                    )
+                                    .fill(selectedStandard == standard ? Color.blue : Color.clear)
                             )
-                    )
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
+            .background(
+                Capsule()
+                    .fill(Color.secondary.opacity(0.1))
+            )
 
             Spacer()
+
+            // Sort options
+            HStack(spacing: 4) {
+                Text("Sort:")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.secondary)
+
+                ForEach(SortOption.allCases, id: \.self) { option in
+                    Button {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            sortOption = option
+                        }
+                        HapticManager.light()
+                    } label: {
+                        HStack(spacing: 3) {
+                            Image(systemName: option.icon)
+                                .font(.system(size: 10))
+                            Text(option.rawValue)
+                                .font(.system(size: 11, weight: sortOption == option ? .semibold : .medium))
+                        }
+                        .foregroundColor(sortOption == option ? .white : .secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .background(
+                            Capsule()
+                                .fill(sortOption == option ? Color.secondary.opacity(0.6) : Color.clear)
+                                .overlay(
+                                    Capsule()
+                                        .strokeBorder(
+                                            sortOption == option ? Color.clear : Color.secondary.opacity(0.2),
+                                            lineWidth: 1
+                                        )
+                                )
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
         }
     }
 
