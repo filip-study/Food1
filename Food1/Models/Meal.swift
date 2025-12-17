@@ -223,17 +223,158 @@ final class Meal {
     }
 }
 
-// Daily goals
+// Daily goals with personalized calculation
 struct DailyGoals {
     let calories: Double
     let protein: Double
     let carbs: Double
     let fat: Double
 
+    /// Default fallback goals when profile data is incomplete
     static let standard = DailyGoals(
         calories: 2000,
         protein: 150,
         carbs: 225,
         fat: 65
     )
+
+    /// Calculate personalized goals from user profile using Mifflin-St Jeor equation
+    /// - Parameters:
+    ///   - gender: User's gender (affects BMR calculation)
+    ///   - age: User's age in years
+    ///   - weightKg: User's weight in kilograms
+    ///   - heightCm: User's height in centimeters
+    ///   - activityLevel: User's typical activity level
+    /// - Returns: Personalized DailyGoals with calculated TDEE and macros
+    static func calculate(
+        gender: Gender,
+        age: Int,
+        weightKg: Double,
+        heightCm: Double,
+        activityLevel: ActivityLevel
+    ) -> DailyGoals {
+        // Validate inputs - fall back to standard if invalid
+        guard age > 0, weightKg > 0, heightCm > 0 else {
+            return .standard
+        }
+
+        // Mifflin-St Jeor BMR equation (more accurate than Harris-Benedict)
+        // Men: BMR = (10 × weight in kg) + (6.25 × height in cm) - (5 × age) + 5
+        // Women: BMR = (10 × weight in kg) + (6.25 × height in cm) - (5 × age) - 161
+        let bmr: Double
+        switch gender {
+        case .male:
+            bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * Double(age)) + 5
+        case .female:
+            bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * Double(age)) - 161
+        case .other, .preferNotToSay:
+            // Use average of male/female formulas
+            let maleBmr = (10 * weightKg) + (6.25 * heightCm) - (5 * Double(age)) + 5
+            let femaleBmr = (10 * weightKg) + (6.25 * heightCm) - (5 * Double(age)) - 161
+            bmr = (maleBmr + femaleBmr) / 2
+        }
+
+        // Activity multiplier for TDEE (Total Daily Energy Expenditure)
+        let activityMultiplier: Double
+        switch activityLevel {
+        case .sedentary:
+            activityMultiplier = 1.2
+        case .lightlyActive:
+            activityMultiplier = 1.375
+        case .moderatelyActive:
+            activityMultiplier = 1.55
+        case .veryActive:
+            activityMultiplier = 1.725
+        case .extremelyActive:
+            activityMultiplier = 1.9
+        }
+
+        let tdee = bmr * activityMultiplier
+
+        // Macro split: 30% protein, 35% carbs, 35% fat (balanced approach)
+        // Protein: 4 cal/g, Carbs: 4 cal/g, Fat: 9 cal/g
+        let proteinCalories = tdee * 0.30
+        let carbCalories = tdee * 0.35
+        let fatCalories = tdee * 0.35
+
+        let protein = proteinCalories / 4
+        let carbs = carbCalories / 4
+        let fat = fatCalories / 9
+
+        return DailyGoals(
+            calories: tdee.rounded(),
+            protein: protein.rounded(),
+            carbs: carbs.rounded(),
+            fat: fat.rounded()
+        )
+    }
+
+    /// Calculate goals from UserDefaults @AppStorage values
+    /// This reads directly from UserDefaults for use in views with @AppStorage bindings
+    /// Respects the useAutoGoals toggle - returns manual goals if user has overridden
+    static func fromUserDefaults() -> DailyGoals {
+        let defaults = UserDefaults.standard
+
+        // Check if user wants manual goals
+        let useAutoGoals = defaults.bool(forKey: "useAutoGoals")
+
+        // If useAutoGoals is false AND manual values exist, use them
+        if !useAutoGoals {
+            let manualCalories = defaults.double(forKey: "manualCalorieGoal")
+            let manualProtein = defaults.double(forKey: "manualProteinGoal")
+            let manualCarbs = defaults.double(forKey: "manualCarbsGoal")
+            let manualFat = defaults.double(forKey: "manualFatGoal")
+
+            // Only use manual if all values are set (> 0)
+            if manualCalories > 0 && manualProtein > 0 && manualCarbs > 0 && manualFat > 0 {
+                return DailyGoals(
+                    calories: manualCalories,
+                    protein: manualProtein,
+                    carbs: manualCarbs,
+                    fat: manualFat
+                )
+            }
+        }
+
+        // Auto-calculate from profile
+        let age = defaults.integer(forKey: "userAge")
+        let weightKg = defaults.double(forKey: "userWeight")
+        let heightCm = defaults.double(forKey: "userHeight")
+        let genderRaw = defaults.string(forKey: "userGender") ?? Gender.preferNotToSay.rawValue
+        let activityRaw = defaults.string(forKey: "userActivityLevel") ?? ActivityLevel.moderatelyActive.rawValue
+
+        let gender = Gender(rawValue: genderRaw) ?? .preferNotToSay
+        let activityLevel = ActivityLevel(rawValue: activityRaw) ?? .moderatelyActive
+
+        return calculate(
+            gender: gender,
+            age: age,
+            weightKg: weightKg,
+            heightCm: heightCm,
+            activityLevel: activityLevel
+        )
+    }
+
+    /// Get auto-calculated goals (ignores manual override)
+    /// Useful for showing "suggested" values in the goals editor
+    static func autoCalculatedFromUserDefaults() -> DailyGoals {
+        let defaults = UserDefaults.standard
+
+        let age = defaults.integer(forKey: "userAge")
+        let weightKg = defaults.double(forKey: "userWeight")
+        let heightCm = defaults.double(forKey: "userHeight")
+        let genderRaw = defaults.string(forKey: "userGender") ?? Gender.preferNotToSay.rawValue
+        let activityRaw = defaults.string(forKey: "userActivityLevel") ?? ActivityLevel.moderatelyActive.rawValue
+
+        let gender = Gender(rawValue: genderRaw) ?? .preferNotToSay
+        let activityLevel = ActivityLevel(rawValue: activityRaw) ?? .moderatelyActive
+
+        return calculate(
+            gender: gender,
+            age: age,
+            weightKg: weightKg,
+            heightCm: heightCm,
+            activityLevel: activityLevel
+        )
+    }
 }

@@ -79,7 +79,7 @@ struct StatsView: View {
                         if stats.totalMeals >= 1 {
                             // Chart section - edge-to-edge immersive
                             VStack(spacing: 0) {
-                                MacroTrendsChart(dailyData: stats.dailyData, period: selectedPeriod)
+                                MacroTrendsChart(statistics: stats, period: selectedPeriod)
                                     .padding(.vertical, 20)
                             }
                             .background(
@@ -174,10 +174,16 @@ private struct MicronutrientsSection: View {
     let age: Int
     let selectedPeriod: StatsPeriod
 
+    // Observe micronutrient standard to trigger view refresh when changed
+    @AppStorage("micronutrientStandard") private var micronutrientStandard: MicronutrientStandard = .optimal
+
     @State private var showingDetailView = false
 
     private var allNutrientsWithRDA: [NutrientRDA] {
-        [
+        // Use current standard from settings (Optimal or RDA)
+        let standard = micronutrientStandard
+
+        return [
             // Minerals (7)
             NutrientRDA(name: "Calcium", amount: micronutrients.calcium, unit: "mg", nutrientKey: "calcium"),
             NutrientRDA(name: "Iron", amount: micronutrients.iron, unit: "mg", nutrientKey: "iron"),
@@ -199,15 +205,16 @@ private struct MicronutrientsSection: View {
             NutrientRDA(name: "Riboflavin (B2)", amount: micronutrients.vitaminB2, unit: "mg", nutrientKey: "riboflavin"),
             NutrientRDA(name: "Niacin (B3)", amount: micronutrients.vitaminB3, unit: "mg", nutrientKey: "niacin"),
             NutrientRDA(name: "Pantothenic Acid (B5)", amount: micronutrients.vitaminB5, unit: "mg", nutrientKey: "pantothenic acid"),
-            NutrientRDA(name: "Vitamin B6", amount: micronutrients.vitaminB6, unit: "mg", nutrientKey: "vitamin b-6"),
+            NutrientRDA(name: "Pyridoxine (B6)", amount: micronutrients.vitaminB6, unit: "mg", nutrientKey: "vitamin b-6"),
             NutrientRDA(name: "Vitamin B12", amount: micronutrients.vitaminB12, unit: "mcg", nutrientKey: "vitamin b12"),
             NutrientRDA(name: "Folate (B9)", amount: micronutrients.folate, unit: "mcg", nutrientKey: "folate")
         ].map { nutrient in
             var n = nutrient
-            let rda = RDAValues.getRDA(for: n.nutrientKey, gender: gender, age: age)
-            // Calculate daily average RDA% (total amount / days / RDA * 100)
-            if rda > 0 && daysWithMeals > 0 {
-                n.rdaPercent = (n.amount / Double(daysWithMeals) / rda) * 100
+            // Use unified getValue() that respects selected standard (Optimal or RDA)
+            let target = RDAValues.getValue(for: n.nutrientKey, gender: gender, age: age, standard: standard)
+            // Calculate daily average percentage against target
+            if target > 0 && daysWithMeals > 0 {
+                n.rdaPercent = (n.amount / Double(daysWithMeals) / target) * 100
             }
             return n
         }

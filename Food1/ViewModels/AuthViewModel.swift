@@ -119,6 +119,9 @@ class AuthViewModel: ObservableObject {
 
             self.profile = profileResponse
 
+            // Sync cloud profile to local @AppStorage for RDA calculations
+            syncCloudProfileToLocal(profileResponse)
+
             // Load subscription status
             let subscriptionResponse: SubscriptionStatus = try await supabase.client.database
                 .from("subscription_status")
@@ -137,6 +140,78 @@ class AuthViewModel: ObservableObject {
             print("⚠️  This is normal for first-time sign in - database trigger might need time to create profile")
             // DON'T set errorMessage - allow user to enter app anyway
             // Profile will be loaded on next session or can be created on-demand
+        }
+    }
+
+    // MARK: - Profile Sync (Cloud ↔ Local)
+
+    /// Sync cloud profile data to local @AppStorage for RDA calculations
+    /// Called after loading profile from Supabase to ensure Stats views use correct values
+    private func syncCloudProfileToLocal(_ cloudProfile: CloudUserProfile) {
+        let defaults = UserDefaults.standard
+
+        // Sync age (used for RDA personalization)
+        if let age = cloudProfile.age {
+            defaults.set(age, forKey: "userAge")
+            print("📥 Synced age from cloud: \(age)")
+        }
+
+        // Sync weight (in kg internally, converted for display based on unit preference)
+        if let weightKg = cloudProfile.weightKg {
+            defaults.set(weightKg, forKey: "userWeight")
+        }
+
+        // Sync height (in cm internally)
+        if let heightCm = cloudProfile.heightCm {
+            defaults.set(heightCm, forKey: "userHeight")
+        }
+
+        // Sync gender (used for RDA personalization)
+        if let genderEnum = cloudProfile.genderEnum {
+            defaults.set(genderEnum.rawValue, forKey: "userGender")
+            print("📥 Synced gender from cloud: \(genderEnum.rawValue)")
+        }
+
+        // Sync activity level
+        if let activityEnum = cloudProfile.activityLevelEnum {
+            defaults.set(activityEnum.rawValue, forKey: "userActivityLevel")
+        }
+
+        // Sync unit preferences
+        defaults.set(cloudProfile.weightUnit, forKey: "weightUnit")
+        defaults.set(cloudProfile.heightUnit, forKey: "heightUnit")
+        defaults.set(cloudProfile.nutritionUnit, forKey: "nutritionUnit")
+
+        print("📥 Cloud → Local profile sync complete")
+    }
+
+    /// Sync local @AppStorage values to cloud (called after profile edit)
+    func syncLocalProfileToCloud() async {
+        let defaults = UserDefaults.standard
+
+        // Read local values
+        let age = defaults.integer(forKey: "userAge")
+        let weight = defaults.double(forKey: "userWeight")
+        let height = defaults.double(forKey: "userHeight")
+        let genderRaw = defaults.string(forKey: "userGender") ?? Gender.preferNotToSay.rawValue
+        let activityRaw = defaults.string(forKey: "userActivityLevel") ?? ActivityLevel.moderatelyActive.rawValue
+
+        // Convert to enums
+        let gender = Gender(rawValue: genderRaw) ?? .preferNotToSay
+        let activityLevel = ActivityLevel(rawValue: activityRaw) ?? .moderatelyActive
+
+        do {
+            try await updateProfile(
+                fullName: profile?.fullName,
+                age: age > 0 ? age : nil,
+                weightKg: weight > 0 ? weight : nil,
+                heightCm: height > 0 ? height : nil,
+                gender: gender,
+                activityLevel: activityLevel
+            )
+            print("📤 Local → Cloud profile sync complete")
+        } catch {
+            print("⚠️ Failed to sync local profile to cloud: \(error)")
         }
     }
 

@@ -26,9 +26,20 @@ struct SettingsView: View {
     @AppStorage("weightUnit") private var weightUnit: WeightUnit = .kg
     @AppStorage("heightUnit") private var heightUnit: HeightUnit = .cm
     @AppStorage("nutritionUnit") private var nutritionUnit: NutritionUnit = .metric
+    @AppStorage("micronutrientStandard") private var micronutrientStandard: MicronutrientStandard = .optimal
 
     @State private var showingProfileEditor = false
     @State private var showingAccount = false
+    @State private var showingNutritionGoals = false
+
+    // Nutrition goals for display
+    @AppStorage("useAutoGoals") private var useAutoGoals: Bool = true
+    @AppStorage("manualCalorieGoal") private var manualCalories: Double = 2000
+    @AppStorage("manualProteinGoal") private var manualProtein: Double = 150
+
+    private var currentGoals: DailyGoals {
+        DailyGoals.fromUserDefaults()
+    }
 
     var body: some View {
         NavigationStack {
@@ -99,6 +110,48 @@ struct SettingsView: View {
                     Text("Profile")
                 }
 
+                // Nutrition Targets Section
+                Section {
+                    Button(action: {
+                        showingNutritionGoals = true
+                    }) {
+                        HStack(spacing: 16) {
+                            Image(systemName: "target")
+                                .font(.system(size: 24))
+                                .foregroundColor(.orange)
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Nutrition Targets")
+                                    .foregroundColor(.primary)
+                                    .font(.system(size: 17, weight: .semibold))
+
+                                HStack(spacing: 8) {
+                                    Text("\(Int(currentGoals.calories)) kcal")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.secondary)
+
+                                    Text("•")
+                                        .foregroundColor(.secondary.opacity(0.5))
+
+                                    Text("\(Int(currentGoals.protein))g protein")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.secondary)
+                                }
+
+                                Text(useAutoGoals ? "Auto-calculated" : "Custom")
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(useAutoGoals ? .green : .blue)
+                            }
+
+                            Spacer()
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                } header: {
+                    Text("Goals")
+                }
+
                 // Appearance Section
                 Section {
                     Picker("Appearance", selection: $selectedTheme) {
@@ -111,7 +164,7 @@ struct SettingsView: View {
                     Text("Appearance")
                 }
 
-                // Nutrition Section
+                // Nutrition Units Section
                 Section {
                     Picker("Units", selection: $nutritionUnit) {
                         ForEach(NutritionUnit.allCases) { unit in
@@ -121,6 +174,20 @@ struct SettingsView: View {
                     .pickerStyle(.segmented)
                 } header: {
                     Text("Nutrition Units")
+                }
+
+                // Micronutrient Standard Section
+                Section {
+                    Picker("Standard", selection: $micronutrientStandard) {
+                        ForEach(MicronutrientStandard.allCases) { standard in
+                            Text(standard.rawValue).tag(standard)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                } header: {
+                    Text("Micronutrient Targets")
+                } footer: {
+                    Text(micronutrientStandard.description)
                 }
 
             }
@@ -136,9 +203,21 @@ struct SettingsView: View {
                     heightUnit: $heightUnit
                 )
             }
+            .onChange(of: showingProfileEditor) { wasShowing, isShowing in
+                // When profile editor is dismissed (was showing, now not showing)
+                if wasShowing && !isShowing {
+                    // Sync local profile changes to cloud
+                    Task {
+                        await authViewModel.syncLocalProfileToCloud()
+                    }
+                }
+            }
             .sheet(isPresented: $showingAccount) {
                 AccountView()
                     .environmentObject(authViewModel)
+            }
+            .sheet(isPresented: $showingNutritionGoals) {
+                NutritionGoalsEditorView()
             }
         }
     }

@@ -9,7 +9,7 @@
 //  - Dynamic gradient bands (0-30% muted blue, 30-70% teal, 70-100% green, >100% orange) guide user behavior
 //  - Frosted glass (.thinMaterial 97%) + layered shadows (4pt inner, 12pt outer) create depth
 //  - Mood emoji (😢→😐→😊→🎉) adds personality and emotional feedback
-//  - Macro color standard maintained: Orange (protein), Green (carbs), Yellow (fat)
+//  - Macro order standard: Protein → Fat → Carbs (teal, blue, pink)
 //
 
 import SwiftUI
@@ -75,7 +75,7 @@ struct MetricsDashboardView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 4)
 
-            // HERO: Macro bars
+            // HERO: Macro bars (order: Protein → Fat → Carbs)
             VStack(spacing: 20) {
                 MacroHeroBar(
                     name: "PROTEIN",
@@ -87,20 +87,20 @@ struct MetricsDashboardView: View {
                 )
 
                 MacroHeroBar(
-                    name: "CARBOHYDRATES",
-                    current: currentCarbs,
-                    goal: goals.carbs,
-                    color: ColorPalette.macroCarbs,
-                    icon: "leaf.fill",
-                    delay: 0.1
-                )
-
-                MacroHeroBar(
                     name: "FAT",
                     current: currentFat,
                     goal: goals.fat,
                     color: ColorPalette.macroFat,
                     icon: "drop.fill",
+                    delay: 0.1
+                )
+
+                MacroHeroBar(
+                    name: "CARBOHYDRATES",
+                    current: currentCarbs,
+                    goal: goals.carbs,
+                    color: ColorPalette.macroCarbs,
+                    icon: "leaf.fill",
                     delay: 0.2
                 )
             }

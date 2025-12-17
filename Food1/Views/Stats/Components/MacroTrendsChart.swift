@@ -8,11 +8,25 @@
 import SwiftUI
 import Charts
 
+// MARK: - Chart Data Point (file-private for header access)
+
+/// Unified chart point for rendering (works for both raw and smoothed data)
+fileprivate struct ChartPoint: Identifiable {
+    let id = UUID()
+    let date: Date
+    let calories: Double
+    let protein: Double
+    let carbs: Double
+    let fat: Double
+    let label: String           // Display label (day or window range)
+    let windowSize: Int         // 1 for raw data, >1 for smoothed
+}
+
 struct MacroTrendsChart: View {
-    let dailyData: [DailyDataPoint]
+    let statistics: StatisticsSummary
     let period: StatsPeriod
     @State private var selectedDate: Date?
-    @State private var selectedData: DailyDataPoint?
+    @State private var selectedPoint: ChartPoint?
     @State private var lastSelectedDate: Date?
     @Environment(\.colorScheme) private var colorScheme
 
@@ -22,33 +36,63 @@ struct MacroTrendsChart: View {
     private let fatColor = ColorPalette.macroFat
     private let caloriesColor = ColorPalette.calories
 
-    /// Days with actual meal data (not gaps)
-    private var daysWithData: [DailyDataPoint] {
-        dailyData.filter { $0.mealCount > 0 }
+    /// Unified chart points - either raw daily or smoothed based on period
+    private var chartPoints: [ChartPoint] {
+        if period.usesSmoothing {
+            // Use smoothed data for Month, Quarter, Year
+            return statistics.smoothedData(for: period).map { point in
+                ChartPoint(
+                    date: point.date,
+                    calories: point.calories,
+                    protein: point.protein,
+                    carbs: point.carbs,
+                    fat: point.fat,
+                    label: point.windowLabel,
+                    windowSize: point.windowSize
+                )
+            }
+        } else {
+            // Use raw daily data for Week
+            return statistics.dailyData.filter { $0.mealCount > 0 }.map { day in
+                ChartPoint(
+                    date: day.date,
+                    calories: day.calories,
+                    protein: day.protein,
+                    carbs: day.carbs,
+                    fat: day.fat,
+                    label: day.dayOfWeek,
+                    windowSize: 1
+                )
+            }
+        }
     }
 
-    /// Segments of consecutive days with data - solid lines only connect within segments
-    private var dataSegments: [[DailyDataPoint]] {
-        let sortedData = dailyData.sorted { $0.date < $1.date }
-        var segments: [[DailyDataPoint]] = []
-        var currentSegment: [DailyDataPoint] = []
+    /// Maximum gap (in days) before showing a dashed line
+    private var maxSolidGap: Int {
+        period.maxSolidGap
+    }
 
-        for day in sortedData {
-            if day.mealCount > 0 {
-                if let lastDay = currentSegment.last {
-                    let daysBetween = Calendar.current.dateComponents([.day], from: lastDay.date, to: day.date).day ?? 0
-                    if daysBetween > 1 {
-                        // Gap detected - save current segment and start new one
-                        if !currentSegment.isEmpty {
-                            segments.append(currentSegment)
-                        }
-                        currentSegment = [day]
-                    } else {
-                        currentSegment.append(day)
+    /// Segments of consecutive points - solid lines only connect within segments
+    /// Uses period-specific gap tolerance
+    private var dataSegments: [[ChartPoint]] {
+        let sortedPoints = chartPoints.sorted { $0.date < $1.date }
+        var segments: [[ChartPoint]] = []
+        var currentSegment: [ChartPoint] = []
+
+        for point in sortedPoints {
+            if let lastPoint = currentSegment.last {
+                let daysBetween = Calendar.current.dateComponents([.day], from: lastPoint.date, to: point.date).day ?? 0
+                if daysBetween > maxSolidGap {
+                    // Gap exceeds tolerance - save current segment and start new one
+                    if !currentSegment.isEmpty {
+                        segments.append(currentSegment)
                     }
+                    currentSegment = [point]
                 } else {
-                    currentSegment.append(day)
+                    currentSegment.append(point)
                 }
+            } else {
+                currentSegment.append(point)
             }
         }
         if !currentSegment.isEmpty {
@@ -57,10 +101,10 @@ struct MacroTrendsChart: View {
         return segments
     }
 
-    /// Isolated data points - single-day segments that can't form lines
-    /// These are the ONLY points that need dots (no adjacent days to connect to)
+    /// Isolated data points - single-point segments that can't form lines
+    /// These are the ONLY points that need dots (no adjacent points to connect to)
     /// Note: First and last segments always have edge extensions, so they're never truly isolated
-    private var isolatedPoints: [DailyDataPoint] {
+    private var isolatedPoints: [ChartPoint] {
         // Need at least 3 segments for any to be "middle" (truly isolated)
         guard dataSegments.count >= 3 else { return [] }
 
@@ -70,32 +114,31 @@ struct MacroTrendsChart: View {
     }
 
     /// Gap bridges - pairs of consecutive data points that have a gap between them
-    private var gapBridges: [(from: DailyDataPoint, to: DailyDataPoint)] {
-        let sortedData = dailyData.sorted { $0.date < $1.date }
-        var bridges: [(from: DailyDataPoint, to: DailyDataPoint)] = []
+    /// Only shows dashed lines for gaps that exceed the period's tolerance
+    private var gapBridges: [(from: ChartPoint, to: ChartPoint)] {
+        let sortedPoints = chartPoints.sorted { $0.date < $1.date }
+        var bridges: [(from: ChartPoint, to: ChartPoint)] = []
 
-        var lastDataPoint: DailyDataPoint?
-        for day in sortedData {
-            if day.mealCount > 0 {
-                if let last = lastDataPoint {
-                    let daysBetween = Calendar.current.dateComponents([.day], from: last.date, to: day.date).day ?? 0
-                    if daysBetween > 1 {
-                        bridges.append((from: last, to: day))
-                    }
+        var lastPoint: ChartPoint?
+        for point in sortedPoints {
+            if let last = lastPoint {
+                let daysBetween = Calendar.current.dateComponents([.day], from: last.date, to: point.date).day ?? 0
+                if daysBetween > maxSolidGap {
+                    bridges.append((from: last, to: point))
                 }
-                lastDataPoint = day
             }
+            lastPoint = point
         }
         return bridges
     }
 
-    /// First and last data points with actual data (for edge extensions)
-    private var firstDataPoint: DailyDataPoint? {
-        daysWithData.min { $0.date < $1.date }
+    /// First and last chart points (for edge extensions)
+    private var firstChartPoint: ChartPoint? {
+        chartPoints.min { $0.date < $1.date }
     }
 
-    private var lastDataPoint: DailyDataPoint? {
-        daysWithData.max { $0.date < $1.date }
+    private var lastChartPoint: ChartPoint? {
+        chartPoints.max { $0.date < $1.date }
     }
 
     /// Extended date range for edge-to-edge chart display
@@ -103,8 +146,8 @@ struct MacroTrendsChart: View {
     private var chartDateRange: ClosedRange<Date> {
         let calendar = Calendar.current
         // Use first/last REAL data points, not the period's date range
-        guard let first = firstDataPoint?.date,
-              let last = lastDataPoint?.date else {
+        guard let first = firstChartPoint?.date,
+              let last = lastChartPoint?.date else {
             return Date()...Date()
         }
         // Extend half a day on each side for visual edge padding
@@ -125,20 +168,21 @@ struct MacroTrendsChart: View {
 
     /// Data segments with edge points integrated for seamless edge-to-edge display
     /// First segment gets a left edge point, last segment gets a right edge point
-    private var segmentsWithEdges: [[DailyDataPoint]] {
+    private var segmentsWithEdges: [[ChartPoint]] {
         guard !dataSegments.isEmpty else { return [] }
 
         var result = dataSegments
 
         // Add left edge point to first segment
         if let firstSegment = result.first, let firstPoint = firstSegment.first {
-            let leftEdgePoint = DailyDataPoint(
+            let leftEdgePoint = ChartPoint(
                 date: leftEdgeDate,
                 calories: firstPoint.calories,
                 protein: firstPoint.protein,
                 carbs: firstPoint.carbs,
                 fat: firstPoint.fat,
-                mealCount: 0  // Mark as synthetic
+                label: "",
+                windowSize: 0  // Mark as synthetic edge point
             )
             result[0] = [leftEdgePoint] + firstSegment
         }
@@ -146,13 +190,14 @@ struct MacroTrendsChart: View {
         // Add right edge point to last segment
         let lastIndex = result.count - 1
         if let lastSegment = result.last, let lastPoint = lastSegment.last {
-            let rightEdgePoint = DailyDataPoint(
+            let rightEdgePoint = ChartPoint(
                 date: rightEdgeDate,
                 calories: lastPoint.calories,
                 protein: lastPoint.protein,
                 carbs: lastPoint.carbs,
                 fat: lastPoint.fat,
-                mealCount: 0  // Mark as synthetic
+                label: "",
+                windowSize: 0  // Mark as synthetic edge point
             )
             result[lastIndex] = lastSegment + [rightEdgePoint]
         }
@@ -160,43 +205,46 @@ struct MacroTrendsChart: View {
         return result
     }
 
-    /// Days with data plus edge points for calories gradient
-    private var daysWithDataAndEdges: [DailyDataPoint] {
-        guard let first = firstDataPoint, let last = lastDataPoint else {
-            return daysWithData
+    /// Chart points plus edge points for calories gradient
+    private var chartPointsWithEdges: [ChartPoint] {
+        guard let first = firstChartPoint, let last = lastChartPoint else {
+            return chartPoints
         }
 
-        let leftEdgePoint = DailyDataPoint(
+        let leftEdgePoint = ChartPoint(
             date: leftEdgeDate,
             calories: first.calories,
             protein: first.protein,
             carbs: first.carbs,
             fat: first.fat,
-            mealCount: 0
+            label: "",
+            windowSize: 0
         )
 
-        let rightEdgePoint = DailyDataPoint(
+        let rightEdgePoint = ChartPoint(
             date: rightEdgeDate,
             calories: last.calories,
             protein: last.protein,
             carbs: last.carbs,
             fat: last.fat,
-            mealCount: 0
+            label: "",
+            windowSize: 0
         )
 
-        return [leftEdgePoint] + daysWithData + [rightEdgePoint]
+        return [leftEdgePoint] + chartPoints + [rightEdgePoint]
     }
 
     var body: some View {
         VStack(spacing: 0) {
             // Static header with date and legend/values combo
-            StaticChartHeader(
-                selectedData: selectedData,
+            // Order: Protein → Fat → Carbs
+            SmoothedChartHeader(
+                selectedPoint: selectedPoint,
                 period: period,
-                dailyData: dailyData,
+                chartPoints: chartPoints,
                 proteinColor: proteinColor,
-                carbsColor: carbsColor,
                 fatColor: fatColor,
+                carbsColor: carbsColor,
                 caloriesColor: caloriesColor
             )
             .padding(.horizontal, 16)
@@ -206,16 +254,16 @@ struct MacroTrendsChart: View {
             Chart {
                 // CALORIES GRADIENT - normalized to fit macro scale, extends to edges
                 // Actual calorie values shown in legend, this is just visual representation
-                ForEach(daysWithDataAndEdges) { day in
+                ForEach(chartPointsWithEdges) { point in
                     AreaMark(
-                        x: .value("Date", day.date),
-                        y: .value("Calories", day.calories / caloriesScaleFactor),
+                        x: .value("Date", point.date),
+                        y: .value("Calories", point.calories / caloriesScaleFactor),
                         series: .value("Area", "Calories"),
                         stacking: .unstacked
                     )
                     .foregroundStyle(
                         LinearGradient(
-                            colors: [caloriesColor.opacity(0.15), caloriesColor.opacity(0.02)],
+                            colors: [caloriesColor.opacity(0.15), caloriesColor.opacity(0)],
                             startPoint: .top,
                             endPoint: .bottom
                         )
@@ -224,11 +272,12 @@ struct MacroTrendsChart: View {
                 }
 
                 // SOLID LINES - segments with edge extensions for edge-to-edge display
+                // Order: Protein → Fat → Carbs
                 ForEach(Array(segmentsWithEdges.enumerated()), id: \.offset) { segmentIndex, segment in
-                    ForEach(segment) { day in
+                    ForEach(segment) { point in
                         LineMark(
-                            x: .value("Date", day.date),
-                            y: .value("Protein", day.protein),
+                            x: .value("Date", point.date),
+                            y: .value("Protein", point.protein),
                             series: .value("Macro", "Protein-\(segmentIndex)")
                         )
                         .foregroundStyle(proteinColor)
@@ -236,50 +285,52 @@ struct MacroTrendsChart: View {
                         .interpolationMethod(.catmullRom)
 
                         LineMark(
-                            x: .value("Date", day.date),
-                            y: .value("Carbs", day.carbs),
-                            series: .value("Macro", "Carbs-\(segmentIndex)")
-                        )
-                        .foregroundStyle(carbsColor)
-                        .lineStyle(StrokeStyle(lineWidth: 2.5))
-                        .interpolationMethod(.catmullRom)
-
-                        LineMark(
-                            x: .value("Date", day.date),
-                            y: .value("Fat", day.fat),
+                            x: .value("Date", point.date),
+                            y: .value("Fat", point.fat),
                             series: .value("Macro", "Fat-\(segmentIndex)")
                         )
                         .foregroundStyle(fatColor)
                         .lineStyle(StrokeStyle(lineWidth: 2.5))
                         .interpolationMethod(.catmullRom)
+
+                        LineMark(
+                            x: .value("Date", point.date),
+                            y: .value("Carbs", point.carbs),
+                            series: .value("Macro", "Carbs-\(segmentIndex)")
+                        )
+                        .foregroundStyle(carbsColor)
+                        .lineStyle(StrokeStyle(lineWidth: 2.5))
+                        .interpolationMethod(.catmullRom)
                     }
                 }
 
-                // DOTS only for isolated points (single days with no adjacent data to form lines)
-                ForEach(isolatedPoints) { day in
+                // DOTS only for isolated points (single points with no adjacent data to form lines)
+                // Order: Protein → Fat → Carbs
+                ForEach(isolatedPoints) { point in
                     PointMark(
-                        x: .value("Date", day.date),
-                        y: .value("Protein", day.protein)
+                        x: .value("Date", point.date),
+                        y: .value("Protein", point.protein)
                     )
                     .foregroundStyle(proteinColor)
                     .symbolSize(30)
 
                     PointMark(
-                        x: .value("Date", day.date),
-                        y: .value("Carbs", day.carbs)
+                        x: .value("Date", point.date),
+                        y: .value("Fat", point.fat)
                     )
-                    .foregroundStyle(carbsColor)
+                    .foregroundStyle(fatColor)
                     .symbolSize(30)
 
                     PointMark(
-                        x: .value("Date", day.date),
-                        y: .value("Fat", day.fat)
+                        x: .value("Date", point.date),
+                        y: .value("Carbs", point.carbs)
                     )
-                    .foregroundStyle(fatColor)
+                    .foregroundStyle(carbsColor)
                     .symbolSize(30)
                 }
 
                 // DASHED LINES FOR GAPS - connect data points across missing days
+                // Order: Protein → Fat → Carbs
                 ForEach(Array(gapBridges.enumerated()), id: \.offset) { index, bridge in
                     // Protein dashed bridge
                     LineMark(
@@ -298,23 +349,6 @@ struct MacroTrendsChart: View {
                     .foregroundStyle(proteinColor.opacity(0.4))
                     .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
 
-                    // Carbs dashed bridge
-                    LineMark(
-                        x: .value("Date", bridge.from.date),
-                        y: .value("Value", bridge.from.carbs),
-                        series: .value("Bridge", "CarbsBridge\(index)")
-                    )
-                    .foregroundStyle(carbsColor.opacity(0.4))
-                    .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
-
-                    LineMark(
-                        x: .value("Date", bridge.to.date),
-                        y: .value("Value", bridge.to.carbs),
-                        series: .value("Bridge", "CarbsBridge\(index)")
-                    )
-                    .foregroundStyle(carbsColor.opacity(0.4))
-                    .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
-
                     // Fat dashed bridge
                     LineMark(
                         x: .value("Date", bridge.from.date),
@@ -330,6 +364,23 @@ struct MacroTrendsChart: View {
                         series: .value("Bridge", "FatBridge\(index)")
                     )
                     .foregroundStyle(fatColor.opacity(0.4))
+                    .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
+
+                    // Carbs dashed bridge
+                    LineMark(
+                        x: .value("Date", bridge.from.date),
+                        y: .value("Value", bridge.from.carbs),
+                        series: .value("Bridge", "CarbsBridge\(index)")
+                    )
+                    .foregroundStyle(carbsColor.opacity(0.4))
+                    .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
+
+                    LineMark(
+                        x: .value("Date", bridge.to.date),
+                        y: .value("Value", bridge.to.carbs),
+                        series: .value("Bridge", "CarbsBridge\(index)")
+                    )
+                    .foregroundStyle(carbsColor.opacity(0.4))
                     .lineStyle(StrokeStyle(lineWidth: 1.5, dash: [4, 4]))
                 }
 
@@ -361,38 +412,43 @@ struct MacroTrendsChart: View {
                                     guard let plotFrame = proxy.plotFrame else { return }
                                     let x = value.location.x - geometry[plotFrame].origin.x
                                     if let date: Date = proxy.value(atX: x) {
-                                        // Find the nearest data point to snap to
-                                        guard let nearestPoint = dailyData.min(by: {
+                                        // Find the nearest chart point to snap to
+                                        guard let nearestPoint = chartPoints.min(by: {
                                             abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
                                         }) else { return }
 
-                                        // Only trigger haptic and update when we cross to a NEW day
-                                        let isNewDay = lastSelectedDate == nil ||
+                                        // Only trigger haptic and update when we cross to a NEW point
+                                        let isNewPoint = lastSelectedDate == nil ||
                                             !Calendar.current.isDate(nearestPoint.date, inSameDayAs: lastSelectedDate!)
 
-                                        if isNewDay {
+                                        if isNewPoint {
                                             HapticManager.light()
                                             lastSelectedDate = nearestPoint.date
                                             // Snap BOTH the line position AND data to the same point
                                             selectedDate = nearestPoint.date
-                                            selectedData = nearestPoint
+                                            selectedPoint = nearestPoint
                                         }
                                     }
                                 }
                                 .onEnded { _ in
                                     lastSelectedDate = nil
-                                    withAnimation(.easeOut(duration: 0.2).delay(0.5)) {
+                                    // Clear selection after delay without animation
+                                    // Animation here causes catmullRom curves to squiggle
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                         selectedDate = nil
-                                        selectedData = nil
+                                        selectedPoint = nil
                                     }
                                 }
                         )
                 }
             }
             .frame(height: 280)
+            // Use period as identity to prevent squiggly animation when switching tabs
+            // SwiftUI will treat each period as a new chart instead of animating between them
+            .id(period)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Macro trends chart showing protein, carbs, and fat over \(period.rawValue.lowercased())")
+        .accessibilityLabel("Macro trends chart showing protein, fat, and carbs over \(period.rawValue.lowercased())")
     }
 
     /// Scale factor to normalize calories into the macro gram range
@@ -401,54 +457,50 @@ struct MacroTrendsChart: View {
 
     private var maxYValue: Double {
         // Base scale on macros (grams) - carbs typically highest
-        let maxProtein = dailyData.map { $0.protein }.max() ?? 150
-        let maxCarbs = dailyData.map { $0.carbs }.max() ?? 250
-        let maxFat = dailyData.map { $0.fat }.max() ?? 100
+        let maxProtein = chartPoints.map { $0.protein }.max() ?? 150
+        let maxCarbs = chartPoints.map { $0.carbs }.max() ?? 250
+        let maxFat = chartPoints.map { $0.fat }.max() ?? 100
         // Also consider scaled calories to ensure gradient fits
-        let maxScaledCalories = (dailyData.map { $0.calories }.max() ?? 2000) / caloriesScaleFactor
+        let maxScaledCalories = (chartPoints.map { $0.calories }.max() ?? 2000) / caloriesScaleFactor
         return max(maxProtein, maxCarbs, maxFat, maxScaledCalories) * 1.15
     }
 }
 
 // MARK: - Supporting Views
 
-private struct StaticChartHeader: View {
-    let selectedData: DailyDataPoint?
+fileprivate struct SmoothedChartHeader: View {
+    let selectedPoint: ChartPoint?
     let period: StatsPeriod
-    let dailyData: [DailyDataPoint]
+    let chartPoints: [ChartPoint]
     let proteinColor: Color
-    let carbsColor: Color
     let fatColor: Color
+    let carbsColor: Color
     let caloriesColor: Color
 
-    // Compute period averages (only days with actual data)
-    private var daysWithData: [DailyDataPoint] {
-        dailyData.filter { $0.mealCount > 0 }
-    }
-
+    // Compute period averages from chart points
     private var avgProtein: Double {
-        guard !daysWithData.isEmpty else { return 0 }
-        return daysWithData.reduce(0) { $0 + $1.protein } / Double(daysWithData.count)
+        guard !chartPoints.isEmpty else { return 0 }
+        return chartPoints.reduce(0) { $0 + $1.protein } / Double(chartPoints.count)
     }
 
     private var avgCarbs: Double {
-        guard !daysWithData.isEmpty else { return 0 }
-        return daysWithData.reduce(0) { $0 + $1.carbs } / Double(daysWithData.count)
+        guard !chartPoints.isEmpty else { return 0 }
+        return chartPoints.reduce(0) { $0 + $1.carbs } / Double(chartPoints.count)
     }
 
     private var avgFat: Double {
-        guard !daysWithData.isEmpty else { return 0 }
-        return daysWithData.reduce(0) { $0 + $1.fat } / Double(daysWithData.count)
+        guard !chartPoints.isEmpty else { return 0 }
+        return chartPoints.reduce(0) { $0 + $1.fat } / Double(chartPoints.count)
     }
 
     private var avgCalories: Double {
-        guard !daysWithData.isEmpty else { return 0 }
-        return daysWithData.reduce(0) { $0 + $1.calories } / Double(daysWithData.count)
+        guard !chartPoints.isEmpty else { return 0 }
+        return chartPoints.reduce(0) { $0 + $1.calories } / Double(chartPoints.count)
     }
 
     private var periodDescription: String {
-        guard let firstDate = dailyData.first?.date,
-              let lastDate = dailyData.last?.date else {
+        guard let firstDate = chartPoints.first?.date,
+              let lastDate = chartPoints.last?.date else {
             return period.rawValue
         }
 
@@ -460,21 +512,12 @@ private struct StaticChartHeader: View {
         return "\(start) – \(end)"
     }
 
-    /// Display string for selected day: day name for week view, date for other periods
-    private func selectedDayLabel(_ data: DailyDataPoint) -> String {
-        if period == .week {
-            return data.dayOfWeek  // "Mon", "Tue", etc.
-        } else {
-            return data.shortDate  // "12/14"
-        }
-    }
-
     var body: some View {
         VStack(spacing: 12) {
-            // Context row - shows period or selected date
+            // Context row - shows period or selected point label
             HStack {
-                if let data = selectedData {
-                    Text(selectedDayLabel(data))
+                if let point = selectedPoint {
+                    Text(point.label)
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.primary)
                         .transition(.asymmetric(
@@ -501,41 +544,42 @@ private struct StaticChartHeader: View {
                 Spacer()
             }
             .frame(height: 20)
-            .animation(.easeInOut(duration: 0.2), value: selectedData?.date)
+            .animation(.easeInOut(duration: 0.2), value: selectedPoint?.date)
 
             // Combined legend/values row - values below labels for stable layout
+            // Order: Protein → Fat → Carbs → Cal
             HStack(spacing: 16) {
                 MacroLegendValue(
                     label: "Protein",
-                    value: selectedData?.protein ?? avgProtein,
+                    value: selectedPoint?.protein ?? avgProtein,
                     unit: "g",
                     color: proteinColor,
-                    isAverage: selectedData == nil
-                )
-
-                MacroLegendValue(
-                    label: "Carbs",
-                    value: selectedData?.carbs ?? avgCarbs,
-                    unit: "g",
-                    color: carbsColor,
-                    isAverage: selectedData == nil
+                    isAverage: selectedPoint == nil
                 )
 
                 MacroLegendValue(
                     label: "Fat",
-                    value: selectedData?.fat ?? avgFat,
+                    value: selectedPoint?.fat ?? avgFat,
                     unit: "g",
                     color: fatColor,
-                    isAverage: selectedData == nil
+                    isAverage: selectedPoint == nil
+                )
+
+                MacroLegendValue(
+                    label: "Carbs",
+                    value: selectedPoint?.carbs ?? avgCarbs,
+                    unit: "g",
+                    color: carbsColor,
+                    isAverage: selectedPoint == nil
                 )
 
                 MacroLegendValue(
                     label: "Cal",
-                    value: selectedData?.calories ?? avgCalories,
+                    value: selectedPoint?.calories ?? avgCalories,
                     unit: "",
                     color: caloriesColor,
                     isGradientIndicator: true,
-                    isAverage: selectedData == nil
+                    isAverage: selectedPoint == nil
                 )
 
                 Spacer()
@@ -602,19 +646,5 @@ private struct MacroLegendValue: View {
     }
 }
 
-#Preview {
-    let sampleData = (0..<7).map { i in
-        DailyDataPoint(
-            date: Calendar.current.date(byAdding: .day, value: -6 + i, to: Date())!,
-            calories: Double.random(in: 1500...2200),
-            protein: Double.random(in: 100...160),
-            carbs: Double.random(in: 180...260),
-            fat: Double.random(in: 50...80),
-            mealCount: i == 3 ? 0 : Int.random(in: 1...4)
-        )
-    }
-
-    MacroTrendsChart(dailyData: sampleData, period: .week)
-        .padding(20)
-        .background(Color(.systemGroupedBackground))
-}
+// Preview requires a StatisticsSummary which needs DailyAggregates from the database
+// Use the StatsView preview for full integration testing

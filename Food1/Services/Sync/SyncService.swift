@@ -11,6 +11,14 @@
 //  - Batch operations: Upload/download in groups of 10 for efficiency
 //  - Thumbnail-only photos: 100KB max to minimize bandwidth usage
 //
+//  SCALABILITY OPTIMIZATIONS (Dec 2024):
+//  - JOIN query: Uses .select("*, meal_ingredients(*)") to fetch meals + ingredients
+//    in a single request. Eliminates N+1 query problem (was 1 query per meal).
+//  - Incremental sync: Stores lastSuccessfulSyncTimestamp in UserDefaults. First
+//    login does full 30-day download, subsequent syncs only fetch changes since
+//    last sync (filtering on updated_at). Reduces queries from O(meals) to O(changes).
+//  - Cost projection: 100k users with 90 meals each went from ~9M queries/day to ~100k
+//
 //  SYNC FLOW:
 //  1. On meal creation → Mark syncStatus = "pending"
 //  2. SyncCoordinator triggers upload → syncStatus = "syncing"
@@ -205,9 +213,29 @@ class SyncService: ObservableObject {
         print("✅ Uploaded \(ingredients.count) ingredients")
     }
 
+    // MARK: - Sync Timestamp Storage
+
+    private static let lastSyncTimestampKey = "lastSuccessfulSyncTimestamp"
+
+    /// Get last successful sync timestamp (nil = first sync, do full download)
+    private func getLastSyncTimestamp() -> Date? {
+        return UserDefaults.standard.object(forKey: Self.lastSyncTimestampKey) as? Date
+    }
+
+    /// Store successful sync timestamp
+    private func setLastSyncTimestamp(_ date: Date) {
+        UserDefaults.standard.set(date, forKey: Self.lastSyncTimestampKey)
+    }
+
+    /// Clear sync timestamp (forces full re-sync on next login)
+    func clearSyncTimestamp() {
+        UserDefaults.standard.removeObject(forKey: Self.lastSyncTimestampKey)
+    }
+
     // MARK: - Download Meals
 
-    /// Download recent meals from Supabase (last 30 days)
+    /// Download meals from Supabase using JOIN query (meals + ingredients in one request)
+    /// Uses incremental sync: first login = full 30-day download, subsequent = only changes
     func downloadRecentMeals(context: ModelContext, days: Int = 30) async throws -> Int {
         guard let userId = try? await supabase.requireUserId() else {
             throw SyncError.notAuthenticated
@@ -216,16 +244,35 @@ class SyncService: ObservableObject {
         isSyncing = true
         defer { isSyncing = false }
 
-        let cutoffDate = Calendar.current.date(byAdding: .day, value: -days, to: Date())!
-        let cutoffISO = ISO8601DateFormatter().string(from: cutoffDate)
+        // Capture sync start time BEFORE fetching (to not miss concurrent changes)
+        let syncStartTime = Date()
+
+        // Determine sync mode: incremental (has timestamp) or full (first sync)
+        let lastSync = getLastSyncTimestamp()
+        let isIncrementalSync = lastSync != nil
 
         do {
-            // Fetch meals from Supabase
-            let allMeals: [CloudMeal] = try await supabase.client
+            // Build query with JOIN to get meals + ingredients in ONE request
+            // This eliminates the N+1 query problem (was: 1 query per meal for ingredients)
+            var query = supabase.client
                 .from("meals")
-                .select()
+                .select("*, meal_ingredients(*)")  // JOIN: nested ingredients in response
                 .eq("user_id", value: userId.uuidString)
-                .gte("timestamp", value: cutoffISO)
+
+            if let lastSync = lastSync {
+                // INCREMENTAL SYNC: Only fetch meals modified since last sync
+                let lastSyncISO = ISO8601DateFormatter().string(from: lastSync)
+                query = query.gte("updated_at", value: lastSyncISO)
+                print("📥 Incremental sync: fetching changes since \(lastSync)")
+            } else {
+                // FULL SYNC: First login, get last 30 days
+                let cutoffDate = Calendar.current.date(byAdding: .day, value: -days, to: Date())!
+                let cutoffISO = ISO8601DateFormatter().string(from: cutoffDate)
+                query = query.gte("timestamp", value: cutoffISO)
+                print("📥 Full sync: fetching last \(days) days of meals")
+            }
+
+            let allMeals: [CloudMeal] = try await query
                 .order("timestamp", ascending: false)
                 .execute()
                 .value
@@ -233,9 +280,11 @@ class SyncService: ObservableObject {
             // Filter out deleted meals
             let cloudMeals = allMeals.filter { $0.deletedAt == nil }
 
-            print("📥 Downloaded \(cloudMeals.count) meals from cloud")
+            let ingredientCount = cloudMeals.reduce(0) { $0 + ($1.mealIngredients?.count ?? 0) }
+            print("📥 Downloaded \(cloudMeals.count) meals with \(ingredientCount) ingredients (1 query)")
 
             var newCount = 0
+            var updatedCount = 0
             var mealsNeedingAggregateUpdate: [Meal] = []
 
             for cloudMeal in cloudMeals {
@@ -263,28 +312,28 @@ class SyncService: ObservableObject {
                 }
 
                 if let localMeal = existingMeals.first {
-                    // Conflict resolution: last-write-wins
-                    if cloudMeal.updatedAt > localMeal.timestamp {
+                    // Conflict resolution: last-write-wins based on updatedAt
+                    if cloudMeal.updatedAt > (localMeal.lastSyncedAt ?? Date.distantPast) {
                         updateLocalMeal(localMeal, from: cloudMeal)
+                        // Also update ingredients from nested data
+                        if let cloudIngredients = cloudMeal.mealIngredients, !cloudIngredients.isEmpty {
+                            updateLocalIngredients(for: localMeal, from: cloudIngredients)
+                        }
                         mealsNeedingAggregateUpdate.append(localMeal)
-                        print("🔄 Updated local meal from cloud: \(cloudMeal.id)")
-                    } else {
-                        print("⏭️  Skipping cloud meal (local is newer): \(cloudMeal.id)")
+                        updatedCount += 1
                     }
                 } else {
-                    // Create new local meal from cloud data
+                    // Create new local meal from cloud data (includes ingredients)
                     let newMeal = createLocalMeal(from: cloudMeal)
                     context.insert(newMeal)
                     mealsNeedingAggregateUpdate.append(newMeal)
                     newCount += 1
-                    print("➕ Created new local meal from cloud: \(cloudMeal.id)")
                 }
             }
 
             try context.save()
 
             // Update statistics aggregates for all downloaded/updated meals
-            // Batch by unique dates to avoid redundant recomputes
             if !mealsNeedingAggregateUpdate.isEmpty {
                 let uniqueDates = Set(mealsNeedingAggregateUpdate.map {
                     Calendar.current.startOfDay(for: $0.timestamp)
@@ -295,6 +344,15 @@ class SyncService: ObservableObject {
                 }
             }
 
+            // Store sync timestamp on success (for incremental sync next time)
+            setLastSyncTimestamp(syncStartTime)
+
+            if isIncrementalSync {
+                print("✅ Incremental sync: \(newCount) new, \(updatedCount) updated")
+            } else {
+                print("✅ Full sync complete: \(newCount) meals downloaded")
+            }
+
             return newCount
 
         } catch {
@@ -302,6 +360,36 @@ class SyncService: ObservableObject {
             print("❌ Failed to download meals: \(error)")
             throw SyncError.downloadFailed(error.localizedDescription)
         }
+    }
+
+    /// Update local meal's ingredients from cloud data (used during JOIN-based sync)
+    private func updateLocalIngredients(for meal: Meal, from cloudIngredients: [CloudIngredientFull]) {
+        var localIngredients: [MealIngredient] = []
+
+        for cloudIng in cloudIngredients {
+            let ingredient = MealIngredient(
+                name: cloudIng.name,
+                grams: cloudIng.quantity,
+                calories: Double(cloudIng.calories ?? 0),
+                protein: cloudIng.proteinG ?? 0,
+                carbs: cloudIng.carbsG ?? 0,
+                fat: cloudIng.fatG ?? 0,
+                usdaFdcId: cloudIng.usdaFdcId != nil ? String(cloudIng.usdaFdcId!) : nil
+            )
+            ingredient.cloudId = cloudIng.id
+            ingredient.usdaDescription = cloudIng.usdaDescription
+            ingredient.enrichmentAttempted = cloudIng.enrichmentAttempted ?? false
+
+            // Restore micronutrients from JSON
+            if let jsonString = cloudIng.micronutrientsJson,
+               let jsonData = jsonString.data(using: .utf8) {
+                ingredient.cachedMicronutrientsJSON = jsonData
+            }
+
+            localIngredients.append(ingredient)
+        }
+
+        meal.ingredients = localIngredients
     }
 
     /// Update local meal with cloud data
@@ -322,8 +410,35 @@ class SyncService: ObservableObject {
         localMeal.lastSyncedAt = Date()
     }
 
-    /// Create local meal from cloud data
+    /// Create local meal from cloud data (includes nested ingredients from JOIN query)
     private func createLocalMeal(from cloudMeal: CloudMeal) -> Meal {
+        // Convert nested cloud ingredients to local MealIngredients
+        var localIngredients: [MealIngredient]? = nil
+        if let cloudIngredients = cloudMeal.mealIngredients, !cloudIngredients.isEmpty {
+            localIngredients = cloudIngredients.map { cloudIng in
+                let ingredient = MealIngredient(
+                    name: cloudIng.name,
+                    grams: cloudIng.quantity,
+                    calories: Double(cloudIng.calories ?? 0),
+                    protein: cloudIng.proteinG ?? 0,
+                    carbs: cloudIng.carbsG ?? 0,
+                    fat: cloudIng.fatG ?? 0,
+                    usdaFdcId: cloudIng.usdaFdcId != nil ? String(cloudIng.usdaFdcId!) : nil
+                )
+                ingredient.cloudId = cloudIng.id
+                ingredient.usdaDescription = cloudIng.usdaDescription
+                ingredient.enrichmentAttempted = cloudIng.enrichmentAttempted ?? false
+
+                // Restore micronutrients from JSON
+                if let jsonString = cloudIng.micronutrientsJson,
+                   let jsonData = jsonString.data(using: .utf8) {
+                    ingredient.cachedMicronutrientsJSON = jsonData
+                }
+
+                return ingredient
+            }
+        }
+
         return Meal(
             id: cloudMeal.localId ?? UUID(),
             name: cloudMeal.name ?? cloudMeal.notes ?? "Meal",
@@ -336,7 +451,7 @@ class SyncService: ObservableObject {
             fiber: 0,
             notes: cloudMeal.notes,
             photoData: nil,  // Photos stored in cloud, thumbnail URL used for display
-            ingredients: nil,  // Populated by downloadIngredients()
+            ingredients: localIngredients,  // Now populated from JOIN query
             matchedIconName: nil,
             cloudId: cloudMeal.id,
             syncStatus: "synced",
@@ -499,26 +614,32 @@ class SyncService: ObservableObject {
 
     // MARK: - Delete Meal
 
-    /// Delete meal from cloud (soft delete)
+    /// Delete meal from cloud (hard delete)
+    /// IMPORTANT: Must call requireUserId() first to ensure valid JWT token is attached to request
+    /// NOTE: Changed from soft-delete (UPDATE deleted_at) to hard-delete (DELETE) due to RLS
+    /// policy issues with UPDATE's WITH CHECK clause. The DELETE policy works correctly.
     func deleteMeal(_ meal: Meal) async throws {
         guard let cloudId = meal.cloudId else {
             print("⏭️  Meal not synced to cloud, skipping delete")
             return
         }
 
+        // Ensure we have a valid session (triggers token refresh if needed)
+        // Without this, the request may fail RLS with stale/missing JWT
+        let userId = try await supabase.requireUserId()
+        print("🔐 Delete request authenticated as user: \(userId)")
+
         do {
-            // Soft delete (set deleted_at timestamp)
+            // Hard delete the meal (RLS DELETE policy: auth.uid() = user_id)
             try await supabase.client
                 .from("meals")
-                .update(["deleted_at": AnyEncodable(ISO8601DateFormatter().string(from: Date()))])
+                .delete()
                 .eq("id", value: cloudId.uuidString)
                 .execute()
 
             // Delete photo thumbnail if exists
             if meal.photoThumbnailUrl != nil {
-                if let userId = try? await supabase.requireUserId() {
-                    try? await photoService.deleteThumbnail(mealId: meal.id, userId: userId)
-                }
+                try? await photoService.deleteThumbnail(mealId: meal.id, userId: userId)
             }
 
             print("✅ Deleted meal from cloud: \(cloudId)")
@@ -576,6 +697,9 @@ struct CloudMeal: Codable {
     let deletedAt: Date?
     let userPrompt: String?
 
+    /// Nested ingredients from JOIN query - populated when using .select("*, meal_ingredients(*)")
+    let mealIngredients: [CloudIngredientFull]?
+
     enum CodingKeys: String, CodingKey {
         case id
         case userId = "user_id"
@@ -597,6 +721,7 @@ struct CloudMeal: Codable {
         case updatedAt = "updated_at"
         case deletedAt = "deleted_at"
         case userPrompt = "user_prompt"
+        case mealIngredients = "meal_ingredients"
     }
 }
 

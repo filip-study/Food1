@@ -24,6 +24,39 @@ struct MainTabView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @Query(sort: \Meal.timestamp, order: .reverse) private var allMeals: [Meal]
 
+    // Profile data for personalized goals (observed for automatic updates)
+    @AppStorage("userAge") private var userAge: Int = 25
+    @AppStorage("userWeight") private var userWeight: Double = 70.0
+    @AppStorage("userHeight") private var userHeight: Double = 170.0
+    @AppStorage("userGender") private var userGender: Gender = .preferNotToSay
+    @AppStorage("userActivityLevel") private var userActivityLevel: ActivityLevel = .moderatelyActive
+
+    // Manual goals override
+    @AppStorage("useAutoGoals") private var useAutoGoals: Bool = true
+    @AppStorage("manualCalorieGoal") private var manualCalories: Double = 2000
+    @AppStorage("manualProteinGoal") private var manualProtein: Double = 150
+    @AppStorage("manualCarbsGoal") private var manualCarbs: Double = 225
+    @AppStorage("manualFatGoal") private var manualFat: Double = 65
+
+    /// Daily goals - either auto-calculated from profile or manual override
+    private var personalizedGoals: DailyGoals {
+        if !useAutoGoals && manualCalories > 0 && manualProtein > 0 && manualCarbs > 0 && manualFat > 0 {
+            return DailyGoals(
+                calories: manualCalories,
+                protein: manualProtein,
+                carbs: manualCarbs,
+                fat: manualFat
+            )
+        }
+        return DailyGoals.calculate(
+            gender: userGender,
+            age: userAge,
+            weightKg: userWeight,
+            heightCm: userHeight,
+            activityLevel: userActivityLevel
+        )
+    }
+
     // Calculate today's meals for floating button
     private var todayMeals: [Meal] {
         allMeals.filter { meal in
@@ -41,10 +74,9 @@ struct MainTabView: View {
         guard hasLoggedMealsToday else { return nil }    // No progress if no meals
 
         let totals = Meal.calculateTotals(for: todayMeals)
-        let goals = DailyGoals.standard
 
-        guard goals.calories > 0 else { return nil }
-        return totals.calories / goals.calories
+        guard personalizedGoals.calories > 0 else { return nil }
+        return totals.calories / personalizedGoals.calories
     }
 
     var body: some View {

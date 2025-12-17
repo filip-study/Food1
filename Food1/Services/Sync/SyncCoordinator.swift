@@ -6,27 +6,32 @@
 //
 //  WHY THIS ARCHITECTURE:
 //  - Singleton ensures one sync process at a time (prevents duplicate uploads)
-//  - Timer-based sync every 5 minutes when authenticated
+//  - Foreground-triggered sync (not timer-based) for battery efficiency
 //  - Batch processing (10 meals at a time) reduces server load
-//  - Exponential backoff on errors prevents hammering API
 //  - Published properties enable UI sync indicators
+//
+//  SCALABILITY OPTIMIZATIONS (Dec 2024):
+//  - JOIN query: Meals + ingredients fetched in ONE request (was N+1 queries)
+//  - Incremental sync: Only fetches changes since last sync (not full re-download)
+//  - First login = full 30-day sync, subsequent = delta only
+//  - Removed periodic 5-min timer: replaced with foreground sync (more efficient)
 //
 //  WHEN SYNC TRIGGERS:
 //  - App launch (if authenticated)
+//  - App returns to foreground (covers multi-device sync)
 //  - After meal creation/edit
-//  - Every 5 minutes (automatic timer, enabled via configure())
-//  - On network reconnection
 //  - Manual user pull-to-refresh
 //
 //  SYNC PHASES (in order):
 //  1. Upload pending meals (syncStatus = pending/error)
 //  2. Retry failed photo uploads (photoData exists but photoThumbnailUrl is nil)
-//  3. Download recent meals from cloud (last 30 days)
+//  3. Download meals + ingredients via JOIN query (incremental if not first sync)
 //
 
 import Foundation
 import SwiftData
 import Combine
+import UIKit
 
 @MainActor
 class SyncCoordinator: ObservableObject {
@@ -46,37 +51,47 @@ class SyncCoordinator: ObservableObject {
     @Published var pendingMealsCount = 0
     @Published var pendingPhotosCount = 0
 
-    private var syncTimer: Timer?
     private var cancellables = Set<AnyCancellable>()
+    private var foregroundObserver: NSObjectProtocol?
 
-    /// Weak reference to ModelContainer for periodic sync (set via configure)
+    /// Weak reference to ModelContainer for sync (set via configure)
     private weak var modelContainer: ModelContainer?
+
+    /// Minimum interval between foreground syncs to avoid excessive syncing
+    /// when user rapidly switches apps
+    private let minForegroundSyncInterval: TimeInterval = 60  // 1 minute
+    private var lastForegroundSyncTime: Date?
 
     // MARK: - Configuration
 
-    private let syncIntervalSeconds: TimeInterval = 300  // 5 minutes
     private let batchSize = 10
-    private let maxRetries = 3
 
     // MARK: - Initialization
 
     private init() {
         setupAuthListener()
+        setupForegroundObserver()
+    }
+
+    deinit {
+        if let observer = foregroundObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
     }
 
     // MARK: - Container Configuration
 
-    /// Configure with ModelContainer for periodic sync
+    /// Configure with ModelContainer for sync operations
     /// Called from Food1App after SwiftData initialization
     func configure(with container: ModelContainer) {
         self.modelContainer = container
         print("✅ SyncCoordinator configured with ModelContainer")
         print("   isAuthenticated: \(supabase.isAuthenticated)")
 
-        // If already authenticated, start periodic sync now
+        // If already authenticated, perform initial sync now
         if supabase.isAuthenticated {
-            print("   → User already authenticated, starting sync...")
-            startPeriodicSync()
+            print("   → User already authenticated, starting initial sync...")
+            performInitialSync()
         } else {
             print("   → Waiting for authentication...")
         }
@@ -84,71 +99,64 @@ class SyncCoordinator: ObservableObject {
 
     /// Listen for authentication state changes
     private func setupAuthListener() {
-        // Use dropFirst(0) to also receive the current value on subscription
         supabase.$isAuthenticated
-            .dropFirst(0)  // Ensures we get the current value immediately
+            .dropFirst()  // Skip initial value (handled by configure)
             .receive(on: DispatchQueue.main)
             .sink { [weak self] isAuthenticated in
                 print("🔐 Auth state changed: \(isAuthenticated)")
                 if isAuthenticated {
-                    self?.startPeriodicSync()
-                } else {
-                    self?.stopPeriodicSync()
+                    self?.performInitialSync()
                 }
+                // No cleanup needed on logout - just stop syncing
             }
             .store(in: &cancellables)
     }
 
-    // MARK: - Periodic Sync
+    // MARK: - Foreground Sync
 
-    /// Start automatic sync timer (every 5 minutes)
-    private func startPeriodicSync() {
-        guard syncTimer == nil else { return }
-
-        guard modelContainer != nil else {
-            print("⏰ Periodic sync waiting for ModelContainer configuration")
-            return
-        }
-
-        print("⏰ Starting periodic sync (every \(Int(syncIntervalSeconds/60)) minutes)")
-
-        syncTimer = Timer.scheduledTimer(withTimeInterval: syncIntervalSeconds, repeats: true) { [weak self] _ in
+    /// Setup observer for app returning to foreground
+    /// This replaces periodic timer - more efficient and covers multi-device sync
+    private func setupForegroundObserver() {
+        foregroundObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.willEnterForegroundNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
             Task { @MainActor in
-                await self?.performPeriodicSync()
+                await self?.handleAppWillEnterForeground()
             }
         }
-
-        // Perform initial sync immediately
-        Task {
-            await performPeriodicSync()
-        }
     }
 
-    /// Perform periodic sync using configured ModelContainer
-    private func performPeriodicSync() async {
-        guard let container = modelContainer else {
-            print("⚠️  Cannot sync: ModelContainer is nil")
-            stopPeriodicSync()
+    /// Called when app returns to foreground - sync if enough time has passed
+    private func handleAppWillEnterForeground() async {
+        guard supabase.isAuthenticated else {
+            print("⏭️  Foreground sync skipped (not authenticated)")
             return
         }
 
-        let context = container.mainContext
-        await syncAll(context: context)
-    }
-
-    /// Stop automatic sync timer
-    private func stopPeriodicSync() {
-        print("⏹️  Stopping periodic sync")
-        syncTimer?.invalidate()
-        syncTimer = nil
-    }
-
-    // MARK: - Manual Sync
-
-    /// Trigger initial sync after sign-in (uses configured ModelContainer)
-    func triggerInitialSync() {
         guard let container = modelContainer else {
-            print("⚠️  Cannot trigger sync: ModelContainer not configured yet")
+            print("⚠️  Foreground sync skipped: ModelContainer is nil")
+            return
+        }
+
+        // Throttle: Don't sync if we synced recently (prevents excessive syncing
+        // when user rapidly switches between apps)
+        if let lastSync = lastForegroundSyncTime,
+           Date().timeIntervalSince(lastSync) < minForegroundSyncInterval {
+            print("⏭️  Foreground sync throttled (last sync \(Int(Date().timeIntervalSince(lastSync)))s ago)")
+            return
+        }
+
+        print("📱 App entered foreground - syncing...")
+        lastForegroundSyncTime = Date()
+        await syncAll(context: container.mainContext)
+    }
+
+    /// Perform initial sync after authentication or app launch
+    private func performInitialSync() {
+        guard let container = modelContainer else {
+            print("⚠️  Cannot sync: ModelContainer not configured yet")
             return
         }
 
@@ -156,6 +164,13 @@ class SyncCoordinator: ObservableObject {
             print("🔄 Starting initial sync...")
             await syncAll(context: container.mainContext)
         }
+    }
+
+    // MARK: - Manual Sync
+
+    /// Trigger initial sync after sign-in (called from AuthViewModel)
+    func triggerInitialSync() {
+        performInitialSync()
     }
 
     /// Trigger full sync (upload pending + retry failed photos + download recent)
@@ -181,16 +196,12 @@ class SyncCoordinator: ObservableObject {
             // Step 2: Retry failed photo uploads
             let photoRetryCount = try await retryPendingPhotoUploads(context: context)
 
-            // Step 3: Download recent meals (last 30 days)
+            // Step 3: Download recent meals with ingredients (JOIN query - single request)
+            // Ingredients are now fetched embedded in meal data, eliminating N+1 queries
             let downloadedCount = try await syncService.downloadRecentMeals(context: context, days: 30)
 
-            // Step 4: Download ingredients for meals missing them
-            let mealsNeedingIngredients = try context.fetch(FetchDescriptor<Meal>(
-                predicate: #Predicate { meal in
-                    meal.cloudId != nil
-                }
-            ))
-            try await syncService.downloadIngredients(for: mealsNeedingIngredients, context: context)
+            // Note: downloadIngredients is no longer needed here - ingredients come with JOIN query
+            // The old approach made N separate queries (one per meal) which doesn't scale
 
             // Update state
             lastSyncDate = Date()
@@ -284,22 +295,32 @@ class SyncCoordinator: ObservableObject {
             print("✅ Synced meal: \(meal.id)")
         } catch {
             print("❌ Failed to sync meal: \(error)")
-            // Will retry on next periodic sync
+            // Will retry on next foreground sync or pull-to-refresh
         }
     }
 
     /// Delete a meal from cloud
-    func deleteMeal(_ meal: Meal) async {
+    /// - Returns: true if cloud delete succeeded (or meal wasn't synced to cloud), false if failed
+    @discardableResult
+    func deleteMeal(_ meal: Meal) async -> Bool {
+        // If meal was never synced to cloud, no cloud delete needed
+        guard meal.cloudId != nil else {
+            print("⏭️  Meal has no cloudId, no cloud delete needed")
+            return true
+        }
+
         guard supabase.isAuthenticated else {
             print("⏭️  Skipping delete (not authenticated)")
-            return
+            return false  // Can't delete from cloud if not authenticated
         }
 
         do {
             try await syncService.deleteMeal(meal)
             print("✅ Deleted meal from cloud: \(meal.id)")
+            return true
         } catch {
             print("❌ Failed to delete meal from cloud: \(error)")
+            return false
         }
     }
 

@@ -2,14 +2,19 @@
 //  MealEditView.swift
 //  Food1
 //
-//  Simple form-based meal editor for existing meals.
+//  Form-based meal editor with serving size adjustment.
 //  Used when user taps "Edit" on a meal card.
+//
+//  SERVING SIZE ADJUSTMENT:
+//  - Reuses ServingSizeAdjustmentView for consistent UX
+//  - Scales calories, macros, and ingredient grams proportionally
+//  - Base values stored at init to prevent cumulative rounding errors
 //
 
 import SwiftUI
 import SwiftData
 
-/// Simple meal editing form
+/// Meal editing form with serving size adjustment
 struct MealEditView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -25,6 +30,19 @@ struct MealEditView: View {
     @State private var notes = ""
     @State private var mealDate: Date
     @State private var mealTime: Date
+
+    // MARK: - Serving Size State
+
+    @State private var servingCount: Double = 1.0
+    @State private var gramsPerServing: Double = 0.0
+    @State private var ingredients: [IngredientRowData] = []
+
+    // Base nutrition values (original meal values, used for proportional scaling)
+    private let baseCalories: Double
+    private let baseProtein: Double
+    private let baseCarbs: Double
+    private let baseFat: Double
+    private let baseTotalGrams: Double
 
     // Default emoji for all meals
     private let selectedEmoji = "🍽️"
@@ -45,13 +63,26 @@ struct MealEditView: View {
     init(editingMeal: Meal) {
         self.editingMeal = editingMeal
 
+        // Store base nutrition values for proportional scaling
+        self.baseCalories = editingMeal.calories
+        self.baseProtein = editingMeal.protein
+        self.baseCarbs = editingMeal.carbs
+        self.baseFat = editingMeal.fat
+
+        // Calculate total grams from ingredients, or estimate from macros if no ingredients
+        if let mealIngredients = editingMeal.ingredients, !mealIngredients.isEmpty {
+            self.baseTotalGrams = mealIngredients.reduce(0) { $0 + $1.grams }
+        } else {
+            // Estimate grams from macros: protein + carbs + fat (rough approximation)
+            // This gives a reasonable baseline for scaling even without ingredient data
+            self.baseTotalGrams = max(100, editingMeal.protein + editingMeal.carbs + editingMeal.fat)
+        }
+
         // Initialize state with existing meal values
-        // Get the current nutrition unit from AppStorage
         let currentUnit = UserDefaults.standard.string(forKey: "nutritionUnit").flatMap { NutritionUnit(rawValue: $0) } ?? .metric
 
         _mealName = State(initialValue: editingMeal.name)
         _calories = State(initialValue: String(format: "%.0f", editingMeal.calories))
-        // Convert stored metric values to user's selected unit
         _protein = State(initialValue: NutritionFormatter.formatValue(editingMeal.protein, unit: currentUnit))
         _carbs = State(initialValue: NutritionFormatter.formatValue(editingMeal.carbs, unit: currentUnit))
         _fat = State(initialValue: NutritionFormatter.formatValue(editingMeal.fat, unit: currentUnit))
@@ -60,6 +91,25 @@ struct MealEditView: View {
         // Initialize date and time from existing timestamp
         _mealDate = State(initialValue: editingMeal.timestamp)
         _mealTime = State(initialValue: editingMeal.timestamp)
+
+        // Initialize serving size (default to 1 serving)
+        _servingCount = State(initialValue: 1.0)
+        _gramsPerServing = State(initialValue: baseTotalGrams)
+
+        // Convert MealIngredients to editable IngredientRowData
+        if let mealIngredients = editingMeal.ingredients, !mealIngredients.isEmpty {
+            _ingredients = State(initialValue: mealIngredients.map { ingredient in
+                IngredientRowData(
+                    id: ingredient.id,
+                    name: ingredient.name,
+                    grams: ingredient.grams,
+                    calories: ingredient.calories,
+                    protein: ingredient.protein,
+                    carbs: ingredient.carbs,
+                    fat: ingredient.fat
+                )
+            })
+        }
     }
 
     var body: some View {
@@ -85,6 +135,19 @@ struct MealEditView: View {
                         displayedComponents: .hourAndMinute
                     )
                     .datePickerStyle(.compact)
+                }
+
+                // MARK: - Serving Size Adjustment
+                ServingSizeAdjustmentView(
+                    servingCount: $servingCount,
+                    gramsPerServing: $gramsPerServing
+                )
+                .onChange(of: servingCount) { oldValue, newValue in
+                    updateNutritionForServingChange()
+                    scaleIngredientsForPortion(oldMultiplier: oldValue, newMultiplier: newValue)
+                }
+                .onChange(of: gramsPerServing) { _, _ in
+                    updateNutritionForServingChange()
                 }
 
                 Section("Nutrition") {
@@ -121,6 +184,22 @@ struct MealEditView: View {
                     }
                 }
 
+                // Show ingredients if meal has them
+                if !ingredients.isEmpty {
+                    Section("Ingredients") {
+                        ForEach(ingredients) { ingredient in
+                            HStack {
+                                Text(ingredient.name)
+                                    .lineLimit(2)
+                                Spacer()
+                                Text("\(Int(ingredient.grams))g")
+                                    .foregroundStyle(.secondary)
+                                    .font(.system(.body, design: .rounded))
+                            }
+                        }
+                    }
+                }
+
                 Section("Notes (Optional)") {
                     TextField("Add any notes...", text: $notes, axis: .vertical)
                         .lineLimit(3...6)
@@ -154,6 +233,41 @@ struct MealEditView: View {
             }
         }
     }
+
+    // MARK: - Serving Size Scaling
+
+    /// Update displayed nutrition values when serving size changes
+    /// Scales from base values to prevent cumulative rounding errors
+    private func updateNutritionForServingChange() {
+        guard baseTotalGrams > 0 else { return }
+
+        let totalGrams = servingCount * gramsPerServing
+        let multiplier = totalGrams / baseTotalGrams
+
+        // Scale from original base values (not current displayed values)
+        let scaledCalories = baseCalories * multiplier
+        let scaledProtein = baseProtein * multiplier
+        let scaledCarbs = baseCarbs * multiplier
+        let scaledFat = baseFat * multiplier
+
+        // Update display strings (convert to user's unit preference)
+        calories = String(format: "%.0f", scaledCalories)
+        protein = NutritionFormatter.formatValue(scaledProtein, unit: nutritionUnit)
+        carbs = NutritionFormatter.formatValue(scaledCarbs, unit: nutritionUnit)
+        fat = NutritionFormatter.formatValue(scaledFat, unit: nutritionUnit)
+    }
+
+    /// Scale all ingredient grams when serving count changes
+    private func scaleIngredientsForPortion(oldMultiplier: Double, newMultiplier: Double) {
+        guard oldMultiplier > 0, !ingredients.isEmpty else { return }
+
+        // Apply the new portion multiplier to all ingredients
+        for i in ingredients.indices {
+            ingredients[i].applyPortionMultiplier(newMultiplier)
+        }
+    }
+
+    // MARK: - Save
 
     private func saveMeal() {
         // Convert user input back to metric (grams) for storage
@@ -192,14 +306,31 @@ struct MealEditView: View {
             editingMeal.fat = fatValue
             editingMeal.notes = notes.isEmpty ? nil : notes
 
+            // Update ingredient values if serving size was adjusted
+            if !ingredients.isEmpty, let mealIngredients = editingMeal.ingredients {
+                for (index, ingredientData) in ingredients.enumerated() {
+                    if index < mealIngredients.count {
+                        let mealIngredient = mealIngredients[index]
+                        mealIngredient.grams = ingredientData.grams
+                        mealIngredient.calories = ingredientData.calories
+                        mealIngredient.protein = ingredientData.protein
+                        mealIngredient.carbs = ingredientData.carbs
+                        mealIngredient.fat = ingredientData.fat
+                    }
+                }
+            }
+
             // Mark for sync so changes are uploaded to backend
             editingMeal.syncStatus = "pending"
         }
 
-        // If date changed, invalidate statistics for both old and new dates
-        if dateChanged {
+        // Invalidate statistics if date changed or nutrition values were scaled
+        let nutritionChanged = servingCount != 1.0
+        if dateChanged || nutritionChanged {
             Task {
-                await StatisticsService.shared.invalidateAggregate(for: oldDate, in: modelContext)
+                if dateChanged {
+                    await StatisticsService.shared.invalidateAggregate(for: oldDate, in: modelContext)
+                }
                 await StatisticsService.shared.invalidateAggregate(for: newDate, in: modelContext)
             }
         }
@@ -212,15 +343,23 @@ struct MealEditView: View {
     let container = PreviewContainer().container
     let context = container.mainContext
 
-    // Create a sample meal for preview
+    // Create sample ingredients
+    let ingredients = [
+        MealIngredient(name: "Chicken breast", grams: 150, calories: 247, protein: 46, carbs: 0, fat: 5),
+        MealIngredient(name: "Brown rice", grams: 100, calories: 111, protein: 3, carbs: 23, fat: 1),
+        MealIngredient(name: "Broccoli", grams: 85, calories: 29, protein: 2, carbs: 6, fat: 0)
+    ]
+
+    // Create a sample meal with ingredients for preview
     let meal = Meal(
-        name: "Test Meal",
-        emoji: "🍽️",
+        name: "Chicken & Rice Bowl",
+        emoji: "🍗",
         timestamp: Date(),
-        calories: 500,
-        protein: 30,
-        carbs: 40,
-        fat: 20
+        calories: 387,
+        protein: 51,
+        carbs: 29,
+        fat: 6,
+        ingredients: ingredients
     )
     context.insert(meal)
 

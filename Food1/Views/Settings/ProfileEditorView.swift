@@ -43,11 +43,16 @@ struct ProfileEditorView: View {
                     HStack {
                         Text("Age")
                             .frame(width: 80, alignment: .leading)
+                        Spacer()
                         TextField("25", text: $ageText)
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
+                            .frame(minWidth: 60)
+                            .padding(.vertical, 8)
+                            .contentShape(Rectangle())
                         Text("years")
                             .foregroundColor(.secondary)
+                            .frame(width: 50)
                     }
 
                     Picker("Gender", selection: $gender) {
@@ -67,31 +72,41 @@ struct ProfileEditorView: View {
                     HStack {
                         Text("Weight")
                             .frame(width: 80, alignment: .leading)
+                        Spacer()
                         TextField("70", text: $weightText)
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
+                            .frame(minWidth: 80)
+                            .padding(.vertical, 8)
+                            .contentShape(Rectangle())
                         Picker("", selection: $weightUnit) {
                             ForEach(WeightUnit.allCases) { unit in
                                 Text(unit.rawValue).tag(unit)
                             }
                         }
                         .labelsHidden()
-                        .frame(width: 70)
+                        .pickerStyle(.menu)
+                        .frame(width: 60)
                     }
 
                     HStack {
                         Text("Height")
                             .frame(width: 80, alignment: .leading)
+                        Spacer()
                         TextField("170", text: $heightText)
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
+                            .frame(minWidth: 80)
+                            .padding(.vertical, 8)
+                            .contentShape(Rectangle())
                         Picker("", selection: $heightUnit) {
                             ForEach(HeightUnit.allCases) { unit in
                                 Text(unit.rawValue).tag(unit)
                             }
                         }
                         .labelsHidden()
-                        .frame(width: 70)
+                        .pickerStyle(.menu)
+                        .frame(width: 60)
                     }
                 } header: {
                     Text("Measurements")

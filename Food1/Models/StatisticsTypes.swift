@@ -44,6 +44,33 @@ enum StatsPeriod: String, CaseIterable {
         case .year: return 365
         }
     }
+
+    /// Base smoothing window size (days) for trend visualization
+    /// Actual window adapts based on data density
+    var baseSmoothingWindow: Int {
+        switch self {
+        case .week: return 1      // No smoothing - daily granularity
+        case .month: return 3     // 3-day centered average
+        case .quarter: return 5   // ~weekly smoothing
+        case .year: return 7      // Weekly average
+        }
+    }
+
+    /// Maximum gap (days) to bridge with solid line instead of dashed
+    /// Gaps larger than this show as dashed lines indicating missing data
+    var maxSolidGap: Int {
+        switch self {
+        case .week: return 1      // Current behavior
+        case .month: return 2     // Absorb weekend gaps
+        case .quarter: return 4   // Absorb short breaks
+        case .year: return 7      // Only week+ gaps show dashed
+        }
+    }
+
+    /// Whether this period uses smoothed/averaged data for trends
+    var usesSmoothing: Bool {
+        self != .week
+    }
 }
 
 // MARK: - Statistics Summary
@@ -118,8 +145,8 @@ struct StatisticsSummary {
         self.currentStreak = current
         self.longestStreak = longest
 
-        // Goal achievement
-        let goals = DailyGoals.standard
+        // Goal achievement (using personalized goals from user profile)
+        let goals = DailyGoals.fromUserDefaults()
         self.daysMetCalorieGoal = aggregates.filter {
             $0.calories >= goals.calories * 0.9 && $0.calories <= goals.calories * 1.1
         }.count
@@ -253,6 +280,109 @@ struct DailyDataPoint: Identifiable {
         let formatter = DateFormatter()
         formatter.dateFormat = "M/d"
         return formatter.string(from: date)
+    }
+}
+
+// MARK: - Smoothed Data Point
+
+/// A data point representing a smoothed/averaged trend value
+/// Used for Month, Quarter, and Year views to show long-term trends
+struct SmoothedDataPoint: Identifiable {
+    let id = UUID()
+    let date: Date                    // Center date of the smoothing window
+    let calories: Double              // Averaged value
+    let protein: Double
+    let carbs: Double
+    let fat: Double
+    let windowSize: Int               // How many days contributed to this average
+    let windowStart: Date             // First date in the window
+    let windowEnd: Date               // Last date in the window
+
+    var shortDate: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "M/d"
+        return formatter.string(from: date)
+    }
+
+    /// Label for the smoothing window (e.g., "Dec 12-14")
+    var windowLabel: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+
+        if Calendar.current.isDate(windowStart, inSameDayAs: windowEnd) {
+            return formatter.string(from: date)
+        } else {
+            let dayFormatter = DateFormatter()
+            dayFormatter.dateFormat = "d"
+            return "\(formatter.string(from: windowStart))-\(dayFormatter.string(from: windowEnd))"
+        }
+    }
+}
+
+// MARK: - Smoothed Data Computation
+
+extension StatisticsSummary {
+
+    /// Generate smoothed trend data for longer time periods
+    /// Uses adaptive window sizing based on data density
+    func smoothedData(for period: StatsPeriod) -> [SmoothedDataPoint] {
+        // Week view uses raw daily data - no smoothing
+        guard period.usesSmoothing else {
+            return dailyData.filter { $0.mealCount > 0 }.map { day in
+                SmoothedDataPoint(
+                    date: day.date,
+                    calories: day.calories,
+                    protein: day.protein,
+                    carbs: day.carbs,
+                    fat: day.fat,
+                    windowSize: 1,
+                    windowStart: day.date,
+                    windowEnd: day.date
+                )
+            }
+        }
+
+        // Filter to only days with actual meal data
+        // For smoothed periods, exclude "today" entirely - incomplete data skews trend averages
+        let calendar = Calendar.current
+        let today = Date()
+        let daysWithMeals = dailyData.filter { day in
+            day.mealCount > 0 && !calendar.isDate(day.date, inSameDayAs: today)
+        }
+
+        guard !daysWithMeals.isEmpty else { return [] }
+
+        // Adaptive window: scale based on data density
+        // min(baseWindow, max(2, daysWithData / 4))
+        let baseWindow = period.baseSmoothingWindow
+        let adaptiveWindow = min(baseWindow, max(2, daysWithMeals.count / 4))
+        let halfWindow = adaptiveWindow / 2
+
+        // Compute centered rolling average for each data point
+        return daysWithMeals.enumerated().map { index, centerDay in
+            // Determine window bounds (by index, not calendar days)
+            let startIdx = max(0, index - halfWindow)
+            let endIdx = min(daysWithMeals.count - 1, index + halfWindow)
+            let windowDays = Array(daysWithMeals[startIdx...endIdx])
+
+            // Compute averages
+            let count = Double(windowDays.count)
+            let avgCalories = windowDays.reduce(0) { $0 + $1.calories } / count
+            let avgProtein = windowDays.reduce(0) { $0 + $1.protein } / count
+            let avgCarbs = windowDays.reduce(0) { $0 + $1.carbs } / count
+            let avgFat = windowDays.reduce(0) { $0 + $1.fat } / count
+
+            return SmoothedDataPoint(
+                date: centerDay.date,
+                calories: avgCalories,
+                protein: avgProtein,
+                carbs: avgCarbs,
+                fat: avgFat,
+                windowSize: windowDays.count,
+                windowStart: windowDays.first?.date ?? centerDay.date,
+                windowEnd: windowDays.last?.date ?? centerDay.date
+            )
+        }
     }
 }
 

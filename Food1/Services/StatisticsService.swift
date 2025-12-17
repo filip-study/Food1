@@ -283,8 +283,8 @@ class StatisticsService {
 
         weeklyAggregate.consistencyScore = Double(daysWithMeals.count) / 7.0 * 100
 
-        // Goal achievement
-        let goals = DailyGoals.standard
+        // Goal achievement (using personalized goals from user profile)
+        let goals = DailyGoals.fromUserDefaults()
         weeklyAggregate.daysMetCalorieGoal = dailyAggregates.filter {
             $0.calories >= goals.calories * 0.9 && $0.calories <= goals.calories * 1.1
         }.count
@@ -376,8 +376,8 @@ class StatisticsService {
         let daysInMonth = calendar.range(of: .day, in: .month, for: monthStart)!.count
         monthlyAggregate.consistencyScore = Double(daysWithMeals.count) / Double(daysInMonth) * 100
 
-        // Goal achievement
-        let goals = DailyGoals.standard
+        // Goal achievement (using personalized goals from user profile)
+        let goals = DailyGoals.fromUserDefaults()
         monthlyAggregate.daysMetCalorieGoal = dailyAggregates.filter {
             $0.calories >= goals.calories * 0.9 && $0.calories <= goals.calories * 1.1
         }.count
@@ -456,14 +456,14 @@ class StatisticsService {
         case "Vitamin D": profile.vitaminD += nutrient.amount
         case "Vitamin E": profile.vitaminE += nutrient.amount
         case "Vitamin B12": profile.vitaminB12 += nutrient.amount
-        case "Folate", "Folate (Vitamin B9)": profile.folate += nutrient.amount
+        case "Folate", "Folate (Vitamin B9)", "Folate (B9)": profile.folate += nutrient.amount
         // New vitamins
         case "Vitamin K": profile.vitaminK += nutrient.amount
-        case "Thiamin", "Vitamin B1 (Thiamin)": profile.vitaminB1 += nutrient.amount
-        case "Riboflavin", "Vitamin B2 (Riboflavin)": profile.vitaminB2 += nutrient.amount
-        case "Niacin", "Vitamin B3 (Niacin)": profile.vitaminB3 += nutrient.amount
-        case "Pantothenic acid", "Vitamin B5 (Pantothenic Acid)": profile.vitaminB5 += nutrient.amount
-        case "Vitamin B-6", "Vitamin B6": profile.vitaminB6 += nutrient.amount
+        case "Thiamin", "Vitamin B1 (Thiamin)", "Thiamin (B1)": profile.vitaminB1 += nutrient.amount
+        case "Riboflavin", "Vitamin B2 (Riboflavin)", "Riboflavin (B2)": profile.vitaminB2 += nutrient.amount
+        case "Niacin", "Vitamin B3 (Niacin)", "Niacin (B3)": profile.vitaminB3 += nutrient.amount
+        case "Pantothenic acid", "Vitamin B5 (Pantothenic Acid)", "Pantothenic Acid (B5)": profile.vitaminB5 += nutrient.amount
+        case "Vitamin B-6", "Vitamin B6", "Pyridoxine (B6)": profile.vitaminB6 += nutrient.amount
         default: break
         }
     }

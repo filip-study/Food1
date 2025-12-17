@@ -22,11 +22,44 @@ struct TodayView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @Query(sort: \Meal.timestamp, order: .reverse) private var allMeals: [Meal]
 
+    // Profile data for personalized goals (observed for automatic updates)
+    @AppStorage("userAge") private var userAge: Int = 25
+    @AppStorage("userWeight") private var userWeight: Double = 70.0
+    @AppStorage("userHeight") private var userHeight: Double = 170.0
+    @AppStorage("userGender") private var userGender: Gender = .preferNotToSay
+    @AppStorage("userActivityLevel") private var userActivityLevel: ActivityLevel = .moderatelyActive
+
+    // Manual goals override
+    @AppStorage("useAutoGoals") private var useAutoGoals: Bool = true
+    @AppStorage("manualCalorieGoal") private var manualCalories: Double = 2000
+    @AppStorage("manualProteinGoal") private var manualProtein: Double = 150
+    @AppStorage("manualCarbsGoal") private var manualCarbs: Double = 225
+    @AppStorage("manualFatGoal") private var manualFat: Double = 65
+
     @State private var showingQuickCamera = false
     @State private var showingManualEntry = false
     @State private var showingSettings = false
     @State private var selectedDate = Date()
     @State private var dragOffset: CGFloat = 0
+
+    /// Daily goals - either auto-calculated from profile or manual override
+    private var personalizedGoals: DailyGoals {
+        if !useAutoGoals && manualCalories > 0 && manualProtein > 0 && manualCarbs > 0 && manualFat > 0 {
+            return DailyGoals(
+                calories: manualCalories,
+                protein: manualProtein,
+                carbs: manualCarbs,
+                fat: manualFat
+            )
+        }
+        return DailyGoals.calculate(
+            gender: userGender,
+            age: userAge,
+            weightKg: userWeight,
+            heightCm: userHeight,
+            activityLevel: userActivityLevel
+        )
+    }
 
     /// User's first name extracted from profile (for personalized greeting)
     private var userFirstName: String? {
@@ -114,13 +147,13 @@ struct TodayView: View {
                         .padding(.horizontal)
                         .padding(.top, 16)
 
-                        // Macro-focused dashboard
+                        // Macro-focused dashboard with personalized goals
                         MetricsDashboardView(
                             currentCalories: totals.calories,
                             currentProtein: totals.protein,
                             currentCarbs: totals.carbs,
                             currentFat: totals.fat,
-                            goals: .standard
+                            goals: personalizedGoals
                         )
 
                         // Daily insight - disabled pending redesign
@@ -139,10 +172,11 @@ struct TodayView: View {
                                 Button(action: {
                                     showingSettings = true
                                 }) {
-                                    Image(systemName: "gearshape")
-                                        .font(.system(size: 18))
+                                    Image(systemName: "gearshape.fill")
+                                        .font(.system(size: 22))
                                         .foregroundColor(.secondary)
                                 }
+                                .frame(width: 44, height: 44)  // Larger tap target
                             }
                             .padding(.horizontal)
 

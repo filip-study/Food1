@@ -3,7 +3,7 @@
 //  Food1
 //
 //  Comprehensive micronutrient detail view showing all tracked nutrients
-//  with RDA percentages, sorting, and categorization
+//  with target percentages (Optimal or RDA based on user setting), sorting, and categorization
 //
 
 import SwiftUI
@@ -14,6 +14,7 @@ struct MicronutrientDetailView: View {
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage("userGender") private var userGender: Gender = .preferNotToSay
     @AppStorage("userAge") private var userAge: Int = 25
+    @AppStorage("micronutrientStandard") private var micronutrientStandard: MicronutrientStandard = .optimal
 
     let micronutrients: MicronutrientProfile
     let daysWithMeals: Int
@@ -102,7 +103,7 @@ struct MicronutrientDetailView: View {
                 category: .vitamin
             ),
             NutrientDetail(
-                name: "Vitamin B6",
+                name: "Pyridoxine (B6)",
                 amount: micronutrients.vitaminB6,
                 unit: "mg",
                 nutrientKey: "vitamin b-6",
@@ -189,9 +190,10 @@ struct MicronutrientDetailView: View {
             )
         ].map { nutrient in
             var n = nutrient
-            let rda = RDAValues.getRDA(for: n.nutrientKey, gender: userGender, age: userAge)
-            if rda > 0 && daysWithMeals > 0 {
-                n.rdaPercent = (n.amount / Double(daysWithMeals) / rda) * 100
+            // Use unified getValue() that respects selected standard (Optimal or RDA)
+            let target = RDAValues.getValue(for: n.nutrientKey, gender: userGender, age: userAge, standard: micronutrientStandard)
+            if target > 0 && daysWithMeals > 0 {
+                n.rdaPercent = (n.amount / Double(daysWithMeals) / target) * 100
                 n.dailyAverage = n.amount / Double(daysWithMeals)
             }
             return n

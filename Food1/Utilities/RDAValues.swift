@@ -2,11 +2,40 @@
 //  RDAValues.swift
 //  Food1
 //
-//  FDA Recommended Daily Allowances (RDA) / Daily Values
-//  Reference: https://www.fda.gov/food/nutrition-facts-label/daily-value-nutrition-and-supplement-facts-labels
+//  Micronutrient reference values: FDA RDA and LPI Optimal recommendations.
+//
+//  WHY TWO STANDARDS:
+//  - FDA RDA: Minimum to prevent deficiency in 97-98% of population (prevents scurvy, rickets, etc.)
+//  - LPI Optimal: Research-based levels for optimal health (Linus Pauling Institute, Oregon State)
+//
+//  Key differences (LPI vs RDA):
+//  - Vitamin D: 50 mcg (2000 IU) vs 15-20 mcg (600-800 IU) - most impactful change
+//  - Vitamin C: 400 mg vs 75-90 mg - antioxidant saturation point
+//  - Vitamin B12: 100-400 mcg for ages 50+ vs 2.4 mcg - absorption decreases with age
+//
+//  References:
+//  - FDA: https://www.fda.gov/food/nutrition-facts-label/daily-value-nutrition-and-supplement-facts-labels
+//  - LPI: https://lpi.oregonstate.edu/mic/micronutrient-inadequacies/overview
 //
 
 import Foundation
+
+/// Micronutrient reference standard selection
+enum MicronutrientStandard: String, CaseIterable, Identifiable {
+    case optimal = "Optimal"  // LPI recommendations - default
+    case rda = "RDA"          // FDA minimum requirements
+
+    var id: String { rawValue }
+
+    var description: String {
+        switch self {
+        case .optimal:
+            return "Research-based targets for optimal health"
+        case .rda:
+            return "FDA minimums to prevent deficiency"
+        }
+    }
+}
 
 /// FDA Recommended Daily Allowances for adults (hardcoded for performance)
 /// Values based on FDA Daily Values (2020 guidelines)
@@ -181,7 +210,8 @@ enum RDAValues {
             return vitaminB3
         }
         if lower.contains("vitamin b5") || lower.contains("pantothenic") { return vitaminB5 }
-        if lower.contains("vitamin b6") {
+        // Note: USDA stores as "Vitamin B-6" (with hyphen), so we check both variants
+        if lower.contains("vitamin b6") || lower.contains("vitamin b-6") {
             if isOlder { return 1.7 }
             return vitaminB6
         }
@@ -219,5 +249,93 @@ enum RDAValues {
         if lower.contains("insoluble fiber") { return insolubleFiber }
 
         return 0.0  // Unknown nutrient
+    }
+
+    // MARK: - LPI Optimal Values (Linus Pauling Institute)
+    // Reference: https://lpi.oregonstate.edu/mic/micronutrient-inadequacies/overview
+    // These are research-based recommendations for optimal health, not just deficiency prevention
+
+    /// LPI Optimal: Vitamin C - 400mg (saturation point for antioxidant function)
+    static let optimalVitaminC: Double = 400.0  // mg (vs RDA 75-90mg)
+
+    /// LPI Optimal: Vitamin D - 50mcg/2000 IU (immune function, bone health, mood)
+    /// Note: Most significant difference from RDA (15-20 mcg / 600-800 IU)
+    static let optimalVitaminD: Double = 50.0  // mcg (vs RDA 15-20 mcg)
+
+    /// LPI Optimal: Vitamin E - 15mg (same as RDA; LPI doesn't recommend supplementation above RDA)
+    static let optimalVitaminE: Double = 15.0  // mg (same as RDA)
+
+    /// LPI Optimal: Vitamin B12 - 100-400mcg for ages 50+ (absorption decreases with age)
+    /// For under 50, same as RDA (2.4mcg is adequate)
+    static let optimalVitaminB12Under50: Double = 2.4   // mcg (same as RDA)
+    static let optimalVitaminB12Over50: Double = 100.0  // mcg (vs RDA 2.4mcg)
+
+    /// LPI Optimal: Folate - 400mcg DFE (same as RDA; adequate from diet)
+    static let optimalFolate: Double = 400.0  // mcg (same as RDA)
+
+    /// LPI Optimal: Magnesium - 400-420mg (most adults don't meet RDA; slight increase beneficial)
+    static let optimalMagnesium: Double = 420.0  // mg (vs RDA 310-420mg depending on gender)
+
+    /// LPI Optimal: Zinc - 11-15mg (modest increase for immune support)
+    static let optimalZinc: Double = 15.0  // mg (vs RDA 8-11mg)
+
+    /// LPI Optimal: Calcium - 1000-1200mg (same as RDA; avoid excess - kidney stone risk)
+    static let optimalCalcium: Double = 1000.0  // mg (same as RDA for most adults)
+
+    /// LPI Optimal: Potassium - 4700mg (same as RDA; critical but hard to get from diet)
+    static let optimalPotassium: Double = 4700.0  // mg (same as RDA)
+
+    /// LPI Optimal: Iron - varies by gender/age (same as RDA; avoid excess for men)
+    static let optimalIronFemalePreMenopause: Double = 18.0  // mg (same as RDA)
+    static let optimalIronMale: Double = 8.0  // mg (same as RDA)
+
+    // MARK: - Unified Value Lookup (RDA or Optimal)
+
+    /// Get nutrient target value based on selected standard (RDA or Optimal)
+    /// Falls back to RDA for nutrients without specific LPI recommendations
+    static func getValue(
+        for nutrient: String,
+        gender: Gender = .preferNotToSay,
+        age: Int = 25,
+        standard: MicronutrientStandard = .optimal
+    ) -> Double {
+        // For RDA standard, use existing getRDA function
+        if standard == .rda {
+            return getRDA(for: nutrient, gender: gender, age: age)
+        }
+
+        // For Optimal standard, check if LPI has a different recommendation
+        let lower = nutrient.lowercased()
+        let isOlder = age >= 50
+
+        // Vitamins with LPI-specific recommendations
+        if lower.contains("vitamin c") || lower == "vitaminc" {
+            return optimalVitaminC
+        }
+        if lower.contains("vitamin d") || lower == "vitamind" {
+            return optimalVitaminD
+        }
+        if lower.contains("vitamin b12") || lower == "vitaminb12" {
+            return isOlder ? optimalVitaminB12Over50 : optimalVitaminB12Under50
+        }
+
+        // Minerals with LPI-specific recommendations
+        if lower.contains("magnesium") {
+            return optimalMagnesium
+        }
+        if lower.contains("zinc") {
+            return optimalZinc
+        }
+
+        // For all other nutrients, LPI generally agrees with RDA
+        // Fall back to gender/age-personalized RDA
+        return getRDA(for: nutrient, gender: gender, age: age)
+    }
+
+    /// Get the current micronutrient standard from UserDefaults
+    /// Defaults to .optimal if not set
+    static func currentStandard() -> MicronutrientStandard {
+        let rawValue = UserDefaults.standard.string(forKey: "micronutrientStandard") ?? MicronutrientStandard.optimal.rawValue
+        return MicronutrientStandard(rawValue: rawValue) ?? .optimal
     }
 }

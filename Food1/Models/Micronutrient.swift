@@ -2,14 +2,16 @@
 //  Micronutrient.swift
 //  Food1
 //
-//  Micronutrient data structure with RDA percentage tracking.
+//  Micronutrient data structure with target percentage tracking.
 //
 //  WHY THIS ARCHITECTURE:
+//  - Two standards available: Optimal (LPI) for optimal health, RDA for deficiency prevention
+//  - User selects standard in Settings; Optimal is default (research-based targets)
 //  - Soft, encouraging color scheme: gray "building up" → teal "on track" → green "great/optimal"
 //  - No red/orange warnings - we inform rather than alarm
 //  - Category-based grouping (vitamin/mineral/electrolyte) enables organized UI display
 //  - Codable support allows JSON caching in MealIngredient for offline access
-//  - rdaPercent calculated per-nutrient enables sorting by progress level
+//  - rdaPercent (legacy name) holds percentage against selected standard, enables sorting
 //
 
 import Foundation
@@ -149,91 +151,108 @@ struct MicronutrientProfile: Codable {
     var vitaminB5: Double = 0.0
     var vitaminB6: Double = 0.0
 
-    /// Convert to array of Micronutrient objects with RDA percentages
+    /// Convert to array of Micronutrient objects with target percentages
+    /// Uses user's selected standard (Optimal or RDA) and profile for personalization
     func toMicronutrients() -> [Micronutrient] {
+        // Get user profile for personalized targets
+        let defaults = UserDefaults.standard
+        let genderRaw = defaults.string(forKey: "userGender") ?? Gender.preferNotToSay.rawValue
+        let gender = Gender(rawValue: genderRaw) ?? .preferNotToSay
+        let age = defaults.integer(forKey: "userAge")
+
+        // Get selected standard (Optimal is default)
+        let standard = RDAValues.currentStandard()
+
+        /// Helper to calculate percentage against selected standard
+        func percent(amount: Double, nutrient: String) -> Double {
+            let target = RDAValues.getValue(for: nutrient, gender: gender, age: age, standard: standard)
+            guard target > 0 else { return 0 }
+            return (amount / target) * 100
+        }
+
         return [
             Micronutrient(
                 name: "Calcium",
                 amount: calcium,
                 unit: "mg",
-                rdaPercent: (calcium / RDAValues.calcium) * 100,
+                rdaPercent: percent(amount: calcium, nutrient: "Calcium"),
                 category: .mineral
             ),
             Micronutrient(
                 name: "Iron",
                 amount: iron,
                 unit: "mg",
-                rdaPercent: (iron / RDAValues.iron) * 100,
+                rdaPercent: percent(amount: iron, nutrient: "Iron"),
                 category: .mineral
             ),
             Micronutrient(
                 name: "Magnesium",
                 amount: magnesium,
                 unit: "mg",
-                rdaPercent: (magnesium / RDAValues.magnesium) * 100,
+                rdaPercent: percent(amount: magnesium, nutrient: "Magnesium"),
                 category: .mineral
             ),
             Micronutrient(
                 name: "Potassium",
                 amount: potassium,
                 unit: "mg",
-                rdaPercent: (potassium / RDAValues.potassium) * 100,
+                rdaPercent: percent(amount: potassium, nutrient: "Potassium"),
                 category: .electrolyte
             ),
             Micronutrient(
                 name: "Zinc",
                 amount: zinc,
                 unit: "mg",
-                rdaPercent: (zinc / RDAValues.zinc) * 100,
+                rdaPercent: percent(amount: zinc, nutrient: "Zinc"),
                 category: .mineral
             ),
             Micronutrient(
                 name: "Vitamin A",
                 amount: vitaminA,
                 unit: "mcg",
-                rdaPercent: (vitaminA / RDAValues.vitaminA) * 100,
+                rdaPercent: percent(amount: vitaminA, nutrient: "Vitamin A"),
                 category: .vitamin
             ),
             Micronutrient(
                 name: "Vitamin C",
                 amount: vitaminC,
                 unit: "mg",
-                rdaPercent: (vitaminC / RDAValues.vitaminC) * 100,
+                rdaPercent: percent(amount: vitaminC, nutrient: "Vitamin C"),
                 category: .vitamin
             ),
             Micronutrient(
                 name: "Vitamin D",
                 amount: vitaminD,
                 unit: "mcg",
-                rdaPercent: (vitaminD / RDAValues.vitaminD) * 100,
+                rdaPercent: percent(amount: vitaminD, nutrient: "Vitamin D"),
                 category: .vitamin
             ),
             Micronutrient(
                 name: "Vitamin E",
                 amount: vitaminE,
                 unit: "mg",
-                rdaPercent: (vitaminE / RDAValues.vitaminE) * 100,
+                rdaPercent: percent(amount: vitaminE, nutrient: "Vitamin E"),
                 category: .vitamin
             ),
             Micronutrient(
                 name: "Vitamin B12",
                 amount: vitaminB12,
                 unit: "mcg",
-                rdaPercent: (vitaminB12 / RDAValues.vitaminB12) * 100,
+                rdaPercent: percent(amount: vitaminB12, nutrient: "Vitamin B12"),
                 category: .vitamin
             ),
             Micronutrient(
-                name: "Folate",
+                name: "Folate (B9)",
                 amount: folate,
                 unit: "mcg",
-                rdaPercent: (folate / RDAValues.folate) * 100,
+                rdaPercent: percent(amount: folate, nutrient: "Folate"),
                 category: .vitamin
             ),
             Micronutrient(
                 name: "Sodium",
                 amount: sodium,
                 unit: "mg",
-                rdaPercent: (sodium / RDAValues.sodium) * 100,
+                rdaPercent: percent(amount: sodium, nutrient: "Sodium"),
                 category: .electrolyte
             ),
             // New minerals
@@ -241,21 +260,21 @@ struct MicronutrientProfile: Codable {
                 name: "Phosphorus",
                 amount: phosphorus,
                 unit: "mg",
-                rdaPercent: (phosphorus / RDAValues.phosphorus) * 100,
+                rdaPercent: percent(amount: phosphorus, nutrient: "Phosphorus"),
                 category: .mineral
             ),
             Micronutrient(
                 name: "Copper",
                 amount: copper,
                 unit: "mg",
-                rdaPercent: (copper / RDAValues.copper) * 100,
+                rdaPercent: percent(amount: copper, nutrient: "Copper"),
                 category: .mineral
             ),
             Micronutrient(
                 name: "Selenium",
                 amount: selenium,
                 unit: "mcg",
-                rdaPercent: (selenium / RDAValues.selenium) * 100,
+                rdaPercent: percent(amount: selenium, nutrient: "Selenium"),
                 category: .mineral
             ),
             // New vitamins
@@ -263,42 +282,42 @@ struct MicronutrientProfile: Codable {
                 name: "Vitamin K",
                 amount: vitaminK,
                 unit: "mcg",
-                rdaPercent: (vitaminK / RDAValues.vitaminK) * 100,
+                rdaPercent: percent(amount: vitaminK, nutrient: "Vitamin K"),
                 category: .vitamin
             ),
             Micronutrient(
-                name: "Thiamin",
+                name: "Thiamin (B1)",
                 amount: vitaminB1,
                 unit: "mg",
-                rdaPercent: (vitaminB1 / RDAValues.vitaminB1) * 100,
+                rdaPercent: percent(amount: vitaminB1, nutrient: "Thiamin"),
                 category: .vitamin
             ),
             Micronutrient(
-                name: "Riboflavin",
+                name: "Riboflavin (B2)",
                 amount: vitaminB2,
                 unit: "mg",
-                rdaPercent: (vitaminB2 / RDAValues.vitaminB2) * 100,
+                rdaPercent: percent(amount: vitaminB2, nutrient: "Riboflavin"),
                 category: .vitamin
             ),
             Micronutrient(
-                name: "Niacin",
+                name: "Niacin (B3)",
                 amount: vitaminB3,
                 unit: "mg",
-                rdaPercent: (vitaminB3 / RDAValues.vitaminB3) * 100,
+                rdaPercent: percent(amount: vitaminB3, nutrient: "Niacin"),
                 category: .vitamin
             ),
             Micronutrient(
-                name: "Pantothenic acid",
+                name: "Pantothenic Acid (B5)",
                 amount: vitaminB5,
                 unit: "mg",
-                rdaPercent: (vitaminB5 / RDAValues.vitaminB5) * 100,
+                rdaPercent: percent(amount: vitaminB5, nutrient: "Pantothenic Acid"),
                 category: .vitamin
             ),
             Micronutrient(
-                name: "Vitamin B-6",
+                name: "Pyridoxine (B6)",
                 amount: vitaminB6,
                 unit: "mg",
-                rdaPercent: (vitaminB6 / RDAValues.vitaminB6) * 100,
+                rdaPercent: percent(amount: vitaminB6, nutrient: "Vitamin B6"),
                 category: .vitamin
             )
         ]

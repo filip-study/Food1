@@ -490,24 +490,47 @@ struct MealDetailView: View {
     }
 
     private func deleteMeal() {
+        // Capture necessary data before any deletion (meal object may become invalid)
         let mealDate = meal.timestamp
+        let mealToDelete = meal
 
-        // Sync deletion to cloud BEFORE local deletion
-        // (Task captures meal reference, cloudId accessed before context invalidates object)
         Task {
-            await SyncCoordinator.shared.deleteMeal(meal)
-        }
+            // Step 1: Delete from cloud FIRST (must complete before local delete to prevent re-sync)
+            // Returns true if succeeded or meal wasn't synced to cloud
+            let cloudDeleteSucceeded = await SyncCoordinator.shared.deleteMeal(mealToDelete)
 
-        withAnimation {
-            modelContext.delete(meal)
-        }
+            guard cloudDeleteSucceeded else {
+                print("❌ Cloud delete failed, aborting local delete to prevent re-sync")
+                // Could show an alert here, but for now just log
+                // The meal stays so user can retry
+                return
+            }
 
-        // Update statistics aggregates
-        Task {
+            // Step 2: DISMISS FIRST to prevent SwiftUI from accessing deleted objects
+            // This must happen before local delete to avoid the SwiftData crash:
+            // "Cannot fulfill future for PersistentIdentifier... without a context"
+            await MainActor.run {
+                dismiss()
+            }
+
+            // Small delay to allow view dismissal animation to complete
+            try? await Task.sleep(nanoseconds: 100_000_000)  // 100ms
+
+            // Step 3: Delete locally and save (on main actor since SwiftData requires main thread)
+            await MainActor.run {
+                modelContext.delete(mealToDelete)
+                // Explicitly save to ensure deletion persists
+                do {
+                    try modelContext.save()
+                    print("✅ Local delete saved to context")
+                } catch {
+                    print("❌ Failed to save context after delete: \(error)")
+                }
+            }
+
+            // Step 4: Update statistics aggregates
             await StatisticsService.shared.invalidateAggregate(for: mealDate, in: modelContext)
         }
-
-        dismiss()
     }
 }
 

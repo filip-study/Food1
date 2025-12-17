@@ -48,14 +48,14 @@ struct ColorPalette {
 
     // MARK: - Macro Colors (Ocean Depth Palette)
 
-    /// Protein macro color - Deep Ocean Blue
-    static let macroProtein = Color(hex: "#2563EB")
+    /// Protein macro color - Teal
+    static let macroProtein = Color(hex: "#14B8A6")
 
-    /// Carbs macro color - Teal
-    static let macroCarbs = Color(hex: "#14B8A6")
+    /// Fat macro color - Deep Ocean Blue
+    static let macroFat = Color(hex: "#2563EB")
 
-    /// Fat macro color - Warm Coral
-    static let macroFat = Color(hex: "#FB7185")
+    /// Carbs macro color - Warm Coral/Pink
+    static let macroCarbs = Color(hex: "#FB7185")
 
     /// Calories color - Warm Amber (for area fills/totals)
     static let calories = Color(hex: "#F59E0B")

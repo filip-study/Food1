@@ -10,7 +10,7 @@
 //  - 2-line .lineLimit for food names handles 40-char names without overflow
 //  - Time moved below name (not inline) provides more horizontal space for longer names
 //  - Frosted glass (.thinMaterial 97%) + layered shadows match premium Oura/Function Health aesthetic
-//  - Macro color standard: Orange (protein), Green (carbs), Yellow (fat) - consistent across all views
+//  - Macro order standard: Protein → Fat → Carbs (teal, blue, pink) - consistent across all views
 //
 
 import SwiftUI
@@ -29,10 +29,11 @@ struct MealCard: View {
 
     private var macroString: String {
         let protein = NutritionFormatter.formatValue(meal.protein, unit: nutritionUnit, decimals: 0)
-        let carbs = NutritionFormatter.formatValue(meal.carbs, unit: nutritionUnit, decimals: 0)
         let fat = NutritionFormatter.formatValue(meal.fat, unit: nutritionUnit, decimals: 0)
+        let carbs = NutritionFormatter.formatValue(meal.carbs, unit: nutritionUnit, decimals: 0)
 
-        return "\(Int(meal.calories))cal  •  \(protein)P  •  \(carbs)C  •  \(fat)F"
+        // Order: Cal → Protein → Fat → Carbs
+        return "\(Int(meal.calories))cal  •  \(protein)P  •  \(fat)F  •  \(carbs)C"
     }
 
 
