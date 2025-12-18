@@ -215,7 +215,7 @@ final class AccountDeletionUITests: Food1UITestCase {
 
         // Step 5: Wait for sign-in to complete
         // First, wait a moment for the network request
-        sleep(2)
+        sleep(3)
 
         // Take a screenshot to see the current state
         takeScreenshot(name: "After-Sign-In-Tap")
@@ -224,12 +224,32 @@ final class AccountDeletionUITests: Food1UITestCase {
         // If still loading after 5 seconds, something is wrong
         let isStillLoading = app.activityIndicators.firstMatch.waitForExistence(timeout: 1)
         if isStillLoading {
-            // Wait up to 10 more seconds for loading to finish
+            print("🔄 Still loading, waiting for activity indicator to disappear...")
             _ = waitForElementToDisappear(app.activityIndicators.firstMatch, timeout: 10)
         }
 
+        // Log all visible static texts for debugging
+        print("📋 All visible static texts after sign-in attempt:")
+        for (index, staticText) in app.staticTexts.allElementsBoundByIndex.enumerated() {
+            if !staticText.label.isEmpty {
+                print("  [\(index)] \(staticText.label)")
+            }
+        }
+
+        // Log all visible buttons
+        print("📋 All visible buttons after sign-in attempt:")
+        for (index, button) in app.buttons.allElementsBoundByIndex.enumerated() {
+            if !button.label.isEmpty {
+                print("  [\(index)] \(button.label)")
+            }
+        }
+
+        // Check if we're still on the sign-in form (Sign In button still visible)
+        let signInButtonsAfter = app.buttons.matching(identifier: "Sign In")
+        let signInStillVisible = signInButtonsAfter.count > 1 // Both segment and submit button
+
         // Check for error message - look for text containing common error patterns
-        let errorIndicators = ["error", "failed", "invalid", "incorrect", "wrong"]
+        let errorIndicators = ["error", "failed", "invalid", "incorrect", "wrong", "unable", "could not"]
         var foundError: String?
         for staticText in app.staticTexts.allElementsBoundByIndex {
             let label = staticText.label.lowercased()
@@ -242,6 +262,12 @@ final class AccountDeletionUITests: Food1UITestCase {
         if let error = foundError {
             takeScreenshot(name: "Sign-In-Error")
             XCTFail("Sign-in failed with error: \(error)")
+        }
+
+        // If Sign In button is still visible and no tab bar, sign-in is stuck
+        if signInStillVisible && !app.tabBars.firstMatch.exists {
+            takeScreenshot(name: "Sign-In-Stuck")
+            print("⚠️ Sign-in appears stuck - Sign In button still visible, no tab bar")
         }
 
         // Step 6: Wait for main app (tab bar should appear)
