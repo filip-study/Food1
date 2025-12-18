@@ -150,6 +150,8 @@ jobs:
 
           echo "🧪 Running E2E tests with user: $TEST_USER_EMAIL"
 
+          # Pass credentials to test runner via TEST_RUNNER_ prefix
+          # xcodebuild strips the prefix and makes these available to the test process
           if [ -n "$TEST_FILTER" ]; then
             echo "📋 Filter: $TEST_FILTER"
             xcodebuild test-without-building \
@@ -158,9 +160,12 @@ jobs:
               -configuration Debug \
               -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
               -only-testing:"Food1UITests/$TEST_FILTER" \
+              -parallel-testing-enabled NO \
               CODE_SIGN_IDENTITY="" \
               CODE_SIGNING_REQUIRED=NO \
-              CODE_SIGNING_ALLOWED=NO
+              CODE_SIGNING_ALLOWED=NO \
+              TEST_RUNNER_TEST_USER_EMAIL="$TEST_USER_EMAIL" \
+              TEST_RUNNER_TEST_USER_PASSWORD="$TEST_USER_PASSWORD"
           else
             echo "📋 Running all UI tests"
             xcodebuild test-without-building \
@@ -169,9 +174,12 @@ jobs:
               -configuration Debug \
               -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
               -only-testing:Food1UITests \
+              -parallel-testing-enabled NO \
               CODE_SIGN_IDENTITY="" \
               CODE_SIGNING_REQUIRED=NO \
-              CODE_SIGNING_ALLOWED=NO
+              CODE_SIGNING_ALLOWED=NO \
+              TEST_RUNNER_TEST_USER_EMAIL="$TEST_USER_EMAIL" \
+              TEST_RUNNER_TEST_USER_PASSWORD="$TEST_USER_PASSWORD"
           fi
 
       - name: Cleanup Test User
