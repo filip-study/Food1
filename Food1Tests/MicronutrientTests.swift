@@ -81,16 +81,16 @@ final class MicronutrientTests: XCTestCase {
         let nutrients = profile.toMicronutrients()
         let names = Set(nutrients.map { $0.name })
 
-        // Then: Should contain all expected nutrient names
+        // Then: Should contain all expected nutrient names (user-friendly format)
         let expectedNames: Set<String> = [
             // Original minerals
             "Calcium", "Iron", "Magnesium", "Potassium", "Zinc", "Sodium",
             // New minerals
             "Phosphorus", "Copper", "Selenium",
             // Original vitamins
-            "Vitamin A", "Vitamin C", "Vitamin D", "Vitamin E", "Vitamin B12", "Folate",
-            // New vitamins
-            "Vitamin K", "Thiamin", "Riboflavin", "Niacin", "Pantothenic acid", "Vitamin B-6"
+            "Vitamin A", "Vitamin C", "Vitamin D", "Vitamin E", "Vitamin B12", "Folate (B9)",
+            // New vitamins (user-friendly names with B-vitamin numbers)
+            "Vitamin K", "Thiamin (B1)", "Riboflavin (B2)", "Niacin (B3)", "Pantothenic Acid (B5)", "Pyridoxine (B6)"
         ]
 
         XCTAssertEqual(names, expectedNames, "toMicronutrients() should contain all 21 expected nutrient names")
@@ -115,6 +115,10 @@ final class MicronutrientTests: XCTestCase {
 
     /// Test RDA percentage calculation for new nutrients (Vitamin K)
     func testRDACalculation_VitaminK() {
+        // Force RDA standard for deterministic test (Optimal uses 250mcg, RDA uses 120mcg)
+        UserDefaults.standard.set("RDA", forKey: "micronutrientStandard")
+        defer { UserDefaults.standard.removeObject(forKey: "micronutrientStandard") }
+
         // Given: Profile with 60mcg Vitamin K (50% of 120mcg RDA)
         var profile = MicronutrientProfile()
         profile.vitaminK = 60
@@ -151,10 +155,10 @@ final class MicronutrientTests: XCTestCase {
 
         // When: Convert to micronutrients
         let nutrients = profile.toMicronutrients()
-        let thiamin = nutrients.first { $0.name == "Thiamin" }
+        let thiamin = nutrients.first { $0.name == "Thiamin (B1)" }
 
         // Then: RDA should be 50%
-        XCTAssertNotNil(thiamin, "Should find Thiamin in nutrients")
+        XCTAssertNotNil(thiamin, "Should find Thiamin (B1) in nutrients")
         XCTAssertEqual(thiamin?.rdaPercent ?? 0, 50.0, accuracy: 0.1, "Thiamin RDA should be 50%")
     }
 
@@ -178,8 +182,9 @@ final class MicronutrientTests: XCTestCase {
         let profile = MicronutrientProfile()
         let nutrients = profile.toMicronutrients()
 
-        let vitaminNames = ["Vitamin A", "Vitamin C", "Vitamin D", "Vitamin E", "Vitamin B12", "Folate",
-                           "Vitamin K", "Thiamin", "Riboflavin", "Niacin", "Pantothenic acid", "Vitamin B-6"]
+        // Updated to match user-friendly display names
+        let vitaminNames = ["Vitamin A", "Vitamin C", "Vitamin D", "Vitamin E", "Vitamin B12", "Folate (B9)",
+                           "Vitamin K", "Thiamin (B1)", "Riboflavin (B2)", "Niacin (B3)", "Pantothenic Acid (B5)", "Pyridoxine (B6)"]
         for name in vitaminNames {
             let nutrient = nutrients.first { $0.name == name }
             XCTAssertNotNil(nutrient, "Should find \(name) in nutrients")
@@ -207,17 +212,17 @@ final class MicronutrientTests: XCTestCase {
         let profile = MicronutrientProfile()
         let nutrients = profile.toMicronutrients()
 
-        // mg units
+        // mg units (updated to match user-friendly display names)
         let mgNutrients = ["Calcium", "Iron", "Magnesium", "Potassium", "Zinc", "Sodium",
                           "Phosphorus", "Copper", "Vitamin C", "Vitamin E",
-                          "Thiamin", "Riboflavin", "Niacin", "Pantothenic acid", "Vitamin B-6"]
+                          "Thiamin (B1)", "Riboflavin (B2)", "Niacin (B3)", "Pantothenic Acid (B5)", "Pyridoxine (B6)"]
         for name in mgNutrients {
             let nutrient = nutrients.first { $0.name == name }
             XCTAssertEqual(nutrient?.unit, "mg", "\(name) should have unit 'mg'")
         }
 
-        // mcg units
-        let mcgNutrients = ["Vitamin A", "Vitamin D", "Vitamin B12", "Folate", "Vitamin K", "Selenium"]
+        // mcg units (updated to match user-friendly display names)
+        let mcgNutrients = ["Vitamin A", "Vitamin D", "Vitamin B12", "Folate (B9)", "Vitamin K", "Selenium"]
         for name in mcgNutrients {
             let nutrient = nutrients.first { $0.name == name }
             XCTAssertEqual(nutrient?.unit, "mcg", "\(name) should have unit 'mcg'")

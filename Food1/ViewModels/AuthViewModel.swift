@@ -18,6 +18,10 @@ import Combine
 import Auth
 import Supabase
 import AuthenticationServices
+import os.log
+
+/// Logger for auth-related events (filtered in Console.app by subsystem)
+private let logger = Logger(subsystem: "com.prismae.food1", category: "Auth")
 
 @MainActor
 class AuthViewModel: ObservableObject {
@@ -96,7 +100,7 @@ class AuthViewModel: ObservableObject {
                 }
             }
         } catch {
-            print("No active session: \(error.localizedDescription)")
+            logger.debug("No active session: \(error.localizedDescription)")
             isAuthenticated = false
         }
     }
@@ -109,7 +113,7 @@ class AuthViewModel: ObservableObject {
             let userId = try await supabase.requireUserId()
 
             // Load profile
-            let profileResponse: CloudUserProfile = try await supabase.client.database
+            let profileResponse: CloudUserProfile = try await supabase.client
                 .from("profiles")
                 .select()
                 .eq("id", value: userId.uuidString)
@@ -123,7 +127,7 @@ class AuthViewModel: ObservableObject {
             syncCloudProfileToLocal(profileResponse)
 
             // Load subscription status
-            let subscriptionResponse: SubscriptionStatus = try await supabase.client.database
+            let subscriptionResponse: SubscriptionStatus = try await supabase.client
                 .from("subscription_status")
                 .select()
                 .eq("user_id", value: userId.uuidString)
@@ -133,11 +137,10 @@ class AuthViewModel: ObservableObject {
 
             self.subscription = subscriptionResponse
 
-            print("✅ Loaded user data: \(profile?.email ?? "no email")")
+            logger.info("Loaded user data: \(self.profile?.email ?? "no email", privacy: .private)")
 
         } catch {
-            print("⚠️  Failed to load user data: \(error)")
-            print("⚠️  This is normal for first-time sign in - database trigger might need time to create profile")
+            logger.warning("Failed to load user data: \(error.localizedDescription) - normal for first-time sign in")
             // DON'T set errorMessage - allow user to enter app anyway
             // Profile will be loaded on next session or can be created on-demand
         }
@@ -153,7 +156,7 @@ class AuthViewModel: ObservableObject {
         // Sync age (used for RDA personalization)
         if let age = cloudProfile.age {
             defaults.set(age, forKey: "userAge")
-            print("📥 Synced age from cloud: \(age)")
+            logger.debug("Synced age from cloud: \(age)")
         }
 
         // Sync weight (in kg internally, converted for display based on unit preference)
@@ -169,7 +172,7 @@ class AuthViewModel: ObservableObject {
         // Sync gender (used for RDA personalization)
         if let genderEnum = cloudProfile.genderEnum {
             defaults.set(genderEnum.rawValue, forKey: "userGender")
-            print("📥 Synced gender from cloud: \(genderEnum.rawValue)")
+            logger.debug("Synced gender from cloud: \(genderEnum.rawValue)")
         }
 
         // Sync activity level
@@ -182,7 +185,7 @@ class AuthViewModel: ObservableObject {
         defaults.set(cloudProfile.heightUnit, forKey: "heightUnit")
         defaults.set(cloudProfile.nutritionUnit, forKey: "nutritionUnit")
 
-        print("📥 Cloud → Local profile sync complete")
+        logger.debug("Cloud → Local profile sync complete")
     }
 
     /// Sync local @AppStorage values to cloud (called after profile edit)
@@ -209,9 +212,9 @@ class AuthViewModel: ObservableObject {
                 gender: gender,
                 activityLevel: activityLevel
             )
-            print("📤 Local → Cloud profile sync complete")
+            logger.debug("Local → Cloud profile sync complete")
         } catch {
-            print("⚠️ Failed to sync local profile to cloud: \(error)")
+            logger.warning("Failed to sync local profile to cloud: \(error.localizedDescription)")
         }
     }
 
@@ -278,7 +281,7 @@ class AuthViewModel: ObservableObject {
         await loadUserData()
 
         // Trigger initial sync after successful sign-in
-        print("🔄 Triggering initial sync after Apple Sign In...")
+        logger.info("Triggering initial sync after Apple Sign In")
         SyncCoordinator.shared.triggerInitialSync()
     }
 
@@ -358,7 +361,7 @@ class AuthViewModel: ObservableObject {
             updated_at: ISO8601DateFormatter().string(from: Date())
         )
 
-        try await supabase.client.database
+        try await supabase.client
             .from("profiles")
             .update(update)
             .eq("id", value: userId.uuidString)
@@ -367,7 +370,7 @@ class AuthViewModel: ObservableObject {
         // Reload profile
         await loadUserData()
 
-        print("✅ Profile updated")
+        logger.info("Profile updated successfully")
     }
 
     // MARK: - Computed Properties
@@ -414,7 +417,7 @@ class AuthViewModel: ObservableObject {
         do {
             let userId = try await supabase.requireUserId()
 
-            let subscriptionResponse: SubscriptionStatus = try await supabase.client.database
+            let subscriptionResponse: SubscriptionStatus = try await supabase.client
                 .from("subscription_status")
                 .select()
                 .eq("user_id", value: userId.uuidString)
@@ -426,10 +429,10 @@ class AuthViewModel: ObservableObject {
                 self.subscription = subscriptionResponse
             }
 
-            print("✅ Refreshed subscription: \(subscriptionResponse.subscriptionType.rawValue)")
+            logger.info("Refreshed subscription: \(subscriptionResponse.subscriptionType.rawValue)")
 
         } catch {
-            print("⚠️ Failed to refresh subscription: \(error)")
+            logger.warning("Failed to refresh subscription: \(error.localizedDescription)")
         }
     }
 
@@ -448,7 +451,7 @@ class AuthViewModel: ObservableObject {
                 type: .signup
             )
 
-            print("✅ Confirmation email resent to: \(email)")
+            logger.info("Confirmation email resent to: \(email, privacy: .private)")
 
         } catch {
             errorMessage = "Failed to resend confirmation email. Please try again."

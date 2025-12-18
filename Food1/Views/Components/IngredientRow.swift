@@ -19,14 +19,14 @@ struct IngredientRow: View {
             Button(action: onTap) {
                 HStack {
                     Text(ingredient.name)
-                        .font(.system(size: 16))
+                        .font(.system(size: 15, weight: .medium))
                         .foregroundColor(.primary)
                         .lineLimit(2)
 
                     Spacer()
 
                     Text("\(Int(ingredient.grams))g")
-                        .font(.system(size: 16, weight: .medium, design: .rounded))
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
                         .foregroundColor(.secondary)
                 }
                 .contentShape(Rectangle())

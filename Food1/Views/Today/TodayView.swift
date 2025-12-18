@@ -107,6 +107,36 @@ struct TodayView: View {
         Calendar.current.isDateInToday(selectedDate)
     }
 
+    /// Dynamic daily insight based on nutrition progress
+    // private var currentInsight: (icon: String, title: String, message: String, color: Color)? {
+    //     guard !mealsForSelectedDate.isEmpty else { return nil }
+    //
+    //     let t = totals
+    //     let g = personalizedGoals
+    //
+    //     // 1. Protein Goal Hit (Positive reinforcement)
+    //     if t.protein >= g.protein {
+    //         return ("trophy.fill", "Protein Goal Crushed", "You've hit your protein target for today. Great work!", .blue)
+    //     }
+    //
+    //     // 2. Calorie Warning (Gentle nudge)
+    //     if t.calories > g.calories * 1.1 {
+    //          return ("exclamationmark.triangle.fill", "Calorie Target", "You're slightly over your calorie goal for today.", .orange)
+    //     }
+    //
+    //     // 3. Protein Focus (If low on protein but high on calories)
+    //     if t.calories > g.calories * 0.7 && t.protein < g.protein * 0.5 {
+    //          return ("chart.bar.fill", "Prioritize Protein", "Try adding a high-protein source to your next meal.", .purple)
+    //     }
+    //
+    //     // 4. Good Start (Morning/Early)
+    //     if t.calories < g.calories * 0.3 && t.protein > g.protein * 0.2 {
+    //          return ("sunrise.fill", "Strong Start", "You're on track with a balanced start to the day.", .green)
+    //     }
+    //
+    //     return nil
+    // }
+
     private var emptyStateContent: (emoji: String, title: String, subtitle: String) {
         let hour = Calendar.current.component(.hour, from: selectedDate)
         switch hour {
@@ -158,8 +188,13 @@ struct TodayView: View {
 
                         // Daily insight - disabled pending redesign
                         // TODO: Redesign with meaningful, data-driven insights
-                        // if mealsForSelectedDate.count > 3 {
-                        //     InsightCard(...)
+                        // if let insight = currentInsight {
+                        //     InsightCard(
+                        //         icon: insight.icon,
+                        //         title: insight.title,
+                        //         message: insight.message,
+                        //         accentColor: insight.color
+                        //     )
                         // }
 
                         // Meal timeline section
@@ -176,6 +211,7 @@ struct TodayView: View {
                                         .font(.system(size: 22))
                                         .foregroundColor(.secondary)
                                 }
+                                .accessibilityLabel("Settings")
                                 .frame(width: 44, height: 44)  // Larger tap target
                             }
                             .padding(.horizontal)

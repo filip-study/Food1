@@ -40,7 +40,7 @@ final class FuzzyMatchingServiceTests: XCTestCase {
         let ingredientName = "Strawberries, raw"
 
         // When: Match the ingredient (which internally cleans the name)
-        let (food, method) = await service.matchWithMethod(ingredientName)
+        let (food, _) = await service.matchWithMethod(ingredientName)
 
         // Then: Should successfully match strawberries (not fail due to corrupted "stberries")
         // We verify this by checking we got SOME match, meaning the name wasn't corrupted
@@ -62,7 +62,7 @@ final class FuzzyMatchingServiceTests: XCTestCase {
         let ingredientName = "Chicken, grilled"
 
         // When: Match the ingredient
-        let (food, method) = await service.matchWithMethod(ingredientName)
+        let (food, _) = await service.matchWithMethod(ingredientName)
 
         // Then: Should find chicken (the word "grilled" should be stripped during cleaning)
         // Expected shortcut match for "chicken breast" (fdcId 171477)
