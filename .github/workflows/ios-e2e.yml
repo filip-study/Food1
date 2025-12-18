@@ -163,6 +163,28 @@ jobs:
             SUPABASE_URL="$SUPABASE_URL" \
             SUPABASE_ANON_KEY="${{ secrets.SUPABASE_ANON_KEY }}"
 
+      - name: Verify Built App Configuration
+        run: |
+          # Find the built app and check what SUPABASE_URL ended up in Info.plist
+          APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "Food1.app" -path "*/Debug-iphonesimulator/*" | head -1)
+
+          if [ -n "$APP_PATH" ]; then
+            echo "📱 Found app at: $APP_PATH"
+            echo ""
+            echo "📄 SUPABASE_URL in built Info.plist:"
+            /usr/libexec/PlistBuddy -c "Print :SUPABASE_URL" "$APP_PATH/Info.plist" || echo "NOT FOUND"
+            echo ""
+            echo "📄 SUPABASE_ANON_KEY in built Info.plist (masked):"
+            ANON_KEY=$(/usr/libexec/PlistBuddy -c "Print :SUPABASE_ANON_KEY" "$APP_PATH/Info.plist" 2>/dev/null || echo "NOT FOUND")
+            if [ "$ANON_KEY" != "NOT FOUND" ] && [ ${#ANON_KEY} -gt 20 ]; then
+              echo "${ANON_KEY:0:20}...${ANON_KEY: -10}"
+            else
+              echo "$ANON_KEY"
+            fi
+          else
+            echo "❌ Could not find built app"
+          fi
+
       - name: Run E2E Tests
         env:
           # Pass as TEST_RUNNER_ prefixed env vars - xcodebuild strips prefix for test runner
