@@ -40,6 +40,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - Test files are located in Food1Tests/ directory
    - All tests run automatically on GitHub Actions CI for every push
 
+## Production Readiness
+
+**Status:** Beta (TestFlight) - See `PRODUCTION_READINESS.md` for full assessment
+
+**Critical Blockers (Must Fix Before App Store):**
+
+1. **Legal Pages Missing:**
+   - `prismae.app/terms` - Currently redirects, needs actual Terms of Use
+   - `prismae.app/privacy` - Currently redirects, needs actual Privacy Policy
+   - Referenced in: `PaywallView.swift:198-200`
+
+2. **Account Deletion Required:**
+   - Apple requires account deletion for all apps with account creation (since June 2022)
+   - Current state: Only "Sign Out" exists in `AccountView.swift`
+   - Need: "Delete Account" with Supabase data cleanup
+
+3. **StoreKit Product Verification:**
+   - Verify `com.prismae.food1.premium.monthly` exists in App Store Connect
+   - Test sandbox purchase flow
+
+**What's Ready:**
+- ✅ All 33 tests passing
+- ✅ Security (secrets in xcconfig, Cloudflare proxy)
+- ✅ Auth flow (Apple Sign In + Email)
+- ✅ Subscription system (StoreKit 2)
+- ✅ CI/CD (GitHub Actions)
+
 ## Project Goals & User Preferences
 
 **Project Vision:**
