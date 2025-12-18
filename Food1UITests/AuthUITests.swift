@@ -12,7 +12,7 @@ final class AuthUITests: Food1UITestCase {
     // MARK: - Sign In Screen Tests
 
     /// Test that onboarding screen shows sign in options
-    func testOnboardingScreenElements() {
+    func testOnboardingScreenElements() throws {
         // If already signed in, sign out first (or skip)
         if isSignedIn {
             throw XCTSkip("Already signed in - run on fresh install")
