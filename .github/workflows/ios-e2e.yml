@@ -132,6 +132,9 @@ jobs:
 
       - name: Build for UI Testing
         run: |
+          # Pass Supabase credentials as build settings
+          # Info.plist has $(SUPABASE_URL) and $(SUPABASE_ANON_KEY) placeholders
+          # that get substituted from build settings during the build
           xcodebuild clean build-for-testing \
             -project Food1.xcodeproj \
             -scheme Food1 \
@@ -139,7 +142,9 @@ jobs:
             -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO \
+            SUPABASE_URL="$SUPABASE_URL" \
+            SUPABASE_ANON_KEY="${{ secrets.SUPABASE_ANON_KEY }}"
 
       - name: Run E2E Tests
         env:
