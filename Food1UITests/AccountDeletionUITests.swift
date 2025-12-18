@@ -186,11 +186,9 @@ final class AccountDeletionUITests: Food1UITestCase {
             throw XCTSkip("Email field not found after tapping Continue with Email")
         }
 
-        // Make sure we're in Sign In mode (not Sign Up) - tap the "Sign In" segment
-        let signInSegment = app.buttons["Sign In"]
-        if signInSegment.exists {
-            signInSegment.tap()
-        }
+        // The segmented picker defaults to "Sign In" mode - no need to tap it
+        // Note: There are two "Sign In" elements - the segment and the submit button
+        // The segment is in a segmented control, while the submit button is standalone
 
         // Step 3: Enter credentials
         emailField.tap()
@@ -203,10 +201,17 @@ final class AccountDeletionUITests: Food1UITestCase {
         passwordField.tap()
         passwordField.typeText(password)
 
-        // Step 4: Tap the Sign In button to submit
-        let signInButton = app.buttons["Sign In"]
-        XCTAssertTrue(signInButton.exists, "Sign In button should exist")
-        signInButton.tap()
+        // Step 4: Tap the Sign In submit button
+        // There are 2 "Sign In" buttons - the segment and the submit button
+        // The submit button is the last one in the hierarchy (comes after segment)
+        let signInButtons = app.buttons.matching(identifier: "Sign In")
+        let buttonCount = signInButtons.count
+        XCTAssertGreaterThan(buttonCount, 0, "Sign In buttons should exist")
+
+        // Tap the last matching button (the submit button)
+        let submitButton = signInButtons.element(boundBy: buttonCount - 1)
+        XCTAssertTrue(submitButton.isHittable, "Submit button should be hittable")
+        submitButton.tap()
 
         // Step 5: Wait for main app (tab bar should appear)
         let tabBar = app.tabBars.firstMatch
