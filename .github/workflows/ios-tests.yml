@@ -33,11 +33,23 @@ jobs:
           # Copy CI-safe APIConfig template (no real secrets needed for tests)
           cp Food1/Config/APIConfig.swift.template Food1/Config/APIConfig.swift
 
-          # Add dummy secrets to Info.plist for CI (tests don't need real values)
-          /usr/libexec/PlistBuddy -c "Add :PROXY_ENDPOINT string 'https://test-worker.example.com/analyze'" Food1/Info.plist || true
-          /usr/libexec/PlistBuddy -c "Add :AUTH_TOKEN string 'test-auth-token'" Food1/Info.plist || true
-          /usr/libexec/PlistBuddy -c "Add :SUPABASE_URL string 'https://test.supabase.co'" Food1/Info.plist || true
-          /usr/libexec/PlistBuddy -c "Add :SUPABASE_ANON_KEY string 'test-anon-key'" Food1/Info.plist || true
+          # Create dummy Secrets.xcconfig for CI (unit tests don't need real credentials)
+          # The project uses xcconfig for build settings, which are substituted into Info.plist
+          # Note: In xcconfig, // starts a comment, so URLs use $() to escape: https:/$()/ becomes https://
+          cat > Food1/Config/Secrets.xcconfig << 'EOF'
+//
+// Secrets.xcconfig (CI-generated dummy values)
+// Unit tests don't need real Supabase/API connections
+//
+
+// Dummy Supabase Configuration
+SUPABASE_URL = https:/$()/test.supabase.co
+SUPABASE_ANON_KEY = test-anon-key
+
+// Dummy Proxy Configuration
+PROXY_ENDPOINT = https:/$()/test-worker.example.com/analyze
+AUTH_TOKEN = test-auth-token
+EOF
 
           echo "✅ Using test-safe config for CI"
 
