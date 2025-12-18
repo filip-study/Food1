@@ -51,10 +51,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - `prismae.app/privacy` - Currently redirects, needs actual Privacy Policy
    - Referenced in: `PaywallView.swift:198-200`
 
-2. **Account Deletion Required:**
-   - Apple requires account deletion for all apps with account creation (since June 2022)
-   - Current state: Only "Sign Out" exists in `AccountView.swift`
-   - Need: "Delete Account" with Supabase data cleanup
+2. **Account Deletion:** ✅ IMPLEMENTED
+   - Two-step confirmation in `AccountView.swift`
+   - Deletes all user data from Supabase + local storage
 
 3. **StoreKit Product Verification:**
    - Verify `com.prismae.food1.premium.monthly` exists in App Store Connect

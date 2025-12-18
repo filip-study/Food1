@@ -3,7 +3,12 @@
 //  Food1
 //
 //  Account management screen shown in Settings.
-//  Display user email, subscription status, and sign out option.
+//  Displays user email, subscription status, sign out, and account deletion.
+//
+//  WHY TWO-STEP DELETE CONFIRMATION:
+//  - Apple requires account deletion for apps with account creation
+//  - Destructive actions should have friction to prevent accidents
+//  - User must type "DELETE" to confirm (industry best practice)
 //
 
 import SwiftUI
@@ -17,6 +22,14 @@ struct AccountView: View {
     @State private var showingSignOutConfirmation = false
     @State private var isSigningOut = false
     @State private var showingPaywall = false
+
+    // Account deletion states
+    @State private var showingDeleteConfirmation = false
+    @State private var showingDeleteFinalConfirmation = false
+    @State private var deleteConfirmationText = ""
+    @State private var isDeleting = false
+    @State private var showDeleteError = false
+    @State private var deleteErrorMessage = ""
 
     var body: some View {
         NavigationStack {
@@ -141,6 +154,28 @@ struct AccountView: View {
                     Text("Your meals and data are securely stored in the cloud and will be available when you sign in again.")
                         .font(.system(size: 13))
                 }
+
+                // Delete Account Section
+                Section {
+                    Button(action: {
+                        showingDeleteConfirmation = true
+                    }) {
+                        HStack {
+                            Image(systemName: "trash.fill")
+                                .foregroundColor(.red)
+                            Text("Delete Account")
+                                .foregroundColor(.red)
+                        }
+                    }
+                    .disabled(isDeleting)
+                    .opacity(isDeleting ? 0.6 : 1.0)
+                } header: {
+                    Text("Danger Zone")
+                } footer: {
+                    Text("Permanently delete your account and all associated data. This action cannot be undone.")
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                }
             }
             .navigationTitle("Account")
             .navigationBarTitleDisplayMode(.inline)
@@ -159,6 +194,35 @@ struct AccountView: View {
             } message: {
                 Text("Are you sure you want to sign out?")
             }
+            // Step 1: Initial delete confirmation
+            .confirmationDialog("Delete Account", isPresented: $showingDeleteConfirmation) {
+                Button("Delete Account", role: .destructive) {
+                    showingDeleteFinalConfirmation = true
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This will permanently delete your account and all your data including:\n\n• Your profile\n• All logged meals\n• Subscription status\n\nThis action cannot be undone.")
+            }
+            // Step 2: Final confirmation with text input
+            .alert("Confirm Deletion", isPresented: $showingDeleteFinalConfirmation) {
+                TextField("Type DELETE to confirm", text: $deleteConfirmationText)
+                    .autocapitalization(.allCharacters)
+                Button("Cancel", role: .cancel) {
+                    deleteConfirmationText = ""
+                }
+                Button("Delete Forever", role: .destructive) {
+                    handleDeleteAccount()
+                }
+                .disabled(deleteConfirmationText != "DELETE")
+            } message: {
+                Text("To confirm deletion, type DELETE in the field below.")
+            }
+            // Error alert
+            .alert("Deletion Failed", isPresented: $showDeleteError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(deleteErrorMessage)
+            }
             .sheet(isPresented: $showingPaywall) {
                 PaywallView()
             }
@@ -173,9 +237,28 @@ struct AccountView: View {
                 try await authViewModel.signOut()
                 dismiss()
             } catch {
-                print("Sign out error: \(error)")
+                // Error logged in AuthViewModel
             }
             isSigningOut = false
+        }
+    }
+
+    private func handleDeleteAccount() {
+        guard deleteConfirmationText == "DELETE" else { return }
+
+        isDeleting = true
+        deleteConfirmationText = ""
+
+        Task {
+            do {
+                try await authViewModel.deleteAccount()
+                // Success - user will be signed out and returned to onboarding
+                dismiss()
+            } catch {
+                deleteErrorMessage = authViewModel.errorMessage ?? "An unexpected error occurred. Please try again."
+                showDeleteError = true
+            }
+            isDeleting = false
         }
     }
 }

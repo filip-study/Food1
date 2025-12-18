@@ -17,7 +17,7 @@ This document tracks Prismae's readiness for public App Store release.
 | **Code Quality** | ✅ Ready | All 33 tests pass, proper logging, no critical warnings |
 | **Security** | ✅ Ready | Secrets in xcconfig, Cloudflare proxy, no hardcoded keys |
 | **Architecture** | ✅ Ready | Clean separation, documented patterns |
-| **Legal/Compliance** | ❌ Blocking | Missing Terms, Privacy, Account Deletion |
+| **Legal/Compliance** | ⚠️ Partial | Missing Terms & Privacy pages; Account Deletion ✅ |
 | **Monetization** | ⚠️ Verify | StoreKit product needs App Store Connect verification |
 
 **Bottom Line:** The app is technically solid but has **blocking legal/compliance gaps** that must be resolved before App Store submission.
@@ -44,20 +44,17 @@ This document tracks Prismae's readiness for public App Store release.
   - [ ] Host at `prismae.app/privacy` (not redirect)
   - [ ] Include: data collection, storage, sharing, GDPR compliance, user rights
 
-### 3. Account Deletion - NOT IMPLEMENTED
-- **Current State:** No way to delete account (only sign out exists)
-- **Location:** `AccountView.swift` - only has "Sign Out"
-- **Requirement:** Apple requires account deletion for all apps with account creation (since June 2022)
-- **Action Required:**
-  - [ ] Add "Delete Account" button to AccountView
-  - [ ] Implement confirmation flow (prevent accidental deletion)
-  - [ ] Create Supabase function to delete user data:
-    - Delete from `profiles` table
-    - Delete from `subscription_status` table
-    - Delete from `meals` table (user's meal data)
-    - Handle cascade deletions properly
-  - [ ] Optional: 14-day grace period before permanent deletion
-  - [ ] Send confirmation email after deletion request
+### 3. Account Deletion - ✅ IMPLEMENTED
+- **Current State:** Two-step deletion flow in AccountView
+- **Location:** `AccountView.swift`, `AuthViewModel.swift`
+- **Implementation:**
+  - [x] Add "Delete Account" button in "Danger Zone" section
+  - [x] Two-step confirmation (dialog → type "DELETE" to confirm)
+  - [x] Deletes from Supabase: `meals`, `subscription_status`, `profiles` tables
+  - [x] Clears local UserDefaults data
+  - [x] Signs out user after deletion
+  - [ ] Optional: 14-day grace period (not implemented - immediate deletion)
+  - [ ] Optional: Confirmation email after deletion (not implemented)
 
 ### 4. StoreKit Product Verification
 - **Current State:** Code references `com.prismae.food1.premium.monthly`
@@ -167,6 +164,7 @@ This document tracks Prismae's readiness for public App Store release.
 
 | Date | Change |
 |------|--------|
+| 2024-12-19 | Implemented account deletion feature (2-step confirmation). 3 blockers remain. |
 | 2024-12-19 | Initial document creation. Identified 4 critical blockers. |
 
 ---
