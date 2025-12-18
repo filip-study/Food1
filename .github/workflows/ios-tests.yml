@@ -59,11 +59,14 @@ jobs:
         env:
           DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
         run: |
+          # Run only unit tests (Food1Tests), not UI tests
+          # UI tests run separately via ios-e2e.yml workflow (requires test credentials)
           xcodebuild test-without-building \
             -project Food1.xcodeproj \
             -scheme Food1 \
             -configuration Debug \
             -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+            -only-testing:Food1Tests \
             -enableCodeCoverage YES \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
