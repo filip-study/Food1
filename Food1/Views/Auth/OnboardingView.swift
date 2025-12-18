@@ -15,6 +15,10 @@
 
 import SwiftUI
 import AuthenticationServices
+import os.log
+
+/// Logger for onboarding auth events (filtered in Console.app by subsystem)
+private let logger = Logger(subsystem: "com.prismae.food1", category: "Onboarding")
 
 struct OnboardingView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -315,16 +319,24 @@ struct OnboardingView: View {
     }
 
     private func handleEmailAuth() {
+        // Debug: Log button action invocation BEFORE Task (os.log for CI capture)
+        logger.info("📍 handleEmailAuth() called")
+        logger.info("   email='\(self.email, privacy: .private)', password.count=\(self.password.count)")
+        logger.info("   isSignUpMode=\(self.isSignUpMode), isFormValid=\(self.isFormValid)")
+        logger.info("   authViewModel.isLoading=\(self.authViewModel.isLoading)")
+
         Task {
             do {
+                logger.info("📍 Task started, calling signIn/signUp...")
                 if isSignUpMode {
                     try await authViewModel.signUp(email: email, password: password)
                 } else {
                     try await authViewModel.signIn(email: email, password: password)
                 }
+                logger.info("📍 signIn/signUp completed successfully")
             } catch {
                 // Error already set in authViewModel
-                print("Email auth error: \(error)")
+                logger.error("Email auth error: \(error.localizedDescription)")
             }
         }
     }
