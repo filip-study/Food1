@@ -4,6 +4,8 @@
 **App Version:** 1.02
 **Status:** Beta (TestFlight)
 
+> **Living Document:** This is a living document that evolves as we identify new requirements, complete tasks, or discover issues. Update it whenever production readiness status changes. Add new sections as needed for areas not yet covered.
+
 This document tracks Prismae's readiness for public App Store release.
 
 ---
@@ -161,4 +163,12 @@ This document tracks Prismae's readiness for public App Store release.
 
 ---
 
-*This document should be updated as items are completed or new blockers are identified.*
+## Change Log
+
+| Date | Change |
+|------|--------|
+| 2024-12-19 | Initial document creation. Identified 4 critical blockers. |
+
+---
+
+*Add new entries to the change log when significant updates are made.*
