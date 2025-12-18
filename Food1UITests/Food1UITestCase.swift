@@ -20,13 +20,17 @@ class Food1UITestCase: XCTestCase {
     }
 
     /// Test user email from environment
+    /// Checks both TEST_USER_EMAIL and TEST_RUNNER_TEST_USER_EMAIL (xcodebuild may use either)
     var testUserEmail: String? {
         ProcessInfo.processInfo.environment["TEST_USER_EMAIL"]
+            ?? ProcessInfo.processInfo.environment["TEST_RUNNER_TEST_USER_EMAIL"]
     }
 
     /// Test user password from environment
+    /// Checks both TEST_USER_PASSWORD and TEST_RUNNER_TEST_USER_PASSWORD (xcodebuild may use either)
     var testUserPassword: String? {
         ProcessInfo.processInfo.environment["TEST_USER_PASSWORD"]
+            ?? ProcessInfo.processInfo.environment["TEST_RUNNER_TEST_USER_PASSWORD"]
     }
 
     override func setUpWithError() throws {
