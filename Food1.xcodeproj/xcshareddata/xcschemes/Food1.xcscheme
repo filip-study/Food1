@@ -46,6 +46,17 @@
                ReferencedContainer = "container:Food1.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "DC4C18D32EF48F91007E07F9"
+               BuildableName = "Food1UITests.xctest"
+               BlueprintName = "Food1UITests"
+               ReferencedContainer = "container:Food1.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction
