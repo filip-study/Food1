@@ -35,12 +35,13 @@ class Food1UITestCase: XCTestCase {
         app = XCUIApplication()
         app.launchArguments = ["--uitesting"]
 
-        // Pass test credentials to app
-        if let email = testUserEmail {
-            app.launchEnvironment["TEST_USER_EMAIL"] = email
-        }
-        if let password = testUserPassword {
-            app.launchEnvironment["TEST_USER_PASSWORD"] = password
+        // Pass all relevant environment variables to the app
+        // This includes test credentials and any other config
+        let envVars = ["TEST_USER_EMAIL", "TEST_USER_PASSWORD", "SUPABASE_URL", "SUPABASE_ANON_KEY"]
+        for key in envVars {
+            if let value = ProcessInfo.processInfo.environment[key] {
+                app.launchEnvironment[key] = value
+            }
         }
 
         app.launch()

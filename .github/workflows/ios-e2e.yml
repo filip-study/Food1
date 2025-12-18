@@ -2,6 +2,12 @@ name: iOS E2E Tests
 
 # Run E2E tests on demand or before releases
 # These are slower and test full user flows via XCUITest
+#
+# REQUIRED SECRETS:
+#   SUPABASE_URL         - Your Supabase project URL
+#   SUPABASE_ANON_KEY    - Supabase anon/public key
+#   SUPABASE_SERVICE_KEY - Supabase service_role key (for creating test users)
+#
 on:
   workflow_dispatch:
     inputs:
@@ -21,15 +27,70 @@ jobs:
 
     env:
       DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
-      # Test credentials (from GitHub Secrets)
-      TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
-      TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
-      TEST_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
-      TEST_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Validate Secrets
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_KEY" ]; then
+            echo "❌ ERROR: Missing required secrets"
+            echo ""
+            echo "Please configure these GitHub Secrets:"
+            echo "  - SUPABASE_URL: Your Supabase project URL"
+            echo "  - SUPABASE_ANON_KEY: Supabase anon/public key"
+            echo "  - SUPABASE_SERVICE_KEY: Supabase service_role key"
+            echo ""
+            echo "Get these from: Supabase Dashboard → Settings → API"
+            exit 1
+          fi
+          echo "✅ Secrets validated"
+
+      - name: Create Test User
+        id: create_user
+        run: |
+          # Generate unique test email for this run
+          TEST_EMAIL="e2e-test-$(date +%s)-$RANDOM@test.prismae.app"
+          TEST_PASSWORD="E2ETestPass123!"
+
+          echo "Creating test user: $TEST_EMAIL"
+
+          # Create user via Supabase Admin API (automatically confirmed)
+          RESPONSE=$(curl -s -X POST "$SUPABASE_URL/auth/v1/admin/users" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" \
+            -H "apikey: $SUPABASE_SERVICE_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"email\": \"$TEST_EMAIL\",
+              \"password\": \"$TEST_PASSWORD\",
+              \"email_confirm\": true
+            }")
+
+          # Check for error
+          if echo "$RESPONSE" | grep -q '"error"'; then
+            echo "❌ Failed to create test user"
+            echo "$RESPONSE"
+            exit 1
+          fi
+
+          # Extract user ID
+          USER_ID=$(echo "$RESPONSE" | python3 -c "import sys, json; print(json.load(sys.stdin).get('id', ''))" 2>/dev/null || echo "")
+
+          if [ -z "$USER_ID" ]; then
+            echo "❌ Could not extract user ID"
+            echo "$RESPONSE"
+            exit 1
+          fi
+
+          echo "✅ Created test user: $USER_ID"
+
+          # Output for later steps
+          echo "test_email=$TEST_EMAIL" >> "$GITHUB_OUTPUT"
+          echo "test_password=$TEST_PASSWORD" >> "$GITHUB_OUTPUT"
+          echo "test_user_id=$USER_ID" >> "$GITHUB_OUTPUT"
 
       - name: Select Xcode version
         run: |
@@ -38,36 +99,35 @@ jobs:
 
       - name: Setup API Config for E2E Tests
         run: |
-          # Use test Supabase credentials for E2E tests
-          cp Food1/Config/APIConfig.swift.template Food1/Config/APIConfig.swift
+          # Create APIConfig from template
+          cp Food1/Config/APIConfig.swift.template Food1/Config/APIConfig.swift 2>/dev/null || true
 
-          # Configure with test Supabase (if secrets are available)
-          if [ -n "$TEST_SUPABASE_URL" ]; then
-            /usr/libexec/PlistBuddy -c "Add :SUPABASE_URL string '$TEST_SUPABASE_URL'" Food1/Info.plist || \
-            /usr/libexec/PlistBuddy -c "Set :SUPABASE_URL '$TEST_SUPABASE_URL'" Food1/Info.plist
-            /usr/libexec/PlistBuddy -c "Add :SUPABASE_ANON_KEY string '$TEST_SUPABASE_ANON_KEY'" Food1/Info.plist || \
-            /usr/libexec/PlistBuddy -c "Set :SUPABASE_ANON_KEY '$TEST_SUPABASE_ANON_KEY'" Food1/Info.plist
-            echo "✅ Configured with test Supabase credentials"
-          else
-            # Fallback to dummy values
-            /usr/libexec/PlistBuddy -c "Add :SUPABASE_URL string 'https://test.supabase.co'" Food1/Info.plist || true
-            /usr/libexec/PlistBuddy -c "Add :SUPABASE_ANON_KEY string 'test-anon-key'" Food1/Info.plist || true
-            echo "⚠️  Using dummy Supabase credentials (no TEST_SUPABASE_* secrets configured)"
-          fi
+          # Configure Supabase credentials via Info.plist
+          /usr/libexec/PlistBuddy -c "Add :SUPABASE_URL string '$SUPABASE_URL'" Food1/Info.plist 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :SUPABASE_URL '$SUPABASE_URL'" Food1/Info.plist
 
-          # Add other required config
-          /usr/libexec/PlistBuddy -c "Add :PROXY_ENDPOINT string 'https://test-worker.example.com/analyze'" Food1/Info.plist || true
-          /usr/libexec/PlistBuddy -c "Add :AUTH_TOKEN string 'test-auth-token'" Food1/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :SUPABASE_ANON_KEY string '${{ secrets.SUPABASE_ANON_KEY }}'" Food1/Info.plist 2>/dev/null || \
+          /usr/libexec/PlistBuddy -c "Set :SUPABASE_ANON_KEY '${{ secrets.SUPABASE_ANON_KEY }}'" Food1/Info.plist
+
+          # Add placeholder for other config
+          /usr/libexec/PlistBuddy -c "Add :PROXY_ENDPOINT string 'https://test.example.com'" Food1/Info.plist 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :AUTH_TOKEN string 'test-token'" Food1/Info.plist 2>/dev/null || true
+
+          echo "✅ API config ready"
 
       - name: Boot Simulator
         run: |
           # Boot iPhone 17 Pro simulator
           SIMULATOR_ID=$(xcrun simctl list devices available | grep "iPhone 17 Pro" | head -1 | grep -oE '[A-F0-9-]{36}')
           if [ -n "$SIMULATOR_ID" ]; then
-            xcrun simctl boot "$SIMULATOR_ID" || true
+            xcrun simctl boot "$SIMULATOR_ID" 2>/dev/null || true
             echo "✅ Booted simulator: $SIMULATOR_ID"
           else
-            echo "⚠️  iPhone 17 Pro simulator not found, using default"
+            echo "⚠️  iPhone 17 Pro not found, trying iPhone 16 Pro..."
+            SIMULATOR_ID=$(xcrun simctl list devices available | grep "iPhone 16 Pro" | head -1 | grep -oE '[A-F0-9-]{36}')
+            if [ -n "$SIMULATOR_ID" ]; then
+              xcrun simctl boot "$SIMULATOR_ID" 2>/dev/null || true
+            fi
           fi
 
       - name: Build for UI Testing
@@ -82,11 +142,16 @@ jobs:
             CODE_SIGNING_ALLOWED=NO
 
       - name: Run E2E Tests
+        env:
+          TEST_USER_EMAIL: ${{ steps.create_user.outputs.test_email }}
+          TEST_USER_PASSWORD: ${{ steps.create_user.outputs.test_password }}
         run: |
           TEST_FILTER="${{ github.event.inputs.test_filter }}"
 
+          echo "🧪 Running E2E tests with user: $TEST_USER_EMAIL"
+
           if [ -n "$TEST_FILTER" ]; then
-            echo "🧪 Running filtered tests: $TEST_FILTER"
+            echo "📋 Filter: $TEST_FILTER"
             xcodebuild test-without-building \
               -project Food1.xcodeproj \
               -scheme Food1 \
@@ -97,7 +162,7 @@ jobs:
               CODE_SIGNING_REQUIRED=NO \
               CODE_SIGNING_ALLOWED=NO
           else
-            echo "🧪 Running all UI tests"
+            echo "📋 Running all UI tests"
             xcodebuild test-without-building \
               -project Food1.xcodeproj \
               -scheme Food1 \
@@ -109,10 +174,28 @@ jobs:
               CODE_SIGNING_ALLOWED=NO
           fi
 
+      - name: Cleanup Test User
+        if: always()
+        run: |
+          USER_ID="${{ steps.create_user.outputs.test_user_id }}"
+
+          if [ -z "$USER_ID" ]; then
+            echo "⚠️  No user ID to cleanup"
+            exit 0
+          fi
+
+          echo "🧹 Cleaning up test user: $USER_ID"
+
+          # Delete user via Admin API
+          curl -s -X DELETE "$SUPABASE_URL/auth/v1/admin/users/$USER_ID" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" \
+            -H "apikey: $SUPABASE_SERVICE_KEY" || true
+
+          echo "✅ Cleanup complete"
+
       - name: Capture Screenshots on Failure
         if: failure()
         run: |
-          # Capture simulator screenshot
           xcrun simctl io booted screenshot failure-screenshot.png || true
 
       - name: Upload Test Results
@@ -130,5 +213,10 @@ jobs:
         run: |
           echo "🧪 E2E Test run completed!"
           echo ""
+          echo "Test user: ${{ steps.create_user.outputs.test_email }}"
+          echo ""
           echo "To run locally:"
-          echo "  xcodebuild test -scheme Food1 -only-testing:Food1UITests"
+          echo "  1. Set SUPABASE_URL and SUPABASE_SERVICE_KEY"
+          echo "  2. Run: ./scripts/e2e-test-user.sh create"
+          echo "  3. Run: xcodebuild test -scheme Food1 -only-testing:Food1UITests"
+          echo "  4. Run: ./scripts/e2e-test-user.sh delete"
