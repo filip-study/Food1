@@ -149,8 +149,9 @@ jobs:
 
       - name: Build for UI Testing
         run: |
-          # Supabase credentials come from Secrets.xcconfig (created above)
-          # which gets substituted into Info.plist during build
+          # Supabase credentials are set via:
+          # 1. Secrets.xcconfig created above
+          # 2. Command-line build setting overrides (belt + suspenders approach)
           xcodebuild clean build-for-testing \
             -project Food1.xcodeproj \
             -scheme Food1 \
@@ -158,7 +159,9 @@ jobs:
             -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO \
+            SUPABASE_URL="$SUPABASE_URL" \
+            SUPABASE_ANON_KEY="${{ secrets.SUPABASE_ANON_KEY }}"
 
       - name: Run E2E Tests
         env:
