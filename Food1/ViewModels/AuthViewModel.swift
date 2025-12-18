@@ -225,7 +225,17 @@ class AuthViewModel: ObservableObject {
         errorMessage = nil
         defer { isLoading = false }
 
-        try await authService.signUp(email: email, password: password)
+        do {
+            try await authService.signUp(email: email, password: password)
+        } catch {
+            // Propagate error message to UI
+            if let authError = error as? AuthError {
+                errorMessage = authError.userMessage
+            } else {
+                errorMessage = error.localizedDescription
+            }
+            throw error
+        }
 
         // Auth state change will trigger automatically via SupabaseService listener
         // Wait a moment for the listener to fire
@@ -249,7 +259,18 @@ class AuthViewModel: ObservableObject {
         errorMessage = nil
         defer { isLoading = false }
 
-        try await authService.signIn(email: email, password: password)
+        do {
+            try await authService.signIn(email: email, password: password)
+        } catch {
+            // Propagate error message to UI (AuthenticationService sets its own errorMessage,
+            // but UI observes AuthViewModel.errorMessage)
+            if let authError = error as? AuthError {
+                errorMessage = authError.userMessage
+            } else {
+                errorMessage = error.localizedDescription
+            }
+            throw error
+        }
 
         // Auth state change will trigger automatically
         try? await Task.sleep(for: .milliseconds(500))

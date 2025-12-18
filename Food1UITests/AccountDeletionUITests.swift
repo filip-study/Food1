@@ -214,8 +214,8 @@ final class AccountDeletionUITests: Food1UITestCase {
         submitButton.tap()
 
         // Step 5: Wait for sign-in to complete
-        // First, wait a moment for the network request
-        sleep(3)
+        // Wait for the network request - CI might be slow
+        sleep(5)
 
         // Take a screenshot to see the current state
         takeScreenshot(name: "After-Sign-In-Tap")
