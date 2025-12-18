@@ -213,7 +213,38 @@ final class AccountDeletionUITests: Food1UITestCase {
         XCTAssertTrue(submitButton.isHittable, "Submit button should be hittable")
         submitButton.tap()
 
-        // Step 5: Wait for main app (tab bar should appear)
+        // Step 5: Wait for sign-in to complete
+        // First, wait a moment for the network request
+        sleep(2)
+
+        // Take a screenshot to see the current state
+        takeScreenshot(name: "After-Sign-In-Tap")
+
+        // Check if there's a loading indicator (ProgressView in button)
+        // If still loading after 5 seconds, something is wrong
+        let isStillLoading = app.activityIndicators.firstMatch.waitForExistence(timeout: 1)
+        if isStillLoading {
+            // Wait up to 10 more seconds for loading to finish
+            _ = waitForElementToDisappear(app.activityIndicators.firstMatch, timeout: 10)
+        }
+
+        // Check for error message - look for text containing common error patterns
+        let errorIndicators = ["error", "failed", "invalid", "incorrect", "wrong"]
+        var foundError: String?
+        for staticText in app.staticTexts.allElementsBoundByIndex {
+            let label = staticText.label.lowercased()
+            if errorIndicators.contains(where: { label.contains($0) }) {
+                foundError = staticText.label
+                break
+            }
+        }
+
+        if let error = foundError {
+            takeScreenshot(name: "Sign-In-Error")
+            XCTFail("Sign-in failed with error: \(error)")
+        }
+
+        // Step 6: Wait for main app (tab bar should appear)
         let tabBar = app.tabBars.firstMatch
         XCTAssertTrue(tabBar.waitForExistence(timeout: 15),
                       "Should be signed in and see main tab bar")
