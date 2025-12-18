@@ -237,12 +237,14 @@ class AuthViewModel: ObservableObject {
             throw error
         }
 
-        // Auth state change will trigger automatically via SupabaseService listener
-        // Wait a moment for the listener to fire
-        try? await Task.sleep(for: .milliseconds(500))
+        // Sign-up succeeded - set authenticated immediately
+        // (see signIn() comment about race condition with async listener)
+        isAuthenticated = true
 
-        isAuthenticated = supabase.isAuthenticated
-        currentUser = supabase.currentUser
+        // Fetch current user from session directly
+        if let session = try? await supabase.client.auth.session {
+            currentUser = session.user
+        }
 
         // IMPORTANT: Don't load profile data yet!
         // User needs to confirm email first. EmailConfirmationPendingView will be shown.
@@ -272,11 +274,16 @@ class AuthViewModel: ObservableObject {
             throw error
         }
 
-        // Auth state change will trigger automatically
-        try? await Task.sleep(for: .milliseconds(500))
+        // Sign-in succeeded - set authenticated immediately
+        // Note: We can't rely on SupabaseService.isAuthenticated here because the
+        // authStateChanges async listener may not have processed the .signedIn event yet.
+        // This race condition is especially problematic in CI where timing is different.
+        isAuthenticated = true
 
-        isAuthenticated = supabase.isAuthenticated
-        currentUser = supabase.currentUser
+        // Fetch current user from session directly
+        if let session = try? await supabase.client.auth.session {
+            currentUser = session.user
+        }
 
         await loadUserData()
     }
@@ -291,12 +298,14 @@ class AuthViewModel: ObservableObject {
 
         try await authService.signInWithApple(authorization: authorization)
 
-        // Auth state change will trigger automatically via SupabaseService listener
-        // Wait a moment for the listener to fire
-        try? await Task.sleep(for: .milliseconds(500))
+        // Sign-in succeeded - set authenticated immediately
+        // (see signIn() comment about race condition with async listener)
+        isAuthenticated = true
 
-        isAuthenticated = supabase.isAuthenticated
-        currentUser = supabase.currentUser
+        // Fetch current user from session directly
+        if let session = try? await supabase.client.auth.session {
+            currentUser = session.user
+        }
 
         // Load profile data
         await loadUserData()
