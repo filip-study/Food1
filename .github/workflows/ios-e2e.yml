@@ -195,6 +195,17 @@ jobs:
 
           echo "🧪 Running E2E tests with user: $TEST_RUNNER_TEST_USER_EMAIL"
 
+          # Get booted simulator UDID for log capture
+          SIMULATOR_UDID=$(xcrun simctl list devices booted | grep -oE '[A-F0-9-]{36}' | head -1)
+          echo "📱 Booted simulator: $SIMULATOR_UDID"
+
+          # Start log capture in background (filter for Food1 subsystem)
+          xcrun simctl spawn "$SIMULATOR_UDID" log stream --predicate 'subsystem == "com.prismae.food1"' > simulator-auth.log 2>&1 &
+          LOG_PID=$!
+          echo "📋 Started log capture (PID: $LOG_PID)"
+
+          # Run tests
+          TEST_EXIT_CODE=0
           if [ -n "$TEST_FILTER" ]; then
             echo "📋 Filter: $TEST_FILTER"
             xcodebuild test-without-building \
@@ -206,7 +217,7 @@ jobs:
               -parallel-testing-enabled NO \
               CODE_SIGN_IDENTITY="" \
               CODE_SIGNING_REQUIRED=NO \
-              CODE_SIGNING_ALLOWED=NO
+              CODE_SIGNING_ALLOWED=NO || TEST_EXIT_CODE=$?
           else
             echo "📋 Running all UI tests"
             xcodebuild test-without-building \
@@ -218,8 +229,21 @@ jobs:
               -parallel-testing-enabled NO \
               CODE_SIGN_IDENTITY="" \
               CODE_SIGNING_REQUIRED=NO \
-              CODE_SIGNING_ALLOWED=NO
+              CODE_SIGNING_ALLOWED=NO || TEST_EXIT_CODE=$?
           fi
+
+          # Stop log capture
+          kill $LOG_PID 2>/dev/null || true
+
+          # Show captured auth logs
+          echo ""
+          echo "📋 Auth logs from simulator:"
+          echo "─────────────────────────────────"
+          cat simulator-auth.log 2>/dev/null || echo "(no logs captured)"
+          echo "─────────────────────────────────"
+          echo ""
+
+          exit $TEST_EXIT_CODE
 
       - name: Cleanup Test User
         if: always()

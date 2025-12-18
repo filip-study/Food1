@@ -261,15 +261,21 @@ class AuthViewModel: ObservableObject {
         errorMessage = nil
         defer { isLoading = false }
 
+        logger.info("🔐 Starting sign-in for: \(email, privacy: .private)")
+
         do {
             try await authService.signIn(email: email, password: password)
+            logger.info("✅ AuthService.signIn() completed successfully")
         } catch {
             // Propagate error message to UI (AuthenticationService sets its own errorMessage,
             // but UI observes AuthViewModel.errorMessage)
+            logger.error("❌ Sign-in failed: \(error.localizedDescription)")
             if let authError = error as? AuthError {
                 errorMessage = authError.userMessage
+                logger.error("   Error message set: \(authError.userMessage)")
             } else {
                 errorMessage = error.localizedDescription
+                logger.error("   Error message set: \(error.localizedDescription)")
             }
             throw error
         }
@@ -278,14 +284,19 @@ class AuthViewModel: ObservableObject {
         // Note: We can't rely on SupabaseService.isAuthenticated here because the
         // authStateChanges async listener may not have processed the .signedIn event yet.
         // This race condition is especially problematic in CI where timing is different.
+        logger.info("🔓 Setting isAuthenticated = true")
         isAuthenticated = true
 
         // Fetch current user from session directly
         if let session = try? await supabase.client.auth.session {
             currentUser = session.user
+            logger.info("👤 Got session user: \(session.user.id)")
+        } else {
+            logger.warning("⚠️ No session available after sign-in")
         }
 
         await loadUserData()
+        logger.info("✅ Sign-in flow complete, isAuthenticated=\(self.isAuthenticated)")
     }
 
     // MARK: - Apple Sign In
