@@ -158,6 +158,10 @@ final class AccountDeletionUITests: Food1UITestCase {
     // MARK: - Sign In Helper
 
     /// Sign in using email/password from environment variables
+    /// The onboarding flow is:
+    /// 1. Initial screen with Apple Sign In + "Continue with Email"
+    /// 2. Tap "Continue with Email" to show email form
+    /// 3. Form has segmented picker (Sign In / Sign Up) + email + password fields
     private func signInWithEmailPassword() throws {
         guard let email = testUserEmail, let password = testUserPassword else {
             throw XCTSkip("TEST_USER_EMAIL and TEST_USER_PASSWORD must be set")
@@ -168,37 +172,43 @@ final class AccountDeletionUITests: Food1UITestCase {
             return
         }
 
-        // Look for email sign in option
-        // The app has a segmented control to switch between Sign In and Create Account
-        // and there should be email/password fields
+        // Step 1: Wait for onboarding and tap "Continue with Email"
+        let continueWithEmail = app.buttons["Continue with Email"]
+        guard continueWithEmail.waitForExistence(timeout: 5) else {
+            throw XCTSkip("Continue with Email button not found")
+        }
+        continueWithEmail.tap()
 
-        // Wait for onboarding to load
-        let emailField = app.textFields["Email"]
-        guard emailField.waitForExistence(timeout: 5) else {
-            throw XCTSkip("Email field not found - app may not support email login")
+        // Step 2: Wait for email form to appear (look for email text field)
+        // The TextField uses placeholder "you@example.com"
+        let emailField = app.textFields["you@example.com"]
+        guard emailField.waitForExistence(timeout: 3) else {
+            throw XCTSkip("Email field not found after tapping Continue with Email")
         }
 
-        // Make sure we're in Sign In mode (not Create Account)
-        let signInTab = app.buttons["Sign In"]
-        if signInTab.exists {
-            signInTab.tap()
+        // Make sure we're in Sign In mode (not Sign Up) - tap the "Sign In" segment
+        let signInSegment = app.buttons["Sign In"]
+        if signInSegment.exists {
+            signInSegment.tap()
         }
 
-        // Enter credentials
+        // Step 3: Enter credentials
         emailField.tap()
         emailField.typeText(email)
 
-        let passwordField = app.secureTextFields["Password"]
-        XCTAssertTrue(passwordField.exists, "Password field should exist")
+        // Password field uses placeholder "At least 8 characters"
+        let passwordField = app.secureTextFields["At least 8 characters"]
+        XCTAssertTrue(passwordField.waitForExistence(timeout: 2),
+                      "Password field should exist")
         passwordField.tap()
         passwordField.typeText(password)
 
-        // Tap sign in button
+        // Step 4: Tap the Sign In button to submit
         let signInButton = app.buttons["Sign In"]
         XCTAssertTrue(signInButton.exists, "Sign In button should exist")
         signInButton.tap()
 
-        // Wait for main app
+        // Step 5: Wait for main app (tab bar should appear)
         let tabBar = app.tabBars.firstMatch
         XCTAssertTrue(tabBar.waitForExistence(timeout: 15),
                       "Should be signed in and see main tab bar")

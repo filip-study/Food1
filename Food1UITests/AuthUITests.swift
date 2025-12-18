@@ -24,15 +24,25 @@ final class AuthUITests: Food1UITestCase {
         XCTAssertTrue(appleSignIn.waitForExistence(timeout: 5),
                       "Apple Sign In button should be visible")
 
-        // Verify email field exists (for email login)
-        let emailField = app.textFields["Email"]
-        XCTAssertTrue(emailField.exists, "Email field should exist")
-
-        // Verify password field exists
-        let passwordField = app.secureTextFields["Password"]
-        XCTAssertTrue(passwordField.exists, "Password field should exist")
+        // Verify "Continue with Email" option exists
+        let continueWithEmail = app.buttons["Continue with Email"]
+        XCTAssertTrue(continueWithEmail.exists,
+                      "Continue with Email button should exist")
 
         takeScreenshot(name: "Onboarding-Screen")
+
+        // Tap Continue with Email to verify email form works
+        continueWithEmail.tap()
+
+        // Verify email form appears
+        let emailField = app.textFields["you@example.com"]
+        XCTAssertTrue(emailField.waitForExistence(timeout: 3),
+                      "Email field should appear after tapping Continue with Email")
+
+        let passwordField = app.secureTextFields["At least 8 characters"]
+        XCTAssertTrue(passwordField.exists, "Password field should exist")
+
+        takeScreenshot(name: "Onboarding-Email-Form")
     }
 
     // MARK: - Sign Out Tests
