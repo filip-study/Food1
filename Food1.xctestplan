@@ -24,6 +24,14 @@
         "identifier" : "DCE02B022EE2D80300E695FB",
         "name" : "Food1Tests"
       }
+    },
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Food1.xcodeproj",
+        "identifier" : "DC4C18D32EF48F91007E07F9",
+        "name" : "Food1UITests"
+      }
     }
   ],
   "version" : 1
