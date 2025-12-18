@@ -143,15 +143,14 @@ jobs:
 
       - name: Run E2E Tests
         env:
-          TEST_USER_EMAIL: ${{ steps.create_user.outputs.test_email }}
-          TEST_USER_PASSWORD: ${{ steps.create_user.outputs.test_password }}
+          # Pass as TEST_RUNNER_ prefixed env vars - xcodebuild strips prefix for test runner
+          TEST_RUNNER_TEST_USER_EMAIL: ${{ steps.create_user.outputs.test_email }}
+          TEST_RUNNER_TEST_USER_PASSWORD: ${{ steps.create_user.outputs.test_password }}
         run: |
           TEST_FILTER="${{ github.event.inputs.test_filter }}"
 
-          echo "🧪 Running E2E tests with user: $TEST_USER_EMAIL"
+          echo "🧪 Running E2E tests with user: $TEST_RUNNER_TEST_USER_EMAIL"
 
-          # Pass credentials to test runner via TEST_RUNNER_ prefix
-          # xcodebuild strips the prefix and makes these available to the test process
           if [ -n "$TEST_FILTER" ]; then
             echo "📋 Filter: $TEST_FILTER"
             xcodebuild test-without-building \
@@ -163,9 +162,7 @@ jobs:
               -parallel-testing-enabled NO \
               CODE_SIGN_IDENTITY="" \
               CODE_SIGNING_REQUIRED=NO \
-              CODE_SIGNING_ALLOWED=NO \
-              TEST_RUNNER_TEST_USER_EMAIL="$TEST_USER_EMAIL" \
-              TEST_RUNNER_TEST_USER_PASSWORD="$TEST_USER_PASSWORD"
+              CODE_SIGNING_ALLOWED=NO
           else
             echo "📋 Running all UI tests"
             xcodebuild test-without-building \
@@ -177,9 +174,7 @@ jobs:
               -parallel-testing-enabled NO \
               CODE_SIGN_IDENTITY="" \
               CODE_SIGNING_REQUIRED=NO \
-              CODE_SIGNING_ALLOWED=NO \
-              TEST_RUNNER_TEST_USER_EMAIL="$TEST_USER_EMAIL" \
-              TEST_RUNNER_TEST_USER_PASSWORD="$TEST_USER_PASSWORD"
+              CODE_SIGNING_ALLOWED=NO
           fi
 
       - name: Cleanup Test User
