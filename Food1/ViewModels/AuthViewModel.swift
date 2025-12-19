@@ -507,7 +507,15 @@ class AuthViewModel: ObservableObject {
         errorMessage = nil
         defer { isLoading = false }
 
-        let userId = try await supabase.requireUserId()
+        // Use cached user ID first (more reliable than session lookup which can fail due to timing)
+        // Fall back to session lookup if cached user not available
+        let userId: UUID
+        if let cachedUserId = currentUser?.id {
+            userId = cachedUserId
+        } else {
+            // Fallback to session lookup
+            userId = try await supabase.requireUserId()
+        }
         logger.info("Starting account deletion for user: \(userId.uuidString, privacy: .private)")
 
         do {
@@ -556,7 +564,13 @@ class AuthViewModel: ObservableObject {
 
         } catch {
             logger.error("Account deletion failed: \(error.localizedDescription)")
+            logger.error("Full error: \(String(describing: error))")
+            // Show more specific error message in CI/debug builds
+            #if DEBUG
+            errorMessage = "Deletion failed: \(error.localizedDescription)"
+            #else
             errorMessage = "Failed to delete account. Please try again or contact support."
+            #endif
             throw error
         }
     }

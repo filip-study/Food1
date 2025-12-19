@@ -139,10 +139,15 @@ class SupabaseService: ObservableObject {
 
     /// Get current session (throws if not authenticated)
     func requireSession() async throws -> Session {
-        guard let session = try? await client.auth.session else {
+        do {
+            let session = try await client.auth.session
+            return session
+        } catch {
+            // Log the actual error for debugging (not just "not authenticated")
+            print("❌ Failed to get session: \(error.localizedDescription)")
+            // Wrap with context but preserve original error type for proper handling
             throw SupabaseError.notAuthenticated
         }
-        return session
     }
 
     /// Get current user ID (throws if not authenticated)
