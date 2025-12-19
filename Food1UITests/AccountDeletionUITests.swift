@@ -95,8 +95,8 @@ final class AccountDeletionUITests: Food1UITestCase {
 
         deleteButton.tap()
 
-        // Step 4: First confirmation dialog
-        let firstDialog = app.alerts.firstMatch
+        // Step 4: First confirmation dialog (.confirmationDialog presents as sheet on iPhone)
+        let firstDialog = app.sheets.firstMatch
         XCTAssertTrue(firstDialog.waitForExistence(timeout: 3),
                       "First confirmation dialog should appear")
 
@@ -157,8 +157,8 @@ final class AccountDeletionUITests: Food1UITestCase {
         }
         deleteButton.tap()
 
-        // First dialog appears
-        let dialog = app.alerts.firstMatch
+        // First dialog appears (.confirmationDialog presents as sheet on iPhone)
+        let dialog = app.sheets.firstMatch
         XCTAssertTrue(dialog.waitForExistence(timeout: 3))
 
         // Tap Cancel
@@ -199,9 +199,9 @@ final class AccountDeletionUITests: Food1UITestCase {
             usleep(300_000)
         }
 
-        // Navigate through first dialog
+        // Navigate through first dialog (.confirmationDialog presents as sheet on iPhone)
         deleteAccountBtn.tap()
-        let firstDialog = app.alerts.firstMatch
+        let firstDialog = app.sheets.firstMatch
         XCTAssertTrue(firstDialog.waitForExistence(timeout: 3))
         firstDialog.buttons["Delete Account"].tap()
 
