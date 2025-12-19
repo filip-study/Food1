@@ -201,6 +201,10 @@ final class AccountDeletionUITests: Food1UITestCase {
         passwordField.tap()
         passwordField.typeText(password)
 
+        // Dismiss keyboard by pressing Return key, then tapping elsewhere
+        passwordField.typeText("\n")  // Press Return/Done
+        usleep(300_000)  // 0.3s for keyboard to dismiss
+
         // Debug: Log the text field values to verify text was entered
         print("📝 Email field value: '\(emailField.value as? String ?? "nil")'")
         print("📝 Password field value length: \((passwordField.value as? String)?.count ?? 0)")
