@@ -167,6 +167,7 @@ struct AccountView: View {
                                 .foregroundColor(.red)
                         }
                     }
+                    .accessibilityIdentifier("deleteAccountButton")  // For E2E tests
                     .disabled(isDeleting)
                     .opacity(isDeleting ? 0.6 : 1.0)
                 } header: {

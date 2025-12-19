@@ -48,7 +48,8 @@ final class AccountDeletionUITests: Food1UITestCase {
         usleep(500_000)  // 0.5s
 
         // Step 3: Find Delete Account button (at bottom of List, may need scroll)
-        let deleteButton = app.buttons["Delete Account"]
+        // Use accessibility identifier for reliable detection
+        let deleteButton = app.buttons["deleteAccountButton"]
 
         // If not immediately visible, scroll down to find it
         if !deleteButton.waitForExistence(timeout: 2) {
@@ -117,7 +118,7 @@ final class AccountDeletionUITests: Food1UITestCase {
         usleep(500_000)  // 0.5s
 
         // Find Delete Account button (may need scroll)
-        let deleteButton = app.buttons["Delete Account"]
+        let deleteButton = app.buttons["deleteAccountButton"]
         if !deleteButton.waitForExistence(timeout: 2) {
             app.swipeUp()
             usleep(300_000)
@@ -139,11 +140,11 @@ final class AccountDeletionUITests: Food1UITestCase {
                       "Dialog should dismiss after cancel")
 
         // Should still be on Account settings (scroll back up if needed)
-        if !app.buttons["Delete Account"].exists {
+        if !app.buttons["deleteAccountButton"].exists {
             app.swipeDown()
             usleep(300_000)
         }
-        XCTAssertTrue(app.buttons["Delete Account"].waitForExistence(timeout: 3),
+        XCTAssertTrue(app.buttons["deleteAccountButton"].waitForExistence(timeout: 3),
                       "Should still see Delete Account button")
     }
 
@@ -163,7 +164,7 @@ final class AccountDeletionUITests: Food1UITestCase {
         usleep(500_000)  // 0.5s
 
         // Find Delete Account button (may need scroll)
-        let deleteAccountBtn = app.buttons["Delete Account"]
+        let deleteAccountBtn = app.buttons["deleteAccountButton"]
         if !deleteAccountBtn.waitForExistence(timeout: 2) {
             app.swipeUp()
             usleep(300_000)
