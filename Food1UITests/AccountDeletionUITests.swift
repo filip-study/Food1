@@ -201,13 +201,6 @@ final class AccountDeletionUITests: Food1UITestCase {
         passwordField.tap()
         passwordField.typeText(password)
 
-        // Dismiss keyboard to ensure button is visible and allow SwiftUI bindings to update
-        // Tap outside the text fields (on the card background)
-        app.tap()
-
-        // Small delay to allow SwiftUI @State bindings to propagate
-        usleep(500_000)  // 0.5 seconds
-
         // Debug: Log the text field values to verify text was entered
         print("📝 Email field value: '\(emailField.value as? String ?? "nil")'")
         print("📝 Password field value length: \((passwordField.value as? String)?.count ?? 0)")
@@ -232,7 +225,31 @@ final class AccountDeletionUITests: Food1UITestCase {
             XCTFail("Sign In button is disabled - form validation failed. Check if credentials were entered correctly.")
         }
 
-        XCTAssertTrue(submitButton.isHittable, "Submit button should be hittable")
+        // Ensure button is visible by scrolling if needed
+        // The keyboard might be covering the button - scroll to reveal it
+        if !submitButton.isHittable {
+            print("📝 Button not hittable, scrolling to reveal...")
+            scrollToElement(submitButton)
+        }
+
+        // If still not hittable, dismiss keyboard by tapping elsewhere
+        if !submitButton.isHittable {
+            print("📝 Still not hittable, trying to dismiss keyboard...")
+            // Tap on the app title which is higher up
+            let titleText = app.staticTexts["Food1"]
+            if titleText.exists && titleText.isHittable {
+                titleText.tap()
+            }
+            usleep(300_000)  // 0.3 seconds
+        }
+
+        print("📝 Button isHittable: \(submitButton.isHittable)")
+        guard submitButton.isHittable else {
+            takeScreenshot(name: "Button-Not-Hittable-Debug")
+            XCTFail("Submit button exists and is enabled but not hittable - keyboard may be covering it")
+            return
+        }
+
         print("📝 Tapping submit button now...")
         submitButton.tap()
 
