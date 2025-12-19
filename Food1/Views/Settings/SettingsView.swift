@@ -76,6 +76,7 @@ struct SettingsView: View {
                         }
                         .padding(.vertical, 4)
                     }
+                    .accessibilityIdentifier("accountSettingsButton")  // For E2E tests
                     .buttonStyle(PlainButtonStyle())
                 } header: {
                     Text("Account")

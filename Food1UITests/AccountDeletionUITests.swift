@@ -39,7 +39,8 @@ final class AccountDeletionUITests: Food1UITestCase {
         // Step 2: Navigate to Settings → Account
         navigateToSettings()
 
-        let accountButton = app.buttons["Account"]
+        // Use accessibility identifier to avoid matching section header "Account"
+        let accountButton = app.buttons["accountSettingsButton"]
         XCTAssertTrue(accountButton.waitForExistence(timeout: 5),
                       "Account button should exist in Settings")
         accountButton.tap()
@@ -123,7 +124,7 @@ final class AccountDeletionUITests: Food1UITestCase {
         }
 
         navigateToSettings()
-        app.buttons["Account"].tap()
+        app.buttons["accountSettingsButton"].tap()
 
         // Wait for Account sheet to present
         usleep(500_000)  // 0.5s
@@ -169,7 +170,7 @@ final class AccountDeletionUITests: Food1UITestCase {
         }
 
         navigateToSettings()
-        app.buttons["Account"].tap()
+        app.buttons["accountSettingsButton"].tap()
 
         // Wait for Account sheet to present
         usleep(500_000)  // 0.5s
