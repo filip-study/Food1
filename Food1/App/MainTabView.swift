@@ -115,6 +115,7 @@ struct MainTabView: View {
                 hasLoggedMeals: hasLoggedMealsToday
             )
         }
+        .accessibilityIdentifier("mainTabView")  // For E2E test detection
         .preferredColorScheme(selectedTheme.colorScheme)
         .fullScreenCover(item: $selectedEntryMode) { mode in
             QuickAddMealView(selectedDate: Date(), initialEntryMode: mode)

@@ -31,9 +31,9 @@ final class AccountDeletionUITests: Food1UITestCase {
         // Step 1: Sign in with test credentials
         try signInWithEmailPassword()
 
-        // Wait for main app to load (tab bar visible)
-        let tabBar = app.tabBars.firstMatch
-        XCTAssertTrue(tabBar.waitForExistence(timeout: 10),
+        // Wait for main app to load (custom floating pill navigation, not standard TabBar)
+        let mainView = app.otherElements["mainTabView"]
+        XCTAssertTrue(mainView.waitForExistence(timeout: 10),
                       "Should see main app after sign in")
 
         // Step 2: Navigate to Settings → Account
@@ -94,8 +94,8 @@ final class AccountDeletionUITests: Food1UITestCase {
     func testCancelFirstConfirmationDialog() throws {
         try signInWithEmailPassword()
 
-        let tabBar = app.tabBars.firstMatch
-        guard tabBar.waitForExistence(timeout: 10) else {
+        let mainView = app.otherElements["mainTabView"]
+        guard mainView.waitForExistence(timeout: 10) else {
             throw XCTSkip("Could not sign in")
         }
 
@@ -129,8 +129,8 @@ final class AccountDeletionUITests: Food1UITestCase {
     func testCancelSecondConfirmationDialog() throws {
         try signInWithEmailPassword()
 
-        let tabBar = app.tabBars.firstMatch
-        guard tabBar.waitForExistence(timeout: 10) else {
+        let mainView = app.otherElements["mainTabView"]
+        guard mainView.waitForExistence(timeout: 10) else {
             throw XCTSkip("Could not sign in")
         }
 
@@ -167,8 +167,8 @@ final class AccountDeletionUITests: Food1UITestCase {
             throw XCTSkip("TEST_USER_EMAIL and TEST_USER_PASSWORD must be set")
         }
 
-        // If already signed in, we're good
-        if app.tabBars.firstMatch.waitForExistence(timeout: 2) {
+        // If already signed in (main view visible), we're good
+        if app.otherElements["mainTabView"].waitForExistence(timeout: 2) {
             return
         }
 
@@ -308,15 +308,16 @@ final class AccountDeletionUITests: Food1UITestCase {
             XCTFail("Sign-in failed with error: \(error)")
         }
 
-        // If Sign In button is still visible and no tab bar, sign-in is stuck
-        if signInStillVisible && !app.tabBars.firstMatch.exists {
+        // Check for main app view (uses custom floating pill navigation, not standard TabBar)
+        let mainView = app.otherElements["mainTabView"]
+        if signInStillVisible && !mainView.exists {
             takeScreenshot(name: "Sign-In-Stuck")
-            print("⚠️ Sign-in appears stuck - Sign In button still visible, no tab bar")
+            print("⚠️ Sign-in appears stuck - Sign In button still visible, main view not showing")
         }
 
-        // Step 6: Wait for main app (tab bar should appear)
-        let tabBar = app.tabBars.firstMatch
-        XCTAssertTrue(tabBar.waitForExistence(timeout: 15),
-                      "Should be signed in and see main tab bar")
+        // Step 6: Wait for main app (MainTabView should appear)
+        // Note: App uses custom FloatingPillNavigation, not standard TabBar
+        XCTAssertTrue(mainView.waitForExistence(timeout: 15),
+                      "Should be signed in and see main app view")
     }
 }
