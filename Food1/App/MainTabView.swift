@@ -115,6 +115,7 @@ struct MainTabView: View {
                 hasLoggedMeals: hasLoggedMealsToday
             )
         }
+        .accessibilityElement(children: .contain)  // Make ZStack an accessibility container
         .accessibilityIdentifier("mainTabView")  // For E2E test detection
         .preferredColorScheme(selectedTheme.colorScheme)
         .fullScreenCover(item: $selectedEntryMode) { mode in
