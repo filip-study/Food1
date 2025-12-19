@@ -263,9 +263,12 @@ class AuthViewModel: ObservableObject {
 
         logger.info("🔐 Starting sign-in for: \(email, privacy: .private)")
 
+        let session: Auth.Session
         do {
-            try await authService.signIn(email: email, password: password)
-            logger.info("✅ AuthService.signIn() completed successfully")
+            // authService.signIn() now returns the Session directly
+            // This avoids timing issues with async session state
+            session = try await authService.signIn(email: email, password: password)
+            logger.info("✅ AuthService.signIn() completed, got session for user: \(session.user.id)")
         } catch {
             // Propagate error message to UI (AuthenticationService sets its own errorMessage,
             // but UI observes AuthViewModel.errorMessage)
@@ -280,20 +283,13 @@ class AuthViewModel: ObservableObject {
             throw error
         }
 
-        // Sign-in succeeded - set authenticated immediately
-        // Note: We can't rely on SupabaseService.isAuthenticated here because the
-        // authStateChanges async listener may not have processed the .signedIn event yet.
+        // Sign-in succeeded - use the session we got directly from the signIn response
+        // Note: We can't rely on SupabaseService.isAuthenticated or supabase.client.auth.session
+        // because the authStateChanges async listener may not have processed the .signedIn event yet.
         // This race condition is especially problematic in CI where timing is different.
-        logger.info("🔓 Setting isAuthenticated = true")
+        logger.info("🔓 Setting isAuthenticated = true with user: \(session.user.id)")
         isAuthenticated = true
-
-        // Fetch current user from session directly
-        if let session = try? await supabase.client.auth.session {
-            currentUser = session.user
-            logger.info("👤 Got session user: \(session.user.id)")
-        } else {
-            logger.warning("⚠️ No session available after sign-in")
-        }
+        currentUser = session.user
 
         await loadUserData()
         logger.info("✅ Sign-in flow complete, isAuthenticated=\(self.isAuthenticated)")

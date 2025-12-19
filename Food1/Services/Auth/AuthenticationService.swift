@@ -83,20 +83,23 @@ class AuthenticationService: ObservableObject {
     // MARK: - Sign In
 
     /// Sign in with email and password
+    /// Returns the Session directly so callers can use it immediately
+    /// (rather than relying on async session state which may have timing issues)
     @MainActor
-    func signIn(email: String, password: String) async throws {
+    func signIn(email: String, password: String) async throws -> Auth.Session {
         isLoading = true
         errorMessage = nil
 
         defer { isLoading = false }
 
         do {
-            let response = try await supabase.client.auth.signIn(
+            let session = try await supabase.client.auth.signIn(
                 email: email,
                 password: password
             )
 
-            print("✅ Signed in: \(response.user.id)")
+            print("✅ Signed in: \(session.user.id)")
+            return session
 
         } catch let error as AuthError {
             errorMessage = error.userMessage
