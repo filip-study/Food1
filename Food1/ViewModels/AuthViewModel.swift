@@ -261,14 +261,15 @@ class AuthViewModel: ObservableObject {
         errorMessage = nil
         defer { isLoading = false }
 
-        logger.info("🔐 Starting sign-in for: \(email, privacy: .private)")
+        // Use error level for CI log capture (info level not captured by default)
+        logger.error("🔐 [DEBUG] Starting sign-in for email")
 
         let session: Auth.Session
         do {
             // authService.signIn() now returns the Session directly
             // This avoids timing issues with async session state
             session = try await authService.signIn(email: email, password: password)
-            logger.info("✅ AuthService.signIn() completed, got session for user: \(session.user.id)")
+            logger.error("✅ [DEBUG] AuthService.signIn() completed, got session for user: \(session.user.id)")
         } catch {
             // Propagate error message to UI (AuthenticationService sets its own errorMessage,
             // but UI observes AuthViewModel.errorMessage)
@@ -287,12 +288,13 @@ class AuthViewModel: ObservableObject {
         // Note: We can't rely on SupabaseService.isAuthenticated or supabase.client.auth.session
         // because the authStateChanges async listener may not have processed the .signedIn event yet.
         // This race condition is especially problematic in CI where timing is different.
-        logger.info("🔓 Setting isAuthenticated = true with user: \(session.user.id)")
+        logger.error("🔓 [DEBUG] Setting isAuthenticated = true with user: \(session.user.id)")
         isAuthenticated = true
         currentUser = session.user
+        logger.error("🔓 [DEBUG] isAuthenticated is now: \(self.isAuthenticated)")
 
         await loadUserData()
-        logger.info("✅ Sign-in flow complete, isAuthenticated=\(self.isAuthenticated)")
+        logger.error("✅ [DEBUG] Sign-in flow complete, isAuthenticated=\(self.isAuthenticated)")
     }
 
     // MARK: - Apple Sign In

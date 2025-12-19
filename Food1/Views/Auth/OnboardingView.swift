@@ -320,24 +320,22 @@ struct OnboardingView: View {
     }
 
     private func handleEmailAuth() {
-        // Debug: Log button action invocation BEFORE Task (os.log for CI capture)
-        logger.info("📍 handleEmailAuth() called")
-        logger.info("   email='\(self.email, privacy: .private)', password.count=\(self.password.count)")
-        logger.info("   isSignUpMode=\(self.isSignUpMode), isFormValid=\(self.isFormValid)")
-        logger.info("   authViewModel.isLoading=\(self.authViewModel.isLoading)")
+        // Debug: Use error level for CI log capture (info level not captured by default)
+        logger.error("📍 [DEBUG] handleEmailAuth() called, password.count=\(self.password.count)")
+        logger.error("   isSignUpMode=\(self.isSignUpMode), isFormValid=\(self.isFormValid)")
 
         Task {
             do {
-                logger.info("📍 Task started, calling signIn/signUp...")
+                logger.error("📍 [DEBUG] Task started, calling signIn...")
                 if isSignUpMode {
                     try await authViewModel.signUp(email: email, password: password)
                 } else {
                     try await authViewModel.signIn(email: email, password: password)
                 }
-                logger.info("📍 signIn/signUp completed successfully")
+                logger.error("📍 [DEBUG] signIn completed, isAuthenticated=\(self.authViewModel.isAuthenticated)")
             } catch {
                 // Error already set in authViewModel
-                logger.error("Email auth error: \(error.localizedDescription)")
+                logger.error("❌ Email auth error: \(error.localizedDescription)")
             }
         }
     }
