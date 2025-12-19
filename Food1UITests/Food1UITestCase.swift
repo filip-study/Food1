@@ -155,6 +155,14 @@ class Food1UITestCase: XCTestCase {
         return result == .completed
     }
 
+    /// Wait for an element to become enabled
+    func waitForElementEnabled(_ element: XCUIElement, timeout: TimeInterval = 5) -> Bool {
+        let predicate = NSPredicate(format: "isEnabled == true")
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: element)
+        let result = XCTWaiter.wait(for: [expectation], timeout: timeout)
+        return result == .completed
+    }
+
     // MARK: - Scroll Helpers
 
     /// Scroll until element is visible
