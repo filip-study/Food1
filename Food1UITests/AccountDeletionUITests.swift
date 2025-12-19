@@ -212,16 +212,11 @@ final class AccountDeletionUITests: Food1UITestCase {
         print("📝 Email field value: '\(emailField.value as? String ?? "nil")'")
         print("📝 Password field value length: \((passwordField.value as? String)?.count ?? 0)")
 
-        // Step 4: Find and verify the Sign In submit button
-        // There are 2 "Sign In" buttons - the segment and the submit button
-        // The submit button is the last one in the hierarchy (comes after segment)
-        let signInButtons = app.buttons.matching(identifier: "Sign In")
-        let buttonCount = signInButtons.count
-        XCTAssertGreaterThan(buttonCount, 0, "Sign In buttons should exist")
-
-        // Get the submit button (last one in hierarchy)
-        let submitButton = signInButtons.element(boundBy: buttonCount - 1)
-        XCTAssertTrue(submitButton.isHittable, "Submit button should be hittable")
+        // Step 4: Find and verify the submit button using unique accessibility identifier
+        // IMPORTANT: We use accessibilityIdentifier to avoid confusion with segmented picker "Sign In" segment
+        let submitButton = app.buttons["submitAuthButton"]
+        XCTAssertTrue(submitButton.waitForExistence(timeout: 3),
+                      "Submit button with identifier 'submitAuthButton' should exist")
 
         // CRITICAL: Wait for button to become enabled (form validation may need time)
         // The button is disabled when form is invalid (!email.isEmpty && isValidEmail && password >= 8)
@@ -237,6 +232,8 @@ final class AccountDeletionUITests: Food1UITestCase {
             XCTFail("Sign In button is disabled - form validation failed. Check if credentials were entered correctly.")
         }
 
+        XCTAssertTrue(submitButton.isHittable, "Submit button should be hittable")
+        print("📝 Tapping submit button now...")
         submitButton.tap()
 
         // Step 5: Wait for sign-in to complete

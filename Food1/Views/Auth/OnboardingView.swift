@@ -269,6 +269,7 @@ struct OnboardingView: View {
             }
             .primaryAuthStyle()
             .disabled(authViewModel.isLoading || !isFormValid)
+            .accessibilityIdentifier("submitAuthButton")
 
             // Help text
             if isSignUpMode {
