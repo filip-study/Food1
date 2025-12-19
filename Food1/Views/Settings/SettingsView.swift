@@ -73,11 +73,16 @@ struct SettingsView: View {
                             }
 
                             Spacer()
+
+                            // Disclosure indicator for navigation
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.secondary.opacity(0.5))
                         }
                         .padding(.vertical, 4)
+                        .contentShape(Rectangle())  // Ensures entire row is tappable for XCUITest
                     }
                     .accessibilityIdentifier("accountSettingsButton")  // For E2E tests
-                    .buttonStyle(PlainButtonStyle())
                 } header: {
                     Text("Account")
                 }
@@ -103,10 +108,14 @@ struct SettingsView: View {
                             }
 
                             Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.secondary.opacity(0.5))
                         }
                         .padding(.vertical, 4)
+                        .contentShape(Rectangle())
                     }
-                    .buttonStyle(PlainButtonStyle())
                 } header: {
                     Text("Profile")
                 }
@@ -145,10 +154,14 @@ struct SettingsView: View {
                             }
 
                             Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.secondary.opacity(0.5))
                         }
                         .padding(.vertical, 4)
+                        .contentShape(Rectangle())
                     }
-                    .buttonStyle(PlainButtonStyle())
                 } header: {
                     Text("Goals")
                 }
