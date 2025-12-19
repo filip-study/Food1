@@ -191,6 +191,10 @@ CREATE POLICY "Users can update own profile"
   ON profiles FOR UPDATE
   USING (auth.uid() = id);
 
+CREATE POLICY "Users can delete own profile"
+  ON profiles FOR DELETE
+  USING (auth.uid() = id);
+
 -- Subscription Status Policies
 CREATE POLICY "Users can view own subscription"
   ON subscription_status FOR SELECT
@@ -202,6 +206,10 @@ CREATE POLICY "Users can insert own subscription"
 
 CREATE POLICY "Users can update own subscription"
   ON subscription_status FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own subscription"
+  ON subscription_status FOR DELETE
   USING (auth.uid() = user_id);
 
 -- Meals Policies
