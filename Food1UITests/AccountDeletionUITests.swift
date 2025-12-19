@@ -43,21 +43,38 @@ final class AccountDeletionUITests: Food1UITestCase {
         let accountButton = app.buttons["accountSettingsButton"]
         XCTAssertTrue(accountButton.waitForExistence(timeout: 5),
                       "Account button should exist in Settings")
+
+        // Ensure the button is hittable before tapping
+        guard accountButton.isHittable else {
+            takeScreenshot(name: "Account-Button-Not-Hittable")
+            XCTFail("Account button exists but is not hittable")
+            return
+        }
+
+        // Tap the button
         accountButton.tap()
 
-        // Wait for Account sheet to present (sheet animation ~0.3s + List load)
-        usleep(1_000_000)  // 1.0s for sheet animation to complete
+        // Wait for AccountView sheet to appear - look for "Done" button which is in AccountView toolbar
+        let doneButton = app.buttons["Done"]
+        if !doneButton.waitForExistence(timeout: 3) {
+            // Sheet might not have opened - take screenshot for debugging
+            takeScreenshot(name: "AccountView-Not-Opened")
+
+            // Debug: Print all visible buttons
+            print("📋 AccountView did NOT open. Visible buttons:")
+            for (index, button) in app.buttons.allElementsBoundByIndex.enumerated() {
+                if !button.label.isEmpty || !button.identifier.isEmpty {
+                    print("  [\(index)] label: '\(button.label)', id: '\(button.identifier)'")
+                }
+            }
+
+            // Try tapping again (sometimes first tap doesn't register)
+            accountButton.tap()
+            usleep(500_000)
+        }
 
         // Debug: Take screenshot to see current state
         takeScreenshot(name: "After-Account-Tap")
-
-        // Debug: Print all visible buttons
-        print("📋 All visible buttons after Account tap:")
-        for (index, button) in app.buttons.allElementsBoundByIndex.enumerated() {
-            if !button.label.isEmpty || !button.identifier.isEmpty {
-                print("  [\(index)] label: '\(button.label)', id: '\(button.identifier)'")
-            }
-        }
 
         // Step 3: Find Delete Account button (at bottom of List, may need scroll)
         // Use accessibility identifier for reliable detection
