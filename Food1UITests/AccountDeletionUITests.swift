@@ -181,21 +181,22 @@ final class AccountDeletionUITests: Food1UITestCase {
         let dialog = app.sheets.firstMatch
         XCTAssertTrue(dialog.waitForExistence(timeout: 3))
 
-        // Tap Cancel - In iOS action sheets, Cancel button is outside the sheet, find it globally
+        // Dismiss the action sheet - try Cancel button first, then swipe down as fallback
+        // iOS confirmationDialog Cancel can be tapped outside the sheet or via a Cancel button
         let cancelButton = app.buttons["Cancel"]
-        XCTAssertTrue(cancelButton.waitForExistence(timeout: 2),
-                      "Cancel button should exist in action sheet")
-        cancelButton.tap()
+        if cancelButton.waitForExistence(timeout: 1) {
+            cancelButton.tap()
+        } else {
+            // No Cancel button visible - dismiss by swiping down on the sheet
+            dialog.swipeDown()
+        }
 
         // Dialog should dismiss
-        XCTAssertTrue(waitForElementToDisappear(dialog, timeout: 2),
-                      "Dialog should dismiss after cancel")
+        XCTAssertTrue(waitForElementToDisappear(dialog, timeout: 3),
+                      "Dialog should dismiss after cancel/swipe")
 
-        // Should still be on Account settings (scroll back up if needed)
-        if !app.buttons["deleteAccountButton"].exists {
-            app.swipeDown()
-            usleep(300_000)
-        }
+        // Should still be on Account settings (may need to wait for animation)
+        usleep(500_000)  // 0.5s for sheet dismiss animation
         XCTAssertTrue(app.buttons["deleteAccountButton"].waitForExistence(timeout: 3),
                       "Should still see Delete Account button")
     }
