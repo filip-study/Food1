@@ -44,8 +44,19 @@ final class AccountDeletionUITests: Food1UITestCase {
                       "Account button should exist in Settings")
         accountButton.tap()
 
-        // Step 3: Tap Delete Account
+        // Wait for Account sheet to present (sheet animation ~0.3s + List load)
+        usleep(500_000)  // 0.5s
+
+        // Step 3: Find Delete Account button (at bottom of List, may need scroll)
         let deleteButton = app.buttons["Delete Account"]
+
+        // If not immediately visible, scroll down to find it
+        if !deleteButton.waitForExistence(timeout: 2) {
+            // Scroll down in the List to reveal Delete Account button
+            app.swipeUp()
+            usleep(300_000)  // 0.3s for scroll
+        }
+
         XCTAssertTrue(deleteButton.waitForExistence(timeout: 5),
                       "Delete Account button should exist")
 
@@ -102,9 +113,16 @@ final class AccountDeletionUITests: Food1UITestCase {
         navigateToSettings()
         app.buttons["Account"].tap()
 
-        // Tap Delete Account
+        // Wait for Account sheet to present
+        usleep(500_000)  // 0.5s
+
+        // Find Delete Account button (may need scroll)
         let deleteButton = app.buttons["Delete Account"]
-        guard deleteButton.waitForExistence(timeout: 5) else {
+        if !deleteButton.waitForExistence(timeout: 2) {
+            app.swipeUp()
+            usleep(300_000)
+        }
+        guard deleteButton.waitForExistence(timeout: 3) else {
             throw XCTSkip("Delete Account button not found")
         }
         deleteButton.tap()
@@ -120,8 +138,12 @@ final class AccountDeletionUITests: Food1UITestCase {
         XCTAssertTrue(waitForElementToDisappear(dialog, timeout: 2),
                       "Dialog should dismiss after cancel")
 
-        // Should still be on Account settings
-        XCTAssertTrue(app.buttons["Delete Account"].exists,
+        // Should still be on Account settings (scroll back up if needed)
+        if !app.buttons["Delete Account"].exists {
+            app.swipeDown()
+            usleep(300_000)
+        }
+        XCTAssertTrue(app.buttons["Delete Account"].waitForExistence(timeout: 3),
                       "Should still see Delete Account button")
     }
 
@@ -137,8 +159,18 @@ final class AccountDeletionUITests: Food1UITestCase {
         navigateToSettings()
         app.buttons["Account"].tap()
 
+        // Wait for Account sheet to present
+        usleep(500_000)  // 0.5s
+
+        // Find Delete Account button (may need scroll)
+        let deleteAccountBtn = app.buttons["Delete Account"]
+        if !deleteAccountBtn.waitForExistence(timeout: 2) {
+            app.swipeUp()
+            usleep(300_000)
+        }
+
         // Navigate through first dialog
-        app.buttons["Delete Account"].tap()
+        deleteAccountBtn.tap()
         let firstDialog = app.alerts.firstMatch
         XCTAssertTrue(firstDialog.waitForExistence(timeout: 3))
         firstDialog.buttons["Delete Account"].tap()
