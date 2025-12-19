@@ -45,7 +45,18 @@ final class AccountDeletionUITests: Food1UITestCase {
         accountButton.tap()
 
         // Wait for Account sheet to present (sheet animation ~0.3s + List load)
-        usleep(500_000)  // 0.5s
+        usleep(1_000_000)  // 1.0s for sheet animation to complete
+
+        // Debug: Take screenshot to see current state
+        takeScreenshot(name: "After-Account-Tap")
+
+        // Debug: Print all visible buttons
+        print("📋 All visible buttons after Account tap:")
+        for (index, button) in app.buttons.allElementsBoundByIndex.enumerated() {
+            if !button.label.isEmpty || !button.identifier.isEmpty {
+                print("  [\(index)] label: '\(button.label)', id: '\(button.identifier)'")
+            }
+        }
 
         // Step 3: Find Delete Account button (at bottom of List, may need scroll)
         // Use accessibility identifier for reliable detection
