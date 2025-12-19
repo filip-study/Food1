@@ -124,8 +124,28 @@ final class AccountDeletionUITests: Food1UITestCase {
         deleteForeverButton.tap()
 
         // Step 7: Verify we're signed out (back at onboarding)
-        let signInButton = app.buttons["Sign in with Apple"]
-        XCTAssertTrue(signInButton.waitForExistence(timeout: 10),
+        // Wait a bit longer for deletion network call and state update
+        sleep(2)
+
+        // Look for any onboarding element - Apple Sign In or Continue with Email
+        let signInApple = app.buttons["Sign in with Apple"]
+        let continueEmail = app.buttons["Continue with Email"]
+
+        // Wait for onboarding to appear (either button)
+        let foundOnboarding = signInApple.waitForExistence(timeout: 10) || continueEmail.waitForExistence(timeout: 2)
+
+        if !foundOnboarding {
+            // Debug: print all visible buttons
+            print("📋 Visible buttons after account deletion:")
+            for (index, button) in app.buttons.allElementsBoundByIndex.enumerated() {
+                if !button.label.isEmpty {
+                    print("  [\(index)] '\(button.label)'")
+                }
+            }
+            takeScreenshot(name: "After-Delete-No-Onboarding")
+        }
+
+        XCTAssertTrue(foundOnboarding,
                       "Should be back at sign-in screen after account deletion")
 
         takeScreenshot(name: "After-Account-Deleted")
@@ -161,8 +181,11 @@ final class AccountDeletionUITests: Food1UITestCase {
         let dialog = app.sheets.firstMatch
         XCTAssertTrue(dialog.waitForExistence(timeout: 3))
 
-        // Tap Cancel
-        dialog.buttons["Cancel"].tap()
+        // Tap Cancel - In iOS action sheets, Cancel button is outside the sheet, find it globally
+        let cancelButton = app.buttons["Cancel"]
+        XCTAssertTrue(cancelButton.waitForExistence(timeout: 2),
+                      "Cancel button should exist in action sheet")
+        cancelButton.tap()
 
         // Dialog should dismiss
         XCTAssertTrue(waitForElementToDisappear(dialog, timeout: 2),
