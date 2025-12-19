@@ -66,17 +66,38 @@ class Food1UITestCase: XCTestCase {
 
     // MARK: - Navigation Helpers
 
-    /// Navigate to a specific tab
+    /// Navigate to a specific tab in the floating pill navigation
+    /// The app uses custom FloatingPillNavigation, NOT standard TabBar
     func navigateToTab(_ tabName: String) {
-        let tab = app.tabBars.buttons[tabName]
-        if tab.waitForExistence(timeout: 3) {
-            tab.tap()
+        // Try finding button by name (for custom FloatingPillNavigation)
+        let tabButton = app.buttons[tabName]
+        if tabButton.waitForExistence(timeout: 3) && tabButton.isHittable {
+            tabButton.tap()
         }
     }
 
-    /// Navigate to Settings tab
+    /// Navigate to Settings (gear icon in TodayView toolbar)
+    /// Settings is NOT a tab - it's a gear icon button that opens a sheet
     func navigateToSettings() {
-        navigateToTab("Settings")
+        // Settings is accessed via gear icon in TodayView, not a tab
+        // First ensure we're on the Meals tab (TodayView)
+        let mealsButton = app.buttons["Meals"]
+        if mealsButton.waitForExistence(timeout: 3) && mealsButton.isHittable {
+            mealsButton.tap()
+            usleep(300_000)  // 0.3s for animation
+        }
+
+        // Tap the Settings gear icon (has accessibilityLabel "Settings")
+        let settingsButton = app.buttons["Settings"]
+        if settingsButton.waitForExistence(timeout: 5) {
+            settingsButton.tap()
+        } else {
+            // Fallback: try tapping the gear icon by image name
+            let gearButton = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'gear' OR label CONTAINS[c] 'setting'")).firstMatch
+            if gearButton.waitForExistence(timeout: 3) {
+                gearButton.tap()
+            }
+        }
     }
 
     /// Navigate to Today tab
@@ -96,9 +117,10 @@ class Food1UITestCase: XCTestCase {
 
     // MARK: - Auth Helpers
 
-    /// Check if user is signed in (main tab bar is visible)
+    /// Check if user is signed in (main tab view is visible)
+    /// Uses the mainTabView accessibility identifier since app uses custom navigation
     var isSignedIn: Bool {
-        app.tabBars.firstMatch.waitForExistence(timeout: 3)
+        app.otherElements["mainTabView"].waitForExistence(timeout: 3)
     }
 
     /// Skip test if not signed in
@@ -134,9 +156,9 @@ class Food1UITestCase: XCTestCase {
         // Tap sign in
         app.buttons["Sign In"].tap()
 
-        // Wait for main screen
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10),
-                      "Should be signed in and see main tab bar")
+        // Wait for main screen (uses custom navigation, not TabBar)
+        XCTAssertTrue(app.otherElements["mainTabView"].waitForExistence(timeout: 10),
+                      "Should be signed in and see main app view")
     }
 
     // MARK: - Wait Helpers
