@@ -7,6 +7,8 @@ name: iOS E2E Tests
 #   SUPABASE_URL         - Your Supabase project URL
 #   SUPABASE_ANON_KEY    - Supabase anon/public key
 #   SUPABASE_SERVICE_KEY - Supabase service_role key (for creating test users)
+#   PROXY_ENDPOINT       - Cloudflare Worker proxy URL (for AI vision API)
+#   PROXY_AUTH_TOKEN     - Auth token for the proxy (matches worker AUTH_TOKEN secret)
 #
 on:
   workflow_dispatch:
@@ -98,8 +100,11 @@ jobs:
           xcrun simctl list devices available | head -20
 
       - name: Setup API Config for E2E Tests
+        env:
+          PROXY_ENDPOINT: ${{ secrets.PROXY_ENDPOINT }}
+          PROXY_AUTH_TOKEN: ${{ secrets.PROXY_AUTH_TOKEN }}
         run: |
-          # Create APIConfig from template
+          # Create APIConfig from template (reads from Info.plist at runtime)
           cp Food1/Config/APIConfig.swift.template Food1/Config/APIConfig.swift 2>/dev/null || true
 
           # Create Secrets.xcconfig with CI credentials
@@ -109,6 +114,18 @@ jobs:
           # Extract host from SUPABASE_URL (remove https://)
           SUPABASE_HOST=$(echo "$SUPABASE_URL" | sed 's|https://||')
           ANON_KEY="${{ secrets.SUPABASE_ANON_KEY }}"
+
+          # Extract host from PROXY_ENDPOINT for xcconfig escaping
+          PROXY_HOST=$(echo "$PROXY_ENDPOINT" | sed 's|https://||')
+
+          # Validate proxy credentials are available
+          if [ -z "$PROXY_ENDPOINT" ] || [ -z "$PROXY_AUTH_TOKEN" ]; then
+            echo "⚠️  PROXY_ENDPOINT or PROXY_AUTH_TOKEN not set - AI recognition will fail"
+            echo "⚠️  Add these secrets to enable the photo meal flow test"
+            # Use dummy values so build doesn't fail
+            PROXY_HOST="test.example.com/analyze"
+            PROXY_AUTH_TOKEN="test-token"
+          fi
 
           # Write xcconfig file
           # Note: In xcconfig, // starts a comment, so URLs use $() to escape: https:/$()/ becomes https://
@@ -122,13 +139,14 @@ jobs:
             echo "SUPABASE_URL = https:/\$()/${SUPABASE_HOST}"
             echo "SUPABASE_ANON_KEY = ${ANON_KEY}"
             echo ''
-            echo '// Proxy Configuration (not used in E2E tests)'
-            echo 'PROXY_ENDPOINT = https:/$()/test.example.com/analyze'
-            echo 'AUTH_TOKEN = test-token'
+            echo '// Vision API Proxy Configuration'
+            echo "PROXY_ENDPOINT = https:/\$()/${PROXY_HOST}"
+            echo "AUTH_TOKEN = ${PROXY_AUTH_TOKEN}"
           } > Food1/Config/Secrets.xcconfig
 
           echo "📄 Created Secrets.xcconfig:"
-          cat Food1/Config/Secrets.xcconfig
+          # Mask sensitive values in log
+          cat Food1/Config/Secrets.xcconfig | sed 's/AUTH_TOKEN = .*/AUTH_TOKEN = ***/' | sed 's/SUPABASE_ANON_KEY = .*/SUPABASE_ANON_KEY = ***/'
           echo ""
           echo "✅ API config ready"
 
@@ -148,8 +166,11 @@ jobs:
           fi
 
       - name: Build for UI Testing
+        env:
+          PROXY_ENDPOINT: ${{ secrets.PROXY_ENDPOINT }}
+          PROXY_AUTH_TOKEN: ${{ secrets.PROXY_AUTH_TOKEN }}
         run: |
-          # Supabase credentials are set via:
+          # Credentials are set via:
           # 1. Secrets.xcconfig created above
           # 2. Command-line build setting overrides (belt + suspenders approach)
           xcodebuild clean build-for-testing \
@@ -161,11 +182,13 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             SUPABASE_URL="$SUPABASE_URL" \
-            SUPABASE_ANON_KEY="${{ secrets.SUPABASE_ANON_KEY }}"
+            SUPABASE_ANON_KEY="${{ secrets.SUPABASE_ANON_KEY }}" \
+            PROXY_ENDPOINT="$PROXY_ENDPOINT" \
+            AUTH_TOKEN="$PROXY_AUTH_TOKEN"
 
       - name: Verify Built App Configuration
         run: |
-          # Find the built app and check what SUPABASE_URL ended up in Info.plist
+          # Find the built app and check configuration in Info.plist
           APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "Food1.app" -path "*/Debug-iphonesimulator/*" | head -1)
 
           if [ -n "$APP_PATH" ]; then
@@ -180,6 +203,22 @@ jobs:
               echo "${ANON_KEY:0:20}...${ANON_KEY: -10}"
             else
               echo "$ANON_KEY"
+            fi
+            echo ""
+            echo "📄 PROXY_ENDPOINT in built Info.plist:"
+            PROXY=$(/usr/libexec/PlistBuddy -c "Print :PROXY_ENDPOINT" "$APP_PATH/Info.plist" 2>/dev/null || echo "NOT FOUND")
+            if [ "$PROXY" != "NOT FOUND" ] && [ ${#PROXY} -gt 20 ]; then
+              echo "${PROXY:0:30}..."
+            else
+              echo "$PROXY"
+            fi
+            echo ""
+            echo "📄 AUTH_TOKEN in built Info.plist (masked):"
+            TOKEN=$(/usr/libexec/PlistBuddy -c "Print :AUTH_TOKEN" "$APP_PATH/Info.plist" 2>/dev/null || echo "NOT FOUND")
+            if [ "$TOKEN" != "NOT FOUND" ] && [ ${#TOKEN} -gt 10 ]; then
+              echo "***...${TOKEN: -5}"
+            else
+              echo "$TOKEN"
             fi
           else
             echo "❌ Could not find built app"

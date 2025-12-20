@@ -10,6 +10,10 @@ import AVFoundation
 import UIKit
 import Combine
 import ImageIO
+import os.log
+
+/// Logger for camera events (captured in simulator logs for E2E debugging)
+private let cameraLogger = Logger(subsystem: "com.prismae.food1", category: "Camera")
 
 /// Custom camera view with live preview and quick access to gallery/manual entry
 struct CustomCameraView: View {
@@ -167,15 +171,19 @@ struct CustomCameraView: View {
         .onAppear {
             // In UI testing mock camera mode, immediately return test image
             if UITestingSupport.shouldMockCamera && !didUseMockCamera {
+                cameraLogger.error("🎬 [Camera] Mock camera mode detected, attempting to load test image...")
                 didUseMockCamera = true
                 if let mockImage = UITestingSupport.mockCameraImage {
-                    print("📸 UI Testing: Using mock camera image")
+                    cameraLogger.error("✅ [Camera] Mock image loaded: \(Int(mockImage.size.width))x\(Int(mockImage.size.height)), calling onPhotoCaptured...")
                     // Small delay to let UI settle before callback
                     Task { @MainActor in
                         try? await Task.sleep(for: .milliseconds(500))
+                        cameraLogger.error("📤 [Camera] Calling onPhotoCaptured with mock image")
                         onPhotoCaptured(mockImage, Date())
                     }
                     return
+                } else {
+                    cameraLogger.error("❌ [Camera] Mock image is nil! Recognition will fail.")
                 }
             }
             cameraManager.checkAuthorization()

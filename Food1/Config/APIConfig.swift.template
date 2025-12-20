@@ -2,23 +2,47 @@
 //  APIConfig.swift.template
 //  Food1
 //
-//  Test-safe API configuration template for CI/CD
+//  API configuration loader for CI/CD builds - reads from Info.plist
 //  This file is copied to APIConfig.swift during CI builds
-//  Contains dummy values - tests don't need real API keys
+//  Values come from Secrets.xcconfig → Info.plist at build time
+//
+//  WHY THIS ARCHITECTURE:
+//  - Secrets stored in Secrets.xcconfig (created by CI workflow)
+//  - Loaded into Info.plist at build time (via xcconfig)
+//  - Read at runtime from Bundle.main (this file)
+//  - Enables E2E tests that call real APIs
 //
 
 import Foundation
 
 struct APIConfig {
-    // MARK: - Vision API (Dummy values for CI - tests don't call APIs)
+    // MARK: - Vision API
 
-    /// Dummy proxy endpoint for CI testing
-    /// Real production value is loaded from Info.plist via Secrets.xcconfig
-    static let proxyEndpoint: String = "https://test-worker.example.com/analyze"
+    /// Cloudflare Worker proxy endpoint URL
+    /// Loaded from Info.plist PROXY_ENDPOINT (populated via Secrets.xcconfig)
+    static let proxyEndpoint: String = {
+        guard let endpoint = Bundle.main.infoDictionary?["PROXY_ENDPOINT"] as? String,
+              !endpoint.isEmpty,
+              endpoint != "$(PROXY_ENDPOINT)" else {
+            // Fallback when Secrets.xcconfig not configured
+            print("⚠️ PROXY_ENDPOINT not configured - API calls will fail")
+            return "https://test-worker.example.com/analyze"
+        }
+        return endpoint
+    }()
 
-    /// Dummy auth token for CI testing
-    /// Real production value is loaded from Info.plist via Secrets.xcconfig
-    static let authToken: String = "test-auth-token-for-ci"
+    /// Authentication token for iOS app → Cloudflare Worker communication
+    /// Loaded from Info.plist AUTH_TOKEN (populated via Secrets.xcconfig)
+    static let authToken: String = {
+        guard let token = Bundle.main.infoDictionary?["AUTH_TOKEN"] as? String,
+              !token.isEmpty,
+              token != "$(AUTH_TOKEN)" else {
+            // Fallback when Secrets.xcconfig not configured
+            print("⚠️ AUTH_TOKEN not configured - API calls will fail")
+            return "test-auth-token-for-ci"
+        }
+        return token
+    }()
 
     // MARK: - USDA Matching API
 
