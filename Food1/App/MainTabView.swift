@@ -103,7 +103,8 @@ struct MainTabView: View {
                 selectedTab: $selectedTab,
                 onEntryModeSelected: { mode in
                     // Paywall gate: check if user has access before allowing meal entry
-                    if authViewModel.hasAccess {
+                    // UI testing mode bypasses paywall to allow testing without subscription
+                    if authViewModel.hasAccess || UITestingSupport.shouldBypassPaywall {
                         selectedEntryMode = mode
                     } else {
                         // Show paywall instead - trial expired or no subscription

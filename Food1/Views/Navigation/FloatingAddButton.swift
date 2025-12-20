@@ -72,6 +72,15 @@ struct FloatingAddButton: View {
                 isLongPressing = false
                 return
             }
+
+            // UI Testing fast path: When mock-camera mode is enabled, go straight to camera
+            // This bypasses the menu for more reliable E2E testing
+            if UITestingSupport.shouldMockCamera {
+                HapticManager.medium()
+                onEntryModeSelected(.camera)
+                return
+            }
+
             HapticManager.medium()
             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                 showingMenu.toggle()

@@ -21,6 +21,12 @@ enum UITestingSupport {
         isUITesting && CommandLine.arguments.contains("--mock-camera")
     }
 
+    /// Whether to bypass paywall checks during UI testing
+    /// This allows test users (who may not have trial/subscription) to access features
+    static var shouldBypassPaywall: Bool {
+        isUITesting
+    }
+
     /// Returns a mock food image for testing camera flow
     /// Uses a bundled test image of edamame
     static var mockCameraImage: UIImage? {

@@ -85,7 +85,7 @@ final class MealPhotoFlowUITests: XCTestCase {
         takeScreenshot(name: "1-Signed-In")
 
         // Step 2: Tap the add meal FAB (floating action button)
-        // Try both identifier and label since accessibility can vary
+        // In mock-camera mode, the FAB directly opens camera (bypasses menu)
         var addMealButton = app.buttons["addMealButton"]
         if !addMealButton.waitForExistence(timeout: 3) {
             // Fallback to accessibility label
@@ -93,52 +93,15 @@ final class MealPhotoFlowUITests: XCTestCase {
         }
         XCTAssertTrue(addMealButton.waitForExistence(timeout: 5),
                       "Add meal button should be visible")
+
+        takeScreenshot(name: "2-Before-FAB-Tap")
         addMealButton.tap()
 
-        // Wait for menu animation
-        usleep(500_000)  // 0.5s for animation
-        takeScreenshot(name: "2-Add-Menu-Open")
+        // In mock-camera mode (--mock-camera flag), the FAB tap goes straight to camera
+        // No menu navigation needed - the mock camera auto-captures and sends to AI
+        takeScreenshot(name: "3-After-FAB-Tap")
 
-        // Step 3: Verify menu opened and select camera mode
-        // First check if menu container appeared
-        let menuContainer = app.otherElements["addMealMenu"]
-        if !menuContainer.waitForExistence(timeout: 2) {
-            print("⚠️ Menu container 'addMealMenu' not found, trying to tap add button again")
-            addMealButton.tap()
-            usleep(500_000)
-        }
-
-        // Try multiple ways to find Camera button
-        var cameraOption = app.buttons["menuItem_camera"]
-        if !cameraOption.waitForExistence(timeout: 2) {
-            cameraOption = app.buttons["Camera"]
-        }
-        if !cameraOption.exists {
-            // Try finding by label match
-            cameraOption = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'camera'")).firstMatch
-        }
-
-        if !cameraOption.exists {
-            // Debug: print ALL elements for diagnosis
-            print("📋 All buttons in app:")
-            for button in app.buttons.allElementsBoundByIndex {
-                print("  - label: '\(button.label)', id: '\(button.identifier)', hittable: \(button.isHittable)")
-            }
-            print("📋 All other elements:")
-            for element in app.otherElements.allElementsBoundByIndex.prefix(20) {
-                if !element.identifier.isEmpty {
-                    print("  - id: '\(element.identifier)'")
-                }
-            }
-            takeScreenshot(name: "2b-Menu-Debug")
-            XCTFail("Camera menu option not found - menu may not have opened")
-        }
-
-        cameraOption.tap()
-
-        takeScreenshot(name: "3-Camera-Mode-Selected")
-
-        // Step 4: Wait for mock camera to auto-capture and AI recognition
+        // Step 3: Wait for mock camera to auto-capture and AI recognition
         // The mock camera immediately captures, then recognition takes 2-5 seconds
 
         // Wait for recognition to complete - look for NutritionReviewView
@@ -174,7 +137,7 @@ final class MealPhotoFlowUITests: XCTestCase {
 
         takeScreenshot(name: "4-Nutrition-Review")
 
-        // Step 5: Save the meal by tapping "Add"
+        // Step 4: Save the meal by tapping "Add"
         XCTAssertTrue(saveButton.isHittable, "Add button should be hittable")
         saveButton.tap()
 
@@ -183,7 +146,7 @@ final class MealPhotoFlowUITests: XCTestCase {
 
         takeScreenshot(name: "5-After-Save")
 
-        // Step 6: Verify we're back on TodayView and meal was added
+        // Step 5: Verify we're back on TodayView and meal was added
         XCTAssertTrue(mainView.waitForExistence(timeout: 5),
                       "Should return to main view after saving meal")
 
