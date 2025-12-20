@@ -257,7 +257,20 @@ jobs:
 
           echo "🧹 Cleaning up test user: $USER_ID"
 
-          # Delete user via Admin API
+          # First delete related data (profiles, subscription_status) via REST API
+          # This is required because of foreign key constraints
+          echo "  → Deleting profile..."
+          curl -s -X DELETE "$SUPABASE_URL/rest/v1/profiles?id=eq.$USER_ID" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" \
+            -H "apikey: $SUPABASE_SERVICE_KEY" || true
+
+          echo "  → Deleting subscription_status..."
+          curl -s -X DELETE "$SUPABASE_URL/rest/v1/subscription_status?user_id=eq.$USER_ID" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" \
+            -H "apikey: $SUPABASE_SERVICE_KEY" || true
+
+          # Now delete the auth user
+          echo "  → Deleting auth user..."
           curl -s -X DELETE "$SUPABASE_URL/auth/v1/admin/users/$USER_ID" \
             -H "Authorization: Bearer $SUPABASE_SERVICE_KEY" \
             -H "apikey: $SUPABASE_SERVICE_KEY" || true

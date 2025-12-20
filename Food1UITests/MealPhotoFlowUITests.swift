@@ -85,19 +85,42 @@ final class MealPhotoFlowUITests: XCTestCase {
         takeScreenshot(name: "1-Signed-In")
 
         // Step 2: Tap the add meal FAB (floating action button)
-        // The FAB should be visible on TodayView
-        let addMealButton = app.buttons["addMealButton"]
+        // Try both identifier and label since accessibility can vary
+        var addMealButton = app.buttons["addMealButton"]
+        if !addMealButton.waitForExistence(timeout: 3) {
+            // Fallback to accessibility label
+            addMealButton = app.buttons["Add meal"]
+        }
         XCTAssertTrue(addMealButton.waitForExistence(timeout: 5),
                       "Add meal button should be visible")
         addMealButton.tap()
 
+        // Wait for menu animation
+        usleep(300_000)
         takeScreenshot(name: "2-Add-Menu-Open")
 
         // Step 3: Select camera mode from the menu
-        // Menu items have identifiers like "menuItem_camera"
-        let cameraOption = app.buttons["menuItem_camera"]
-        XCTAssertTrue(cameraOption.waitForExistence(timeout: 3),
-                      "Camera menu option should appear")
+        // Try identifier first, then label
+        var cameraOption = app.buttons["menuItem_camera"]
+        if !cameraOption.waitForExistence(timeout: 2) {
+            // Fallback to button with "Camera" label
+            cameraOption = app.buttons["Camera"]
+        }
+
+        if !cameraOption.waitForExistence(timeout: 3) {
+            // Debug: print all visible buttons
+            print("📋 Available buttons after opening menu:")
+            for button in app.buttons.allElementsBoundByIndex {
+                let label = button.label
+                let id = button.identifier
+                if !label.isEmpty || !id.isEmpty {
+                    print("  - label: '\(label)', id: '\(id)'")
+                }
+            }
+            takeScreenshot(name: "2b-Menu-Debug")
+        }
+
+        XCTAssertTrue(cameraOption.exists, "Camera menu option should appear")
         cameraOption.tap()
 
         takeScreenshot(name: "3-Camera-Mode-Selected")
