@@ -96,31 +96,44 @@ final class MealPhotoFlowUITests: XCTestCase {
         addMealButton.tap()
 
         // Wait for menu animation
-        usleep(300_000)
+        usleep(500_000)  // 0.5s for animation
         takeScreenshot(name: "2-Add-Menu-Open")
 
-        // Step 3: Select camera mode from the menu
-        // Try identifier first, then label
-        var cameraOption = app.buttons["menuItem_camera"]
-        if !cameraOption.waitForExistence(timeout: 2) {
-            // Fallback to button with "Camera" label
-            cameraOption = app.buttons["Camera"]
+        // Step 3: Verify menu opened and select camera mode
+        // First check if menu container appeared
+        let menuContainer = app.otherElements["addMealMenu"]
+        if !menuContainer.waitForExistence(timeout: 2) {
+            print("⚠️ Menu container 'addMealMenu' not found, trying to tap add button again")
+            addMealButton.tap()
+            usleep(500_000)
         }
 
-        if !cameraOption.waitForExistence(timeout: 3) {
-            // Debug: print all visible buttons
-            print("📋 Available buttons after opening menu:")
+        // Try multiple ways to find Camera button
+        var cameraOption = app.buttons["menuItem_camera"]
+        if !cameraOption.waitForExistence(timeout: 2) {
+            cameraOption = app.buttons["Camera"]
+        }
+        if !cameraOption.exists {
+            // Try finding by label match
+            cameraOption = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'camera'")).firstMatch
+        }
+
+        if !cameraOption.exists {
+            // Debug: print ALL elements for diagnosis
+            print("📋 All buttons in app:")
             for button in app.buttons.allElementsBoundByIndex {
-                let label = button.label
-                let id = button.identifier
-                if !label.isEmpty || !id.isEmpty {
-                    print("  - label: '\(label)', id: '\(id)'")
+                print("  - label: '\(button.label)', id: '\(button.identifier)', hittable: \(button.isHittable)")
+            }
+            print("📋 All other elements:")
+            for element in app.otherElements.allElementsBoundByIndex.prefix(20) {
+                if !element.identifier.isEmpty {
+                    print("  - id: '\(element.identifier)'")
                 }
             }
             takeScreenshot(name: "2b-Menu-Debug")
+            XCTFail("Camera menu option not found - menu may not have opened")
         }
 
-        XCTAssertTrue(cameraOption.exists, "Camera menu option should appear")
         cameraOption.tap()
 
         takeScreenshot(name: "3-Camera-Mode-Selected")

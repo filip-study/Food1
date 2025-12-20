@@ -169,6 +169,8 @@ struct FloatingAddButton: View {
                 .clipShape(RoundedRectangle(cornerRadius: 14))
                 .offset(x: 8, y: -(menuItemHeight * 3 + menuSpacing + 12))
                 .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .bottomTrailing)))
+                .accessibilityElement(children: .contain)  // Make menu accessible to XCUITest
+                .accessibilityIdentifier("addMealMenu")
             }
         }
         .accessibilityLabel("Add meal")
@@ -399,6 +401,7 @@ struct FloatingAddButton: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(MenuItemButtonStyle())
+        .accessibilityLabel(title)  // Explicit label for XCUITest
         .accessibilityIdentifier("menuItem_\(title.lowercased())")  // For E2E testing
     }
 }
