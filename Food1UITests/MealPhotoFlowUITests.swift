@@ -138,6 +138,27 @@ final class MealPhotoFlowUITests: XCTestCase {
         takeScreenshot(name: "4-Nutrition-Review")
 
         // Step 4: Save the meal by tapping "Add"
+        // The button may be disabled initially while fetchNutritionData() runs
+        // Wait for button to become both enabled AND hittable
+        print("📋 Checking Add button state...")
+        print("   - exists: \(saveButton.exists)")
+        print("   - isEnabled: \(saveButton.isEnabled)")
+        print("   - isHittable: \(saveButton.isHittable)")
+
+        // Wait up to 5 seconds for button to become enabled and hittable
+        let buttonReadyTimeout: TimeInterval = 5
+        let startTime = Date()
+        var saveButtonReady = saveButton.isEnabled && saveButton.isHittable
+
+        while !saveButtonReady && Date().timeIntervalSince(startTime) < buttonReadyTimeout {
+            usleep(200_000) // 200ms
+            saveButtonReady = saveButton.isEnabled && saveButton.isHittable
+        }
+
+        print("📋 Add button after waiting: enabled=\(saveButton.isEnabled), hittable=\(saveButton.isHittable)")
+        takeScreenshot(name: "4b-Before-Add-Tap")
+
+        XCTAssertTrue(saveButton.isEnabled, "Add button should be enabled (meal name and calories populated)")
         XCTAssertTrue(saveButton.isHittable, "Add button should be hittable")
         saveButton.tap()
 
