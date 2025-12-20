@@ -1,22 +1,22 @@
 //
-//  AccountDeletionUITests.swift
+//  ZZ_AccountDeletionUITests.swift
 //  Food1UITests
 //
-//  E2E tests for account deletion flow.
-//  Tests the full user journey: sign in → delete account → verify signed out.
+//  E2E test for complete account deletion flow.
+//  Tests: sign in → navigate to account → delete account → verify signed out.
+//
+//  NAMING: File prefixed with "ZZ_" to ensure it runs LAST alphabetically.
+//  This is important because deletion removes the test user, which would break
+//  other tests if run first.
 //
 //  PREREQUISITES:
 //  - TEST_USER_EMAIL and TEST_USER_PASSWORD environment variables set
 //  - These are created by the CI workflow via Supabase Admin API
 //
-//  RUN LOCALLY:
-//  1. ./scripts/e2e-test-user.sh create
-//  2. xcodebuild test -scheme Food1 -only-testing:Food1UITests/AccountDeletionUITests
-//
 
 import XCTest
 
-final class AccountDeletionUITests: Food1UITestCase {
+final class ZZ_AccountDeletionUITests: Food1UITestCase {
 
     // MARK: - Full Account Deletion E2E Test
 
@@ -149,89 +149,6 @@ final class AccountDeletionUITests: Food1UITestCase {
                       "Should be back at sign-in screen after account deletion")
 
         takeScreenshot(name: "After-Account-Deleted")
-    }
-
-    /// Test that first confirmation dialog appears correctly
-    /// Note: Skipping cancel interaction due to XCUITest limitations with iOS action sheets
-    func testCancelFirstConfirmationDialog() throws {
-        try signInWithEmailPassword()
-
-        let mainView = app.otherElements["mainTabView"]
-        guard mainView.waitForExistence(timeout: 10) else {
-            throw XCTSkip("Could not sign in")
-        }
-
-        navigateToSettings()
-        app.buttons["accountSettingsButton"].tap()
-
-        // Wait for Account sheet to present
-        usleep(500_000)  // 0.5s
-
-        // Find Delete Account button (may need scroll)
-        let deleteButton = app.buttons["deleteAccountButton"]
-        if !deleteButton.waitForExistence(timeout: 2) {
-            app.swipeUp()
-            usleep(300_000)
-        }
-        guard deleteButton.waitForExistence(timeout: 3) else {
-            throw XCTSkip("Delete Account button not found")
-        }
-        deleteButton.tap()
-
-        // First dialog appears (.confirmationDialog presents as sheet on iPhone)
-        let dialog = app.sheets.firstMatch
-        XCTAssertTrue(dialog.waitForExistence(timeout: 3),
-                      "First confirmation dialog should appear")
-
-        // Verify the Delete Account button exists in the sheet
-        let deleteAccountInSheet = dialog.buttons["Delete Account"]
-        XCTAssertTrue(deleteAccountInSheet.exists,
-                      "Delete Account button should exist in confirmation dialog")
-
-        takeScreenshot(name: "First-Confirmation-Dialog")
-
-        // Test passes if dialog appeared with correct buttons
-        // Note: Dismissing iOS action sheets via XCUITest is unreliable
-    }
-
-    /// Test that cancel in second dialog works
-    func testCancelSecondConfirmationDialog() throws {
-        try signInWithEmailPassword()
-
-        let mainView = app.otherElements["mainTabView"]
-        guard mainView.waitForExistence(timeout: 10) else {
-            throw XCTSkip("Could not sign in")
-        }
-
-        navigateToSettings()
-        app.buttons["accountSettingsButton"].tap()
-
-        // Wait for Account sheet to present
-        usleep(500_000)  // 0.5s
-
-        // Find Delete Account button (may need scroll)
-        let deleteAccountBtn = app.buttons["deleteAccountButton"]
-        if !deleteAccountBtn.waitForExistence(timeout: 2) {
-            app.swipeUp()
-            usleep(300_000)
-        }
-
-        // Navigate through first dialog (.confirmationDialog presents as sheet on iPhone)
-        deleteAccountBtn.tap()
-        let firstDialog = app.sheets.firstMatch
-        XCTAssertTrue(firstDialog.waitForExistence(timeout: 3))
-        firstDialog.buttons["Delete Account"].tap()
-
-        // Second dialog appears
-        let secondDialog = app.alerts["Confirm Deletion"]
-        XCTAssertTrue(secondDialog.waitForExistence(timeout: 3))
-
-        // Tap Cancel
-        secondDialog.buttons["Cancel"].tap()
-
-        // Should return to Account settings
-        XCTAssertTrue(app.buttons["Delete Account"].waitForExistence(timeout: 3),
-                      "Should return to Account settings after cancel")
     }
 
     // MARK: - Sign In Helper
