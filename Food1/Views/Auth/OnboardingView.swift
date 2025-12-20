@@ -1,8 +1,9 @@
 //
 //  OnboardingView.swift
-//  Food1
+//  Prismae (Food1)
 //
-//  Premium authentication screen with Apple Sign In and email options.
+//  Authentication screen with Apple Sign In and email options.
+//  Users arrive here after tapping "Get Started" on WelcomeView.
 //  Features glassmorphic design, animated logo, and production-ready UX.
 //
 //  WHY THIS ARCHITECTURE:
@@ -49,18 +50,19 @@ struct OnboardingView: View {
 
                     // App title and tagline
                     VStack(spacing: 8) {
-                        Text("Food1")
-                            .font(.system(size: 36, weight: .bold, design: .rounded))
+                        Text("Prismae")
+                            .font(.system(size: 36, weight: .bold))
+                            .tracking(-0.5)
                             .foregroundStyle(
                                 LinearGradient(
-                                    colors: [Color.primary, Color.primary.opacity(0.7)],
+                                    colors: [Color.primary, Color.primary.opacity(0.8)],
                                     startPoint: .leading,
                                     endPoint: .trailing
                                 )
                             )
 
-                        Text("Track nutrition with intelligence")
-                            .font(.system(size: 17))
+                        Text("Sign in to continue")
+                            .font(.system(size: 17, weight: .medium))
                             .foregroundColor(.secondary)
                     }
                     .padding(.bottom, 24)
@@ -194,7 +196,7 @@ struct OnboardingView: View {
                     .padding(16)
                     .background {
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color(UIColor.systemGray6))
+                            .fill(Color(UIColor.secondarySystemBackground))
                     }
                     .overlay {
                         if isValidEmail(email) && !email.isEmpty {
@@ -207,6 +209,7 @@ struct OnboardingView: View {
                         }
                     }
                     .disabled(authViewModel.isLoading)
+                    .accessibilityIdentifier("emailTextField")
             }
 
             // Password field
@@ -221,7 +224,7 @@ struct OnboardingView: View {
                     .padding(16)
                     .background {
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color(UIColor.systemGray6))
+                            .fill(Color(UIColor.secondarySystemBackground))
                     }
                     .overlay {
                         if password.count >= 8 {
@@ -234,6 +237,7 @@ struct OnboardingView: View {
                         }
                     }
                     .disabled(authViewModel.isLoading)
+                    .accessibilityIdentifier("passwordSecureField")
             }
 
             // Error message

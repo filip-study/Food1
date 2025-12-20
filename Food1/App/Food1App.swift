@@ -24,6 +24,7 @@ struct Food1App: App {
     @State private var launchScreenState = LaunchScreenStateManager()
     @State private var showingDatabaseError = false
     @State private var databaseErrorMessage = ""
+    @State private var showOnboarding = false
     @StateObject private var authViewModel = AuthViewModel()
     @StateObject private var migrationService = MigrationService.shared
     @Environment(\.scenePhase) private var scenePhase
@@ -195,9 +196,18 @@ struct Food1App: App {
                             scheduleEnrichmentTask()
                         }
                 } else {
-                    // Not authenticated: Show onboarding
-                    OnboardingView()
-                        .environmentObject(authViewModel)
+                    // Not authenticated: Show welcome or onboarding
+                    if showOnboarding {
+                        OnboardingView()
+                            .environmentObject(authViewModel)
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .trailing).combined(with: .opacity),
+                                removal: .move(edge: .leading).combined(with: .opacity)
+                            ))
+                    } else {
+                        WelcomeView(showOnboarding: $showOnboarding)
+                            .transition(.opacity)
+                    }
                 }
 
                 // Migration progress overlay
