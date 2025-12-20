@@ -8,6 +8,10 @@
 
 import UIKit
 import Combine
+import os.log
+
+/// Logger for food recognition events (captured in simulator logs for E2E debugging)
+private let recognitionLogger = Logger(subsystem: "com.prismae.food1", category: "Recognition")
 
 /// Service for recognizing food items from images using AI vision models
 /// Currently uses OpenAI GPT-4o Vision via secure Cloudflare Worker proxy
@@ -85,22 +89,24 @@ class FoodRecognitionService: ObservableObject {
             isProcessing = false
         }
 
+        recognitionLogger.error("🔍 [Recognition] Starting food recognition, image: \(Int(image.size.width))x\(Int(image.size.height))")
+
         do {
             // Preprocess image (resize, optimize)
             let processedImage = preprocessImage(image)
 
-            print("🔍 Analyzing food image with GPT-4o...")
+            recognitionLogger.error("📤 [Recognition] Calling Vision API...")
 
             // Call OpenAI Vision API via proxy
             let (predictions, hasPackaging) = try await visionService.analyzeFood(image: processedImage)
 
             if predictions.isEmpty {
-                print("⚠️ No food detected in image")
+                recognitionLogger.error("⚠️ [Recognition] No food detected in image")
                 errorMessage = "Could not identify any food in this image. Try taking another photo with better lighting."
             } else {
-                print("✅ Found \(predictions.count) food predictions")
+                recognitionLogger.error("✅ [Recognition] Found \(predictions.count) predictions")
                 if hasPackaging {
-                    print("📦 Packaging detected - nutrition label can improve accuracy")
+                    recognitionLogger.error("📦 [Recognition] Packaging detected")
                 }
             }
 
@@ -109,13 +115,13 @@ class FoodRecognitionService: ObservableObject {
         } catch let error as OpenAIVisionError {
             // Handle specific vision API errors
             errorMessage = error.localizedDescription
-            print("❌ Vision API error: \(error.localizedDescription)")
+            recognitionLogger.error("❌ [Recognition] Vision API error: \(error.localizedDescription)")
             return ([], false)
 
         } catch {
             // Handle unexpected errors
             errorMessage = "An unexpected error occurred. Please try again."
-            print("❌ Unexpected error: \(error)")
+            recognitionLogger.error("❌ [Recognition] Unexpected error: \(error.localizedDescription)")
             return ([], false)
         }
     }

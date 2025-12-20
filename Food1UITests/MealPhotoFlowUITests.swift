@@ -162,6 +162,46 @@ final class MealPhotoFlowUITests: XCTestCase {
 
         XCTAssertTrue(anyMealContent.count > 0,
                       "A meal with calorie info should appear in today view after saving")
+
+        // Step 6: Tap on the meal to view details
+        // Find the first meal card and tap it
+        let mealCards = app.buttons.matching(NSPredicate(format: "identifier CONTAINS 'mealCard'"))
+        if mealCards.count > 0 {
+            let firstMealCard = mealCards.element(boundBy: 0)
+            if firstMealCard.isHittable {
+                firstMealCard.tap()
+
+                // Wait for meal detail view
+                sleep(1)
+                takeScreenshot(name: "7-Meal-Detail")
+
+                // Look for ingredient list (indicates recognition worked with detailed data)
+                let ingredientsList = app.scrollViews.firstMatch
+                if ingredientsList.exists {
+                    print("✅ Meal detail view has scrollable content (ingredients)")
+                }
+
+                // Dismiss the detail view
+                let dismissButton = app.buttons["xmark"]
+                if dismissButton.waitForExistence(timeout: 2) {
+                    dismissButton.tap()
+                } else {
+                    // Try swiping down to dismiss
+                    app.swipeDown()
+                }
+
+                sleep(1)
+                takeScreenshot(name: "8-Back-To-Today")
+            }
+        }
+
+        // Step 7: Wait a bit for background enrichment to kick in (if applicable)
+        // Enrichment happens asynchronously after meal is saved
+        sleep(3)
+
+        takeScreenshot(name: "9-After-Enrichment")
+
+        print("✅ Full photo meal flow completed successfully!")
     }
 
     // MARK: - Helpers
