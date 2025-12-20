@@ -172,6 +172,7 @@ struct FloatingAddButton: View {
             }
         }
         .accessibilityLabel("Add meal")
+        .accessibilityIdentifier("addMealButton")  // For E2E testing
         .accessibilityHint("Double tap to choose how to log a meal: camera, gallery, or text")
         .accessibilityAddTraits(.isButton)
         .onAppear {
@@ -398,6 +399,7 @@ struct FloatingAddButton: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(MenuItemButtonStyle())
+        .accessibilityIdentifier("menuItem_\(title.lowercased())")  // For E2E testing
     }
 }
 

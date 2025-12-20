@@ -23,6 +23,7 @@ struct CustomCameraView: View {
     @StateObject private var cameraManager = CameraManager()
     @State private var showingPermissionAlert = false
     @State private var captureAnimation = false
+    @State private var didUseMockCamera = false  // Track mock camera usage
 
     var body: some View {
         ZStack {
@@ -164,6 +165,19 @@ struct CustomCameraView: View {
         }
         .background(Color.black)
         .onAppear {
+            // In UI testing mock camera mode, immediately return test image
+            if UITestingSupport.shouldMockCamera && !didUseMockCamera {
+                didUseMockCamera = true
+                if let mockImage = UITestingSupport.mockCameraImage {
+                    print("📸 UI Testing: Using mock camera image")
+                    // Small delay to let UI settle before callback
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(500))
+                        onPhotoCaptured(mockImage, Date())
+                    }
+                    return
+                }
+            }
             cameraManager.checkAuthorization()
         }
         .alert("Camera Access Required", isPresented: $showingPermissionAlert) {
