@@ -28,15 +28,23 @@ enum UITestingSupport {
     }
 
     /// Returns a mock food image for testing camera flow
-    /// Uses a bundled test image of edamame
+    /// Uses a bundled test image of edamame from Assets catalog
     static var mockCameraImage: UIImage? {
-        // Try to load from bundle
-        if let path = Bundle.main.path(forResource: "test_food_edamame", ofType: "jpg"),
-           let image = UIImage(contentsOfFile: path) {
+        // Load from Assets catalog (TestFoodEdamame.imageset)
+        if let image = UIImage(named: "TestFoodEdamame") {
+            print("📸 UI Testing: Loaded test image from Assets catalog")
             return image
         }
 
-        // Fallback: Create a simple colored rectangle (won't work for real API but prevents crash)
+        // Fallback: Try loading from bundle path
+        if let path = Bundle.main.path(forResource: "test_food_edamame", ofType: "jpg"),
+           let image = UIImage(contentsOfFile: path) {
+            print("📸 UI Testing: Loaded test image from bundle path")
+            return image
+        }
+
+        // Final fallback: Create a simple colored rectangle (won't work for real API but prevents crash)
+        print("⚠️ UI Testing: Could not load test image, using fallback rectangle")
         let size = CGSize(width: 400, height: 400)
         UIGraphicsBeginImageContextWithOptions(size, true, 1.0)
         UIColor.systemGreen.setFill()
