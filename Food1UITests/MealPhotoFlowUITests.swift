@@ -109,7 +109,8 @@ final class MealPhotoFlowUITests: XCTestCase {
 
         // Look for NutritionReviewView indicators
         // The view shows food name, macros, and an "Add" button in toolbar
-        let saveButton = app.buttons["Add"]
+        // Use .firstMatch because there might be multiple buttons with "Add" label
+        let saveButton = app.buttons["Add"].firstMatch
 
         // Wait for the Add button to appear - this indicates NutritionReviewView loaded
         let foundReview = saveButton.waitForExistence(timeout: recognitionTimeout)
