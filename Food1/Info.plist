@@ -5,10 +5,12 @@
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
 		<string>com.filipolszak.Food1.enrichment</string>
+		<string>com.prismae.food1.meal-reminder-check</string>
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>processing</string>
+		<string>fetch</string>
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Food1 uses the camera to capture photos of your meals for automatic nutrition tracking powered by AI.</string>
@@ -26,6 +28,10 @@
 	<string>$(SUPABASE_URL)</string>
 	<key>SUPABASE_ANON_KEY</key>
 	<string>$(SUPABASE_ANON_KEY)</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
+	<key>NSSupportsLiveActivitiesFrequentUpdates</key>
+	<true/>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -36,6 +42,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>com.filipolszak.food1</string>
+				<string>prismae</string>
 			</array>
 		</dict>
 	</array>

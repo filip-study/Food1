@@ -204,6 +204,34 @@ struct SettingsView: View {
                     Text(micronutrientStandard.description)
                 }
 
+                // Meal Reminders Section
+                Section {
+                    NavigationLink {
+                        MealRemindersSettingsView()
+                    } label: {
+                        HStack(spacing: 16) {
+                            Image(systemName: "bell.badge.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(.teal)
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Meal Reminders")
+                                    .foregroundColor(.primary)
+                                    .font(.system(size: 17, weight: .semibold))
+
+                                Text("Lock Screen & Dynamic Island")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.secondary)
+                            }
+
+                            Spacer()
+                        }
+                        .padding(.vertical, 4)
+                    }
+                } header: {
+                    Text("Reminders")
+                }
+
             }
             .navigationTitle("Settings")
             .sheet(isPresented: $showingProfileEditor) {

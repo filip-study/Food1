@@ -17,6 +17,7 @@ import SwiftData
 import BackgroundTasks
 import Auth
 import Supabase
+import ActivityKit
 
 @main
 struct Food1App: App {
@@ -27,9 +28,11 @@ struct Food1App: App {
     @State private var showOnboarding = false
     @StateObject private var authViewModel = AuthViewModel()
     @StateObject private var migrationService = MigrationService.shared
+    @StateObject private var deepLinkHandler = MealReminderDeepLinkHandler.shared
+    @StateObject private var onboardingService = OnboardingService.shared
     @Environment(\.scenePhase) private var scenePhase
 
-    // Background task identifier
+    // Background task identifiers
     private static let enrichmentTaskIdentifier = "com.filipolszak.Food1.enrichment"
 
     init() {
@@ -120,6 +123,9 @@ struct Food1App: App {
             }
             Food1App.handleEnrichmentBackgroundTask(processingTask, container: container)
         }
+
+        // Register background task for meal reminders
+        MealActivityScheduler.registerBackgroundTask()
     }
 
     /// Schedule background enrichment task when app goes to background
@@ -256,11 +262,36 @@ struct Food1App: App {
 
                 // Resume unfinished enrichment (after app is fully loaded and migration complete)
                 await resumeUnfinishedEnrichment()
+
+                // Load centralized onboarding state (shows pending onboarding automatically)
+                await onboardingService.loadOnboardingState()
             }
             .onOpenURL { url in
-                // Handle deep links for authentication callbacks
+                // Handle deep links for authentication callbacks and meal reminders
                 Task {
+                    // First try meal reminder deep links (synchronous)
+                    if deepLinkHandler.handleURL(url) {
+                        return
+                    }
+                    // Otherwise handle auth deep links
                     await handleDeepLink(url)
+                }
+            }
+            .sheet(item: Binding(
+                get: { onboardingService.pendingStep },
+                set: { _ in }
+            )) { step in
+                // Show the appropriate onboarding view based on pending step
+                onboardingViewForStep(step)
+            }
+            .sheet(isPresented: $deepLinkHandler.shouldShowQuickAdd) {
+                QuickAddMealView(
+                    selectedDate: Date(),
+                    initialEntryMode: .camera
+                )
+                .environmentObject(authViewModel)
+                .onDisappear {
+                    deepLinkHandler.clearPendingState()
                 }
             }
         }
@@ -272,6 +303,63 @@ struct Food1App: App {
                     await authViewModel.refreshSubscription()
                     // Also refresh StoreKit entitlements
                     await SubscriptionService.shared.updateSubscriptionStatus()
+                    // Check and update meal reminder activities
+                    await MealActivityScheduler.shared.checkAndScheduleActivities()
+                }
+            }
+
+            // Schedule meal reminder background task when going to background
+            if newPhase == .background && authViewModel.isAuthenticated {
+                MealActivityScheduler.shared.scheduleBackgroundCheck()
+            }
+        }
+        .onChange(of: authViewModel.isAuthenticated) { oldValue, newValue in
+            // When user logs in, load centralized onboarding state
+            if newValue && !oldValue {
+                Task {
+                    // Small delay for better UX after login animation
+                    try? await Task.sleep(for: .seconds(1.5))
+                    await onboardingService.loadOnboardingState()
+                }
+            }
+        }
+    }
+
+    // MARK: - Onboarding View Router
+
+    /// Returns the appropriate onboarding view for a given step
+    @ViewBuilder
+    private func onboardingViewForStep(_ step: OnboardingStep) -> some View {
+        switch step {
+        case .welcome:
+            // Welcome onboarding (placeholder - can be customized)
+            WelcomeOnboardingView {
+                Task {
+                    await onboardingService.completeStep(.welcome)
+                }
+            }
+
+        case .mealReminders:
+            MealRemindersOnboardingView(
+                onComplete: {
+                    Task {
+                        await onboardingService.completeStep(.mealReminders)
+                    }
+                },
+                onSkip: {
+                    Task {
+                        await onboardingService.skipStep(.mealReminders)
+                        // Mark as skipped in MealActivityScheduler too
+                        await markMealReminderOnboardingComplete()
+                    }
+                }
+            )
+
+        case .profileSetup:
+            // Profile setup onboarding (placeholder - can be customized)
+            ProfileSetupOnboardingView {
+                Task {
+                    await onboardingService.completeStep(.profileSetup)
                 }
             }
         }
@@ -382,6 +470,31 @@ struct Food1App: App {
             print("❌ Auth error in deep link: \(error) - \(errorDescription)")
             #endif
             authViewModel.errorMessage = errorDescription
+        }
+    }
+
+    // MARK: - Meal Reminder Helpers
+
+    /// Mark meal reminder onboarding as complete (for skipped users)
+    @MainActor
+    private func markMealReminderOnboardingComplete() async {
+        do {
+            let userId = try await SupabaseService.shared.requireUserId()
+            let settings = MealReminderSettings(
+                userId: userId,
+                isEnabled: false,  // Disabled since they skipped
+                leadTimeMinutes: 45,
+                autoDismissMinutes: 120,
+                useLearning: true,
+                onboardingCompleted: true,  // Mark as completed
+                createdAt: Date(),
+                updatedAt: Date()
+            )
+            try await MealActivityScheduler.shared.saveSettings(settings)
+        } catch {
+            #if DEBUG
+            print("⚠️  Failed to mark meal reminder onboarding complete: \(error)")
+            #endif
         }
     }
 }

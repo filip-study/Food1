@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		DC4C17092EF18211007E07F9 /* Products.storekit in Resources */ = {isa = PBXBuildFile; fileRef = DC4C17072EF18211007E07F9 /* Products.storekit */; };
+		DC4C19132EF732B4007E07F9 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC4C19122EF732B4007E07F9 /* WidgetKit.framework */; };
+		DC4C19152EF732B4007E07F9 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC4C19142EF732B4007E07F9 /* SwiftUI.framework */; };
+		DC4C19222EF732B5007E07F9 /* MealReminderWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DC4C19112EF732B4007E07F9 /* MealReminderWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		DC9FFC632ED4831E00FE62FB /* food1.icon in Resources */ = {isa = PBXBuildFile; fileRef = DC9FFC622ED4831E00FE62FB /* food1.icon */; };
 		DCD841F72EE038F800563D18 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = DCD841F62EE038F800563D18 /* Auth */; };
 		DCD841F92EE038F800563D18 /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = DCD841F82EE038F800563D18 /* Functions */; };
@@ -26,6 +29,13 @@
 			remoteGlobalIDString = DC65CB802EB8EA5900B066D7;
 			remoteInfo = Food1;
 		};
+		DC4C19202EF732B5007E07F9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DC65CB792EB8EA5900B066D7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DC4C19102EF732B4007E07F9;
+			remoteInfo = MealReminderWidgetExtension;
+		};
 		DCE02B072EE2D80300E695FB /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = DC65CB792EB8EA5900B066D7 /* Project object */;
@@ -35,9 +45,26 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		DC4C19272EF732B5007E07F9 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				DC4C19222EF732B5007E07F9 /* MealReminderWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		DC4C17072EF18211007E07F9 /* Products.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Products.storekit; sourceTree = "<group>"; };
 		DC4C18D42EF48F91007E07F9 /* Food1UITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Food1UITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		DC4C19112EF732B4007E07F9 /* MealReminderWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MealReminderWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		DC4C19122EF732B4007E07F9 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		DC4C19142EF732B4007E07F9 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		DC65CB812EB8EA5900B066D7 /* Food1.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Food1.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DC9FFC622ED4831E00FE62FB /* food1.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = food1.icon; sourceTree = "<group>"; };
 		DCE02B032EE2D80300E695FB /* Food1Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Food1Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -46,6 +73,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		DC4C19262EF732B5007E07F9 /* Exceptions for "MealReminderWidget" folder in "MealReminderWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = DC4C19102EF732B4007E07F9 /* MealReminderWidgetExtension */;
+		};
 		DCE74BF62ED46F8500C0F394 /* Exceptions for "Food1" folder in "Food1" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -59,6 +93,14 @@
 		DC4C18D52EF48F91007E07F9 /* Food1UITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Food1UITests;
+			sourceTree = "<group>";
+		};
+		DC4C19162EF732B4007E07F9 /* MealReminderWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				DC4C19262EF732B5007E07F9 /* Exceptions for "MealReminderWidget" folder in "MealReminderWidgetExtension" target */,
+			);
+			path = MealReminderWidget;
 			sourceTree = "<group>";
 		};
 		DC65CB832EB8EA5900B066D7 /* Food1 */ = {
@@ -81,6 +123,15 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DC4C190E2EF732B4007E07F9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DC4C19152EF732B4007E07F9 /* SwiftUI.framework in Frameworks */,
+				DC4C19132EF732B4007E07F9 /* WidgetKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -110,6 +161,8 @@
 		DC5B52B62EBBA39500D0439E /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				DC4C19122EF732B4007E07F9 /* WidgetKit.framework */,
+				DC4C19142EF732B4007E07F9 /* SwiftUI.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -121,6 +174,7 @@
 				DC65CB832EB8EA5900B066D7 /* Food1 */,
 				DCE02B042EE2D80300E695FB /* Food1Tests */,
 				DC4C18D52EF48F91007E07F9 /* Food1UITests */,
+				DC4C19162EF732B4007E07F9 /* MealReminderWidget */,
 				DC65CB822EB8EA5900B066D7 /* Products */,
 				DC5B52B62EBBA39500D0439E /* Frameworks */,
 				DCBD08E72EBFA23400F8867C /* Recovered References */,
@@ -135,6 +189,7 @@
 				DC65CB812EB8EA5900B066D7 /* Food1.app */,
 				DCE02B032EE2D80300E695FB /* Food1Tests.xctest */,
 				DC4C18D42EF48F91007E07F9 /* Food1UITests.xctest */,
+				DC4C19112EF732B4007E07F9 /* MealReminderWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -173,6 +228,28 @@
 			productReference = DC4C18D42EF48F91007E07F9 /* Food1UITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		DC4C19102EF732B4007E07F9 /* MealReminderWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DC4C19232EF732B5007E07F9 /* Build configuration list for PBXNativeTarget "MealReminderWidgetExtension" */;
+			buildPhases = (
+				DC4C190D2EF732B4007E07F9 /* Sources */,
+				DC4C190E2EF732B4007E07F9 /* Frameworks */,
+				DC4C190F2EF732B4007E07F9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				DC4C19162EF732B4007E07F9 /* MealReminderWidget */,
+			);
+			name = MealReminderWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = MealReminderWidgetExtension;
+			productReference = DC4C19112EF732B4007E07F9 /* MealReminderWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		DC65CB802EB8EA5900B066D7 /* Food1 */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = DC65CB8C2EB8EA5A00B066D7 /* Build configuration list for PBXNativeTarget "Food1" */;
@@ -180,10 +257,12 @@
 				DC65CB7D2EB8EA5900B066D7 /* Sources */,
 				DC65CB7E2EB8EA5900B066D7 /* Frameworks */,
 				DC65CB7F2EB8EA5900B066D7 /* Resources */,
+				DC4C19272EF732B5007E07F9 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				DC4C19212EF732B5007E07F9 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				DC65CB832EB8EA5900B066D7 /* Food1 */,
@@ -238,6 +317,9 @@
 						CreatedOnToolsVersion = 26.1.1;
 						TestTargetID = DC65CB802EB8EA5900B066D7;
 					};
+					DC4C19102EF732B4007E07F9 = {
+						CreatedOnToolsVersion = 26.1.1;
+					};
 					DC65CB802EB8EA5900B066D7 = {
 						CreatedOnToolsVersion = 26.0.1;
 					};
@@ -267,12 +349,20 @@
 				DC65CB802EB8EA5900B066D7 /* Food1 */,
 				DCE02B022EE2D80300E695FB /* Food1Tests */,
 				DC4C18D32EF48F91007E07F9 /* Food1UITests */,
+				DC4C19102EF732B4007E07F9 /* MealReminderWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		DC4C18D22EF48F91007E07F9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DC4C190F2EF732B4007E07F9 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -306,6 +396,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		DC4C190D2EF732B4007E07F9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DC65CB7D2EB8EA5900B066D7 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -327,6 +424,11 @@
 			isa = PBXTargetDependency;
 			target = DC65CB802EB8EA5900B066D7 /* Food1 */;
 			targetProxy = DC4C18DA2EF48F91007E07F9 /* PBXContainerItemProxy */;
+		};
+		DC4C19212EF732B5007E07F9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DC4C19102EF732B4007E07F9 /* MealReminderWidgetExtension */;
+			targetProxy = DC4C19202EF732B5007E07F9 /* PBXContainerItemProxy */;
 		};
 		DCE02B082EE2D80300E695FB /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -375,6 +477,68 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TEST_TARGET_NAME = Food1;
+			};
+			name = Release;
+		};
+		DC4C19242EF732B5007E07F9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2025121304;
+				DEVELOPMENT_TEAM = UJ4482ZF9C;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MealReminderWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MealReminderWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.02;
+				PRODUCT_BUNDLE_IDENTIFIER = com.filipolszak.Food1.MealReminderWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		DC4C19252EF732B5007E07F9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 2025121304;
+				DEVELOPMENT_TEAM = UJ4482ZF9C;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MealReminderWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MealReminderWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.02;
+				PRODUCT_BUNDLE_IDENTIFIER = com.filipolszak.Food1.MealReminderWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -647,6 +811,15 @@
 			buildConfigurations = (
 				DC4C18DC2EF48F91007E07F9 /* Debug */,
 				DC4C18DD2EF48F91007E07F9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DC4C19232EF732B5007E07F9 /* Build configuration list for PBXNativeTarget "MealReminderWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DC4C19242EF732B5007E07F9 /* Debug */,
+				DC4C19252EF732B5007E07F9 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

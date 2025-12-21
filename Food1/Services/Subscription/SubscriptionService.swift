@@ -15,6 +15,9 @@ import StoreKit
 import Foundation
 import Combine
 import Supabase
+import os.log
+
+private let logger = Logger(subsystem: "com.prismae.food1", category: "Subscription")
 
 /// Product identifiers matching App Store Connect / StoreKit config
 enum SubscriptionProduct: String, CaseIterable {
@@ -83,12 +86,9 @@ final class SubscriptionService: ObservableObject {
             let productIds = SubscriptionProduct.allCases.map { $0.rawValue }
             products = try await Product.products(for: productIds)
 
-            print("📦 Loaded \(products.count) products:")
-            for product in products {
-                print("   - \(product.id): \(product.displayName) @ \(product.displayPrice)")
-            }
+            logger.debug("Loaded \(self.products.count) products")
         } catch {
-            print("❌ Failed to load products: \(error)")
+            logger.error("Failed to load products: \(error.localizedDescription)")
             errorMessage = "Failed to load subscription options"
         }
     }
@@ -98,7 +98,7 @@ final class SubscriptionService: ObservableObject {
         isLoading = true
         defer { isLoading = false }
 
-        print("🛒 Attempting purchase: \(product.id)")
+        logger.info("Attempting purchase: \(product.id)")
 
         let result = try await product.purchase()
 
@@ -107,7 +107,7 @@ final class SubscriptionService: ObservableObject {
             // Verify the transaction
             let transaction = try checkVerified(verification)
 
-            print("✅ Purchase successful: \(transaction.productID)")
+            logger.info("Purchase successful: \(transaction.productID)")
 
             // Update subscription status in Supabase
             await syncPurchaseToSupabase(transaction: transaction)
@@ -121,16 +121,16 @@ final class SubscriptionService: ObservableObject {
             return true
 
         case .userCancelled:
-            print("🚫 User cancelled purchase")
+            logger.debug("User cancelled purchase")
             return false
 
         case .pending:
-            print("⏳ Purchase pending (Ask to Buy, etc.)")
+            logger.info("Purchase pending (Ask to Buy)")
             errorMessage = "Purchase is pending approval"
             return false
 
         @unknown default:
-            print("❓ Unknown purchase result")
+            logger.warning("Unknown purchase result")
             return false
         }
     }
@@ -140,23 +140,21 @@ final class SubscriptionService: ObservableObject {
         isLoading = true
         defer { isLoading = false }
 
-        print("🔄 Restoring purchases...")
+        logger.info("Restoring purchases...")
 
         do {
             // This syncs with App Store and triggers transaction updates
             try await AppStore.sync()
             await updateSubscriptionStatus()
-            print("✅ Restore complete")
+            logger.info("Restore complete")
         } catch {
-            print("❌ Restore failed: \(error)")
+            logger.error("Restore failed: \(error.localizedDescription)")
             errorMessage = "Failed to restore purchases"
         }
     }
 
     /// Check current subscription status
     func updateSubscriptionStatus() async {
-        print("🔍 Checking subscription status...")
-
         // Check for active subscription entitlement
         var hasActiveSubscription = false
 
@@ -170,19 +168,20 @@ final class SubscriptionService: ObservableObject {
                     if let expirationDate = transaction.expirationDate {
                         if expirationDate > Date() {
                             hasActiveSubscription = true
-                            print("✅ Active subscription: \(transaction.productID), expires: \(expirationDate)")
-                        } else {
-                            print("⏰ Subscription expired: \(transaction.productID)")
+                            logger.debug("Active subscription: \(transaction.productID)")
                         }
                     }
                 }
             } catch {
-                print("❌ Failed to verify transaction: \(error)")
+                logger.error("Failed to verify transaction: \(error.localizedDescription)")
             }
         }
 
+        // Only log when status changes
+        if isPremium != hasActiveSubscription {
+            logger.info("Premium status changed: \(hasActiveSubscription)")
+        }
         isPremium = hasActiveSubscription
-        print("📊 Premium status: \(isPremium)")
     }
 
     // MARK: - Private Methods
@@ -195,7 +194,7 @@ final class SubscriptionService: ObservableObject {
                 do {
                     let transaction = try await self.checkVerified(result)
 
-                    print("📬 Transaction update: \(transaction.productID)")
+                    logger.info("Transaction update: \(transaction.productID)")
 
                     // Sync to Supabase
                     await self.syncPurchaseToSupabase(transaction: transaction)
@@ -207,7 +206,7 @@ final class SubscriptionService: ObservableObject {
                     await self.updateSubscriptionStatus()
 
                 } catch {
-                    print("❌ Transaction verification failed: \(error)")
+                    logger.error("Transaction verification failed: \(error.localizedDescription)")
                 }
             }
         }
@@ -226,11 +225,9 @@ final class SubscriptionService: ObservableObject {
     /// Sync purchase to Supabase for cross-device validation
     private func syncPurchaseToSupabase(transaction: Transaction) async {
         guard let userId = await getCurrentUserId() else {
-            print("⚠️ No user ID available for sync")
+            logger.warning("No user ID available for sync")
             return
         }
-
-        print("☁️ Syncing purchase to Supabase for user: \(userId)")
 
         do {
             let supabase = SupabaseService.shared
@@ -261,10 +258,10 @@ final class SubscriptionService: ObservableObject {
                 .eq("user_id", value: userId.uuidString)
                 .execute()
 
-            print("✅ Synced subscription to Supabase: \(subscriptionType)")
+            logger.debug("Synced subscription to Supabase")
 
         } catch {
-            print("❌ Failed to sync to Supabase: \(error)")
+            logger.error("Failed to sync to Supabase: \(error.localizedDescription)")
         }
     }
 
