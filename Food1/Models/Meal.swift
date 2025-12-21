@@ -229,13 +229,15 @@ struct DailyGoals {
     let protein: Double
     let carbs: Double
     let fat: Double
+    let fiber: Double
 
     /// Default fallback goals when profile data is incomplete
     static let standard = DailyGoals(
         calories: 2000,
         protein: 150,
         carbs: 225,
-        fat: 65
+        fat: 65,
+        fiber: 28  // IOM Adequate Intake for adults
     )
 
     /// Calculate personalized goals from user profile using Mifflin-St Jeor equation
@@ -301,11 +303,27 @@ struct DailyGoals {
         let carbs = carbCalories / 4
         let fat = fatCalories / 9
 
+        // Fiber: IOM Adequate Intake by gender/age
+        // Men 19-50: 38g, Men 51+: 30g
+        // Women 19-50: 25g, Women 51+: 21g
+        let isOlder = age >= 51
+        let fiber: Double
+        switch gender {
+        case .male:
+            fiber = isOlder ? 30.0 : 38.0
+        case .female:
+            fiber = isOlder ? 21.0 : 25.0
+        case .other, .preferNotToSay:
+            // Average of male/female recommendations
+            fiber = isOlder ? 25.5 : 31.5
+        }
+
         return DailyGoals(
             calories: tdee.rounded(),
             protein: protein.rounded(),
             carbs: carbs.rounded(),
-            fat: fat.rounded()
+            fat: fat.rounded(),
+            fiber: fiber
         )
     }
 
@@ -324,14 +342,17 @@ struct DailyGoals {
             let manualProtein = defaults.double(forKey: "manualProteinGoal")
             let manualCarbs = defaults.double(forKey: "manualCarbsGoal")
             let manualFat = defaults.double(forKey: "manualFatGoal")
+            let manualFiber = defaults.double(forKey: "manualFiberGoal")
 
-            // Only use manual if all values are set (> 0)
+            // Only use manual if base values are set (> 0)
+            // Fiber defaults to 28g if not manually set (IOM Adequate Intake)
             if manualCalories > 0 && manualProtein > 0 && manualCarbs > 0 && manualFat > 0 {
                 return DailyGoals(
                     calories: manualCalories,
                     protein: manualProtein,
                     carbs: manualCarbs,
-                    fat: manualFat
+                    fat: manualFat,
+                    fiber: manualFiber > 0 ? manualFiber : 28.0
                 )
             }
         }

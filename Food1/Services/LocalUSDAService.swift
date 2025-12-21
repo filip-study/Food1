@@ -214,11 +214,9 @@ class LocalUSDAService {
                 // Scale to actual grams
                 let scaledAmount = amountPer100g * (grams / 100.0)
 
-                // Get RDA value
+                // Get RDA value (0 if no RDA defined for this nutrient)
                 let rdaValue = RDAValues.getRDA(for: name)
-                guard rdaValue > 0 else { continue }
-
-                let rdaPercent = (scaledAmount / rdaValue) * 100
+                let rdaPercent = rdaValue > 0 ? (scaledAmount / rdaValue) * 100 : 0
 
                 // Determine category based on nutrient name
                 let category = NutrientCategory.categorize(nutrientName: name)

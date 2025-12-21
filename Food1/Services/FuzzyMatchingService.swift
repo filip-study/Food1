@@ -118,6 +118,12 @@ class FuzzyMatchingService {
         "whipped cream": 170860,    // Cream, whipped, cream topping
         "almond milk": 174832,      // Beverages, almond milk, unsweetened
 
+        // Protein Supplements
+        "whey protein": 173177,     // Beverages, Whey protein powder isolate
+        "whey protein powder": 173177, // Beverages, Whey protein powder isolate
+        "whey protein isolate": 173177, // Beverages, Whey protein powder isolate
+        "whey": 173177,             // Beverages, Whey protein powder isolate
+
         // Fruits
         "banana": 173944,           // Bananas, raw
         "strawberries": 167762,     // Strawberries, raw
@@ -183,6 +189,10 @@ class FuzzyMatchingService {
         "pistachios": 170184,       // Nuts, pistachio nuts, raw
         "peanut butter": 172470,    // Peanut butter, smooth style
         "pumpkin seeds": 170556,    // Seeds, pumpkin and squash seed kernels
+        "chia seeds": 170554,       // Seeds, chia seeds, dried
+        "chia": 170554,             // Seeds, chia seeds, dried
+        "flax seeds": 169414,       // Seeds, flaxseed
+        "flaxseed": 169414,         // Seeds, flaxseed
 
         // Condiments & Oils
         "olive oil": 171413,        // Oil, olive, salad or cooking

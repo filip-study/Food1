@@ -19,7 +19,17 @@ final class AuthUITests: Food1UITestCase {
             throw XCTSkip("Already signed in - this test requires fresh app state")
         }
 
-        // Verify Apple Sign In button exists
+        // First: WelcomeView appears with "Get Started" button
+        let getStartedButton = app.buttons["getStartedButton"]
+        XCTAssertTrue(getStartedButton.waitForExistence(timeout: 5),
+                      "Get Started button should be visible on welcome screen")
+
+        takeScreenshot(name: "Welcome-Screen")
+
+        // Tap "Get Started" to navigate to OnboardingView
+        getStartedButton.tap()
+
+        // Now verify Apple Sign In button exists on OnboardingView
         let appleSignIn = app.buttons["Sign in with Apple"]
         XCTAssertTrue(appleSignIn.waitForExistence(timeout: 5),
                       "Apple Sign In button should be visible")
@@ -29,7 +39,7 @@ final class AuthUITests: Food1UITestCase {
         XCTAssertTrue(continueWithEmail.exists,
                       "Continue with Email button should exist")
 
-        takeScreenshot(name: "Onboarding-Screen")
+        takeScreenshot(name: "Onboarding-Auth-Screen")
 
         // Tap Continue with Email to verify email form works
         continueWithEmail.tap()

@@ -44,9 +44,6 @@ struct MealEditView: View {
     private let baseFat: Double
     private let baseTotalGrams: Double
 
-    // Default emoji for all meals
-    private let selectedEmoji = "🍽️"
-
     // Dynamic time range: only restrict to "now" if editing a meal for today
     private var timeRange: PartialRangeThrough<Date> {
         let calendar = Calendar.current
@@ -295,10 +292,9 @@ struct MealEditView: View {
         let newDate = calendar.startOfDay(for: newTimestamp)
         let dateChanged = oldDate != newDate
 
-        // Update existing meal
+        // Update existing meal (preserve original emoji - no picker in edit view)
         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
             editingMeal.name = mealName
-            editingMeal.emoji = selectedEmoji
             editingMeal.timestamp = newTimestamp
             editingMeal.calories = Double(calories) ?? 0
             editingMeal.protein = proteinValue

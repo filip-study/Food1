@@ -11,6 +11,7 @@
 //  - SwiftData observation automatically updates UI when cachedMicronutrientsJSON changes (no manual refresh)
 //  - Non-blocking: Meal save completes instantly, enrichment happens after in background (100-200ms typical)
 //  - 10-minute recent window (in Food1App) prevents infinite re-attempts on old unmatched ingredients
+//  - Fiber aggregation: After enrichment, calculates total fiber from USDA "Total Fiber" micronutrient
 //
 
 import Foundation
@@ -69,6 +70,17 @@ class BackgroundEnrichmentService {
         print("✅ Background enrichment complete\n")
         #endif
 
+        // Calculate total fiber from all enriched ingredients
+        if let meal = meal {
+            let totalFiber = calculateTotalFiber(from: ingredients)
+            if totalFiber > 0 {
+                meal.fiber = totalFiber
+                #if DEBUG
+                print("🥦 Updated meal fiber: \(String(format: "%.1f", totalFiber))g\n")
+                #endif
+            }
+        }
+
         // Trigger sync after enrichment completes (if meal and context provided)
         if let meal = meal, let context = context {
             #if DEBUG
@@ -76,6 +88,26 @@ class BackgroundEnrichmentService {
             #endif
             await syncCoordinator.syncMeal(meal, context: context)
         }
+    }
+
+    // MARK: - Fiber Calculation
+
+    /// Calculate total fiber from ingredients' USDA micronutrients
+    /// - Parameter ingredients: Array of MealIngredient with cached micronutrients
+    /// - Returns: Total fiber in grams from USDA "Total Fiber" nutrient
+    private func calculateTotalFiber(from ingredients: [MealIngredient]) -> Double {
+        var totalFiber: Double = 0
+
+        for ingredient in ingredients {
+            guard let micronutrients = ingredient.micronutrients else { continue }
+
+            // Look for "Total Fiber" in the ingredient's micronutrients
+            if let fiberNutrient = micronutrients.first(where: { $0.name == "Total Fiber" }) {
+                totalFiber += fiberNutrient.amount
+            }
+        }
+
+        return totalFiber
     }
 
     // MARK: - Private Methods

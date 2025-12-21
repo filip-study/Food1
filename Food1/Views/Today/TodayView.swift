@@ -35,11 +35,12 @@ struct TodayView: View {
     @AppStorage("manualProteinGoal") private var manualProtein: Double = 150
     @AppStorage("manualCarbsGoal") private var manualCarbs: Double = 225
     @AppStorage("manualFatGoal") private var manualFat: Double = 65
+    @AppStorage("manualFiberGoal") private var manualFiber: Double = 28
 
     @State private var showingQuickCamera = false
     @State private var showingManualEntry = false
     @State private var showingSettings = false
-    @State private var selectedDate = Date()
+    @Binding var selectedDate: Date  // Shared with MainTabView for FAB date sync
     @State private var dragOffset: CGFloat = 0
 
     /// Daily goals - either auto-calculated from profile or manual override
@@ -49,7 +50,8 @@ struct TodayView: View {
                 calories: manualCalories,
                 protein: manualProtein,
                 carbs: manualCarbs,
-                fat: manualFat
+                fat: manualFat,
+                fiber: manualFiber > 0 ? manualFiber : 28.0
             )
         }
         return DailyGoals.calculate(
@@ -331,7 +333,7 @@ struct EmptyStateView: View {
 
 #Preview {
     let preview = PreviewContainer()
-    return TodayView()
+    return TodayView(selectedDate: .constant(Date()))
         .modelContainer(preview.container)
         .environmentObject(AuthViewModel())
 }

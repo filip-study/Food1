@@ -19,6 +19,7 @@ struct MainTabView: View {
     @State private var selectedTab: NavigationTab = .meals
     @State private var selectedEntryMode: MealEntryMode? = nil  // Triggers fullScreenCover when set
     @State private var showingPaywall = false  // Paywall gate for expired/no subscription
+    @State private var selectedDate = Date()  // Shared date state for meal logging
     @AppStorage("appTheme") private var selectedTheme: AppTheme = .system
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -37,6 +38,7 @@ struct MainTabView: View {
     @AppStorage("manualProteinGoal") private var manualProtein: Double = 150
     @AppStorage("manualCarbsGoal") private var manualCarbs: Double = 225
     @AppStorage("manualFatGoal") private var manualFat: Double = 65
+    @AppStorage("manualFiberGoal") private var manualFiber: Double = 28
 
     /// Daily goals - either auto-calculated from profile or manual override
     private var personalizedGoals: DailyGoals {
@@ -45,7 +47,8 @@ struct MainTabView: View {
                 calories: manualCalories,
                 protein: manualProtein,
                 carbs: manualCarbs,
-                fat: manualFat
+                fat: manualFat,
+                fiber: manualFiber > 0 ? manualFiber : 28.0
             )
         }
         return DailyGoals.calculate(
@@ -85,7 +88,7 @@ struct MainTabView: View {
             Group {
                 switch selectedTab {
                 case .meals:
-                    TodayView()
+                    TodayView(selectedDate: $selectedDate)
                 case .stats:
                     StatsView()
                 case .myHealth:
@@ -120,7 +123,7 @@ struct MainTabView: View {
         .accessibilityIdentifier("mainTabView")  // For E2E test detection
         .preferredColorScheme(selectedTheme.colorScheme)
         .fullScreenCover(item: $selectedEntryMode) { mode in
-            QuickAddMealView(selectedDate: Date(), initialEntryMode: mode)
+            QuickAddMealView(selectedDate: selectedDate, initialEntryMode: mode)
         }
         .sheet(isPresented: $showingPaywall) {
             PaywallView()

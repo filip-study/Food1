@@ -85,6 +85,7 @@ struct StatisticsSummary {
     let totalProtein: Double
     let totalCarbs: Double
     let totalFat: Double
+    let totalFiber: Double
     let totalMeals: Int
 
     // Averages (per day with meals)
@@ -92,6 +93,7 @@ struct StatisticsSummary {
     let avgProtein: Double
     let avgCarbs: Double
     let avgFat: Double
+    let avgFiber: Double
 
     // Consistency
     let daysWithMeals: Int
@@ -119,6 +121,7 @@ struct StatisticsSummary {
         self.totalProtein = aggregates.reduce(0) { $0 + $1.protein }
         self.totalCarbs = aggregates.reduce(0) { $0 + $1.carbs }
         self.totalFat = aggregates.reduce(0) { $0 + $1.fat }
+        self.totalFiber = aggregates.reduce(0) { $0 + $1.fiber }
         self.totalMeals = aggregates.reduce(0) { $0 + $1.mealCount }
 
         // Calculate averages
@@ -130,11 +133,13 @@ struct StatisticsSummary {
             self.avgProtein = totalProtein / Double(daysWithData)
             self.avgCarbs = totalCarbs / Double(daysWithData)
             self.avgFat = totalFat / Double(daysWithData)
+            self.avgFiber = totalFiber / Double(daysWithData)
         } else {
             self.avgCalories = 0
             self.avgProtein = 0
             self.avgCarbs = 0
             self.avgFat = 0
+            self.avgFiber = 0
         }
 
         // Calculate consistency

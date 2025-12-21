@@ -24,12 +24,14 @@ struct NutritionGoalsEditorView: View {
     @AppStorage("manualProteinGoal") private var manualProtein: Double = 150
     @AppStorage("manualCarbsGoal") private var manualCarbs: Double = 225
     @AppStorage("manualFatGoal") private var manualFat: Double = 65
+    @AppStorage("manualFiberGoal") private var manualFiber: Double = 28
 
     // Text fields for editing
     @State private var caloriesText: String = ""
     @State private var proteinText: String = ""
     @State private var carbsText: String = ""
     @State private var fatText: String = ""
+    @State private var fiberText: String = ""
 
     // Auto-calculated goals for reference
     private var autoGoals: DailyGoals {
@@ -45,7 +47,8 @@ struct NutritionGoalsEditorView: View {
                 calories: manualCalories,
                 protein: manualProtein,
                 carbs: manualCarbs,
-                fat: manualFat
+                fat: manualFat,
+                fiber: manualFiber
             )
         }
     }
@@ -203,6 +206,30 @@ struct NutritionGoalsEditorView: View {
                             .foregroundColor(.secondary)
                             .frame(width: 40)
                     }
+
+                    // Fiber (not a macro, no percentage)
+                    HStack {
+                        Label("Fiber", systemImage: "leaf.arrow.triangle.circlepath")
+                            .foregroundColor(.green)
+                        Spacer()
+                        if useAutoGoals {
+                            Text("\(Int(effectiveGoals.fiber))")
+                                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                                .foregroundColor(.primary)
+                            Text("g")
+                                .font(.system(size: 14))
+                                .foregroundColor(.secondary)
+                        } else {
+                            TextField("28", text: $fiberText)
+                                .keyboardType(.numberPad)
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 60)
+                                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                            Text("g")
+                                .font(.system(size: 14))
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 } header: {
                     Text("Daily Targets")
                 }
@@ -216,6 +243,7 @@ struct NutritionGoalsEditorView: View {
                             proteinText = "\(Int(autoGoals.protein))"
                             carbsText = "\(Int(autoGoals.carbs))"
                             fatText = "\(Int(autoGoals.fat))"
+                            fiberText = "\(Int(autoGoals.fiber))"
                             saveManualGoals()
                             HapticManager.light()
                         } label: {
@@ -223,7 +251,7 @@ struct NutritionGoalsEditorView: View {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text("Use Suggested Values")
                                         .font(.system(size: 15, weight: .medium))
-                                    Text("\(Int(autoGoals.calories)) kcal • \(Int(autoGoals.protein))g protein • \(Int(autoGoals.carbs))g carbs • \(Int(autoGoals.fat))g fat")
+                                    Text("\(Int(autoGoals.calories)) kcal • \(Int(autoGoals.protein))g P • \(Int(autoGoals.carbs))g C • \(Int(autoGoals.fat))g F • \(Int(autoGoals.fiber))g fiber")
                                         .font(.system(size: 12))
                                         .foregroundColor(.secondary)
                                 }
@@ -271,11 +299,13 @@ struct NutritionGoalsEditorView: View {
                 proteinText = "\(Int(manualProtein))"
                 carbsText = "\(Int(manualCarbs))"
                 fatText = "\(Int(manualFat))"
+                fiberText = "\(Int(manualFiber))"
             }
             .onChange(of: caloriesText) { _, _ in if !useAutoGoals { saveManualGoals() } }
             .onChange(of: proteinText) { _, _ in if !useAutoGoals { saveManualGoals() } }
             .onChange(of: carbsText) { _, _ in if !useAutoGoals { saveManualGoals() } }
             .onChange(of: fatText) { _, _ in if !useAutoGoals { saveManualGoals() } }
+            .onChange(of: fiberText) { _, _ in if !useAutoGoals { saveManualGoals() } }
         }
     }
 
@@ -284,6 +314,7 @@ struct NutritionGoalsEditorView: View {
         if let pro = Double(proteinText), pro > 0 { manualProtein = pro }
         if let carb = Double(carbsText), carb > 0 { manualCarbs = carb }
         if let fat = Double(fatText), fat > 0 { manualFat = fat }
+        if let fiber = Double(fiberText), fiber > 0 { manualFiber = fiber }
     }
 }
 

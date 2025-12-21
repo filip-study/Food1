@@ -102,6 +102,7 @@ class SyncService: ObservableObject {
                 "total_protein_g": AnyEncodable(meal.protein),
                 "total_carbs_g": AnyEncodable(meal.carbs),
                 "total_fat_g": AnyEncodable(meal.fat),
+                "total_fiber_g": AnyEncodable(meal.fiber),
                 "sync_status": AnyEncodable("synced"),
                 "last_synced_at": AnyEncodable(ISO8601DateFormatter().string(from: Date())),
                 "user_prompt": AnyEncodable(meal.userPrompt)
@@ -402,6 +403,7 @@ class SyncService: ObservableObject {
         localMeal.protein = cloudMeal.totalProteinG ?? 0
         localMeal.carbs = cloudMeal.totalCarbsG ?? 0
         localMeal.fat = cloudMeal.totalFatG ?? 0
+        localMeal.fiber = cloudMeal.totalFiberG ?? 0
         localMeal.notes = cloudMeal.notes
         localMeal.mealType = cloudMeal.mealType
         localMeal.photoThumbnailUrl = cloudMeal.photoThumbnailUrl
@@ -448,7 +450,7 @@ class SyncService: ObservableObject {
             protein: cloudMeal.totalProteinG ?? 0,
             carbs: cloudMeal.totalCarbsG ?? 0,
             fat: cloudMeal.totalFatG ?? 0,
-            fiber: 0,
+            fiber: cloudMeal.totalFiberG ?? 0,
             notes: cloudMeal.notes,
             photoData: nil,  // Photos stored in cloud, thumbnail URL used for display
             ingredients: localIngredients,  // Now populated from JOIN query
@@ -690,6 +692,7 @@ struct CloudMeal: Codable {
     let totalProteinG: Double?
     let totalCarbsG: Double?
     let totalFatG: Double?
+    let totalFiberG: Double?
     let syncStatus: String?
     let lastSyncedAt: Date?
     let createdAt: Date
@@ -715,6 +718,7 @@ struct CloudMeal: Codable {
         case totalProteinG = "total_protein_g"
         case totalCarbsG = "total_carbs_g"
         case totalFatG = "total_fat_g"
+        case totalFiberG = "total_fiber_g"
         case syncStatus = "sync_status"
         case lastSyncedAt = "last_synced_at"
         case createdAt = "created_at"
