@@ -6,8 +6,13 @@
 //  Uses secure backend proxy - API key never exposed to iOS app
 //  Cost: ~$0.0002 per ingredient match (~$12/month for 1K users)
 //
+//  SECURITY (2024-12-21):
+//  - Sends Supabase JWT via X-Supabase-Token header for user identification
+//  - Worker verifies JWT signature and enforces per-user rate limits
+//
 
 import Foundation
+import Supabase
 
 /// Service for re-ranking USDA food candidates using Gemini 2.0 Flash-Lite via Cloudflare Worker
 @MainActor
@@ -74,6 +79,22 @@ class GeminiReranker: Reranker {
         }
     }
 
+    // MARK: - Supabase Token
+
+    /// Gets the current Supabase access token for API authentication
+    /// Returns nil if user is not authenticated
+    private func getSupabaseToken() async -> String? {
+        do {
+            let session = try await SupabaseService.shared.client.auth.session
+            return session.accessToken
+        } catch {
+            #if DEBUG
+            print("    ⚠️ Could not get Supabase token for reranker: \(error.localizedDescription)")
+            #endif
+            return nil
+        }
+    }
+
     // MARK: - Worker API Call
 
     private func callWorkerAPI(ingredientName: String, candidates: [USDAFood]) async throws -> WorkerResponse {
@@ -81,6 +102,9 @@ class GeminiReranker: Reranker {
         guard let url = URL(string: endpoint) else {
             throw GeminiError.invalidURL
         }
+
+        // Get Supabase token for rate limiting
+        let supabaseToken = await getSupabaseToken()
 
         // Build request body - send candidates as simple dictionaries
         let candidatesData = candidates.map { candidate in
@@ -105,6 +129,11 @@ class GeminiReranker: Reranker {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
         request.httpBody = jsonData
+
+        // Add Supabase JWT for user identification and rate limiting
+        if let token = supabaseToken {
+            request.setValue(token, forHTTPHeaderField: "X-Supabase-Token")
+        }
 
         // Make API call to Cloudflare Worker
         let (data, response) = try await session.data(for: request)

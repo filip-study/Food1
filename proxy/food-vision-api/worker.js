@@ -9,6 +9,8 @@
  * - Returns structured JSON nutrition data
  * - SMART ROUTING: Preemptively routes through AI Gateway for blocked regions (OpenAI)
  * - MONITORING: Logs metrics for observability
+ * - RATE LIMITING: Per-user daily limits with subscription tier awareness
+ * - SUBSCRIPTION VERIFICATION: Validates user subscription status via Supabase JWT
  *
  * Production improvements (2025-11-28):
  * - Multi-provider support with easy switching via VISION_PROVIDER env var
@@ -17,7 +19,39 @@
  * - Backward compatible with existing GPT-4o implementation
  * - Comprehensive error handling for all paths
  * - Monitoring metrics for performance tracking
+ *
+ * Security improvements (2024-12-21):
+ * - JWT verification using Supabase JWT secret (cryptographically secure)
+ * - Subscription status verification with KV caching (5-minute TTL)
+ * - Per-user rate limiting: 20/day (trial), 100/day (paid)
+ * - Expired/cancelled users blocked at API layer
  */
+
+// ============================================================================
+// RATE LIMITING CONFIGURATION
+// ============================================================================
+
+// Rate limits for meal analysis endpoints (/analyze, /analyze-label, /analyze-meal-text)
+const RATE_LIMITS_MEAL = {
+  trial: 20,      // Trial users: 20 meals/day
+  active: 20,     // Paid subscribers: 20 meals/day (same as trial for now)
+  expired: 0,     // Expired users: blocked
+  cancelled: 0,   // Cancelled users: blocked
+  unknown: 5      // Fallback for edge cases: 5 meals/day
+};
+
+// Rate limits for USDA enrichment endpoint (/match-usda) - 5x meal limits
+// Higher because each meal has multiple ingredients to match
+const RATE_LIMITS_ENRICHMENT = {
+  trial: 100,     // Trial users: 100 enrichments/day (5x20)
+  active: 100,    // Paid subscribers: 100 enrichments/day (same as trial for now)
+  expired: 0,     // Expired users: blocked
+  cancelled: 0,   // Cancelled users: blocked
+  unknown: 25     // Fallback: 25 enrichments/day (5x5)
+};
+
+const SUBSCRIPTION_CACHE_TTL = 300; // 5 minutes in seconds
+const RATE_LIMIT_TTL = 86400;       // 24 hours in seconds
 
 // Cloudflare data centers in OpenAI-blocked regions
 // Workers executing here will route through AI Gateway proactively
@@ -31,6 +65,403 @@ const BLOCKED_COLOS = new Set([
   // Other potentially blocked
   'KHI'  // Pakistan (sometimes blocked)
 ]);
+
+// ============================================================================
+// JWT VERIFICATION (Supabase HS256)
+// ============================================================================
+
+/**
+ * Verify a Supabase JWT and extract the user ID
+ * Uses Web Crypto API for HS256 signature verification
+ *
+ * @param {string} token - The JWT token from X-Supabase-Token header
+ * @param {string} secret - The Supabase JWT secret
+ * @returns {Promise<{valid: boolean, userId?: string, error?: string}>}
+ */
+async function verifySupabaseJWT(token, secret) {
+  if (!token || !secret) {
+    return { valid: false, error: 'Missing token or secret' };
+  }
+
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      return { valid: false, error: 'Invalid JWT format' };
+    }
+
+    const [headerB64, payloadB64, signatureB64] = parts;
+
+    // Verify signature using HMAC-SHA256
+    const encoder = new TextEncoder();
+    const data = encoder.encode(`${headerB64}.${payloadB64}`);
+    const signature = base64UrlDecode(signatureB64);
+
+    // Import secret and verify
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+    const isValid = await crypto.subtle.verify('HMAC', key, signature, data);
+
+    if (!isValid) {
+      return { valid: false, error: 'Invalid signature' };
+    }
+
+    // Decode and parse the payload
+    const payloadJson = atob(payloadB64.replace(/-/g, '+').replace(/_/g, '/'));
+    const payload = JSON.parse(payloadJson);
+
+    // Check expiration
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.exp && payload.exp < now) {
+      return { valid: false, error: 'Token expired' };
+    }
+
+    // Extract user ID (Supabase uses 'sub' claim)
+    const userId = payload.sub;
+    if (!userId) {
+      return { valid: false, error: 'No user ID in token' };
+    }
+
+    return { valid: true, userId };
+
+  } catch (error) {
+    console.error('JWT verification error:', error);
+    return { valid: false, error: error.message };
+  }
+}
+
+/**
+ * Decode base64url to Uint8Array
+ */
+function base64UrlDecode(str) {
+  // Convert base64url to base64
+  let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+  // Pad with '=' if necessary
+  while (base64.length % 4 !== 0) {
+    base64 += '=';
+  }
+  // Decode to binary string
+  const binary = atob(base64);
+  // Convert to Uint8Array
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+// ============================================================================
+// SUBSCRIPTION VERIFICATION
+// ============================================================================
+
+/**
+ * Get user's subscription status from Supabase (with KV caching)
+ *
+ * Uses the user's own JWT + anon key (not service key) for security.
+ * RLS policy on subscription_status allows users to read their own row.
+ *
+ * @param {string} userId - The user's UUID
+ * @param {string} userJwt - The user's Supabase JWT (for RLS authentication)
+ * @param {Object} env - Environment variables (SUPABASE_URL, SUPABASE_ANON_KEY, RATE_LIMIT KV)
+ * @returns {Promise<{type: string, expiresAt?: Date, isActive: boolean}>}
+ */
+async function getSubscriptionStatus(userId, userJwt, env) {
+  const cacheKey = `sub:${userId}`;
+
+  // Check KV cache first
+  if (env.RATE_LIMIT) {
+    try {
+      const cached = await env.RATE_LIMIT.get(cacheKey, { type: 'json' });
+      if (cached) {
+        console.log(`📋 Subscription cache HIT for user ${userId.substring(0, 8)}...`);
+        return cached;
+      }
+    } catch (e) {
+      console.warn('KV cache read error:', e.message);
+    }
+  }
+
+  console.log(`📋 Subscription cache MISS, querying Supabase for user ${userId.substring(0, 8)}...`);
+
+  // Query Supabase for subscription status
+  // Use anon key + user's JWT (RLS will ensure they can only read their own row)
+  // SECURITY: Supabase credentials are REQUIRED - no fallback
+  if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
+    console.error('❌ CRITICAL: Supabase credentials not configured - blocking request');
+    return { type: 'blocked', isActive: false, error: 'Server configuration error' };
+  }
+
+  try {
+    const response = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/subscription_status?user_id=eq.${userId}&select=subscription_type,subscription_expires_at,trial_end_date`,
+      {
+        headers: {
+          'apikey': env.SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${userJwt}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!response.ok) {
+      // SECURITY: Supabase query failed - block request (fail closed)
+      // Cost protection is more important than availability
+      console.error('❌ BLOCKED: Supabase query failed:', response.status);
+      return { type: 'blocked', isActive: false, error: 'Subscription verification failed' };
+    }
+
+    const data = await response.json();
+
+    if (!data || data.length === 0) {
+      // SECURITY: No subscription record = blocked
+      // Users MUST have a subscription record created during sign-up
+      // If missing, either sign-up didn't complete or record was deleted
+      console.error('❌ BLOCKED: No subscription record found for user');
+      return { type: 'blocked', isActive: false, error: 'No subscription record' };
+    }
+
+    const sub = data[0];
+    const now = new Date();
+
+    // Determine effective subscription status
+    let status;
+    if (sub.subscription_type === 'active') {
+      // Paid subscription - check if expired
+      const expiresAt = sub.subscription_expires_at ? new Date(sub.subscription_expires_at) : null;
+      if (expiresAt && expiresAt < now) {
+        status = { type: 'expired', isActive: false, expiresAt };
+      } else {
+        status = { type: 'active', isActive: true, expiresAt };
+      }
+    } else if (sub.subscription_type === 'trial') {
+      // Trial - check if expired
+      const trialEnd = sub.trial_end_date ? new Date(sub.trial_end_date) : null;
+      if (trialEnd && trialEnd < now) {
+        status = { type: 'expired', isActive: false };
+      } else {
+        status = { type: 'trial', isActive: true, expiresAt: trialEnd };
+      }
+    } else if (sub.subscription_type === 'cancelled') {
+      status = { type: 'cancelled', isActive: false };
+    } else if (sub.subscription_type === 'expired') {
+      status = { type: 'expired', isActive: false };
+    } else {
+      // SECURITY: Unknown subscription type = blocked (fail closed)
+      // Valid types are: active, trial, cancelled, expired
+      console.error('❌ BLOCKED: Unknown subscription type:', sub.subscription_type);
+      status = { type: 'blocked', isActive: false, error: 'Invalid subscription type' };
+    }
+
+    // Cache the result
+    if (env.RATE_LIMIT) {
+      try {
+        await env.RATE_LIMIT.put(cacheKey, JSON.stringify(status), {
+          expirationTtl: SUBSCRIPTION_CACHE_TTL
+        });
+      } catch (e) {
+        console.warn('KV cache write error:', e.message);
+      }
+    }
+
+    return status;
+
+  } catch (error) {
+    // SECURITY: Any error in subscription check = blocked (fail closed)
+    // Cost protection is more important than availability
+    console.error('❌ BLOCKED: Subscription check error:', error.message);
+    return { type: 'blocked', isActive: false, error: 'Subscription verification error' };
+  }
+}
+
+// ============================================================================
+// RATE LIMITING
+// ============================================================================
+
+/**
+ * Check and update rate limit for a user
+ *
+ * @param {string} userId - The user's UUID
+ * @param {string} subscriptionType - The user's subscription type
+ * @param {string} endpointType - 'meal' or 'enrichment' (determines which rate limit table to use)
+ * @param {Object} env - Environment variables with RATE_LIMIT KV
+ * @returns {Promise<{allowed: boolean, remaining: number, limit: number, resetAt: string}>}
+ */
+async function checkRateLimit(userId, subscriptionType, endpointType, env) {
+  const rateLimits = endpointType === 'enrichment' ? RATE_LIMITS_ENRICHMENT : RATE_LIMITS_MEAL;
+  const limit = rateLimits[subscriptionType] ?? rateLimits.unknown;
+
+  // If limit is 0, user is blocked
+  if (limit === 0) {
+    return {
+      allowed: false,
+      remaining: 0,
+      limit: 0,
+      resetAt: null,
+      reason: 'Subscription expired or cancelled'
+    };
+  }
+
+  // Generate daily rate limit key (resets at midnight UTC)
+  // Separate keys for meal vs enrichment endpoints
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  const rateLimitKey = `rl:${userId}:${endpointType}:${today}`;
+
+  if (!env.RATE_LIMIT) {
+    console.warn('KV not configured, allowing request without rate limiting');
+    return { allowed: true, remaining: limit, limit, resetAt: null };
+  }
+
+  try {
+    // Get current count
+    const currentCount = parseInt(await env.RATE_LIMIT.get(rateLimitKey)) || 0;
+
+    if (currentCount >= limit) {
+      // Calculate reset time (next midnight UTC)
+      const tomorrow = new Date();
+      tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+      tomorrow.setUTCHours(0, 0, 0, 0);
+
+      return {
+        allowed: false,
+        remaining: 0,
+        limit,
+        resetAt: tomorrow.toISOString(),
+        reason: 'Daily limit exceeded'
+      };
+    }
+
+    // Increment count
+    const newCount = currentCount + 1;
+    await env.RATE_LIMIT.put(rateLimitKey, String(newCount), {
+      expirationTtl: RATE_LIMIT_TTL
+    });
+
+    return {
+      allowed: true,
+      remaining: limit - newCount,
+      limit,
+      resetAt: null
+    };
+
+  } catch (error) {
+    console.error('Rate limit check error:', error);
+    // Fail open for availability
+    return { allowed: true, remaining: limit, limit, resetAt: null };
+  }
+}
+
+/**
+ * Unified authentication, subscription, and rate limit check
+ * Call this at the start of each protected endpoint
+ *
+ * @param {Request} request - The incoming request
+ * @param {Object} env - Environment variables
+ * @param {string} endpointType - 'meal' or 'enrichment' (determines rate limit table)
+ * @returns {Promise<{authorized: boolean, userId?: string, subscription?: Object, rateLimit?: Object, errorResponse?: Response}>}
+ */
+async function authenticateAndCheckLimits(request, env, endpointType = 'meal') {
+  // Step 1: Verify AUTH_TOKEN (quick API-level auth)
+  const authHeader = request.headers.get('Authorization');
+  if (!authHeader || authHeader !== `Bearer ${env.AUTH_TOKEN}`) {
+    return {
+      authorized: false,
+      errorResponse: jsonResponse({ error: 'Unauthorized' }, 401)
+    };
+  }
+
+  // Step 2: Get and verify Supabase JWT (REQUIRED for all requests)
+  const supabaseToken = request.headers.get('X-Supabase-Token');
+
+  // SECURITY: Supabase token is REQUIRED - no exceptions
+  // This prevents unauthorized API usage and cost attacks
+  if (!supabaseToken) {
+    console.error('❌ BLOCKED: No X-Supabase-Token header - request rejected');
+    return {
+      authorized: false,
+      errorResponse: jsonResponse({
+        error: 'Authentication required',
+        details: 'Missing X-Supabase-Token header'
+      }, 401)
+    };
+  }
+
+  // Verify the JWT - JWT secret is REQUIRED for security
+  if (!env.SUPABASE_JWT_SECRET) {
+    console.error('❌ CRITICAL: SUPABASE_JWT_SECRET not configured - cannot verify tokens');
+    return {
+      authorized: false,
+      errorResponse: jsonResponse({
+        error: 'Server configuration error',
+        details: 'JWT verification not configured'
+      }, 500)
+    };
+  }
+
+  const jwtResult = await verifySupabaseJWT(supabaseToken, env.SUPABASE_JWT_SECRET);
+
+  // SECURITY: JWT must be valid - no fallbacks, no exceptions
+  if (!jwtResult.valid) {
+    console.error('❌ BLOCKED: JWT verification failed:', jwtResult.error);
+    return {
+      authorized: false,
+      errorResponse: jsonResponse({
+        error: 'Invalid authentication token',
+        details: jwtResult.error
+      }, 401)
+    };
+  }
+
+  const userId = jwtResult.userId;
+  console.log(`✅ Authenticated user: ${userId.substring(0, 8)}...`);
+
+  // Step 3: Check subscription status (using user's JWT + anon key, not service key)
+  const subscription = await getSubscriptionStatus(userId, supabaseToken, env);
+  console.log(`📋 Subscription: ${subscription.type}, active: ${subscription.isActive}`);
+
+  if (!subscription.isActive) {
+    return {
+      authorized: false,
+      errorResponse: jsonResponse({
+        error: 'Subscription required',
+        subscriptionType: subscription.type,
+        message: 'Your subscription has expired. Please renew to continue using this feature.'
+      }, 403)
+    };
+  }
+
+  // Step 4: Check rate limit (based on endpoint type)
+  const rateLimit = await checkRateLimit(userId, subscription.type, endpointType, env);
+  console.log(`🚦 Rate limit (${endpointType}): ${rateLimit.remaining}/${rateLimit.limit} remaining`);
+
+  if (!rateLimit.allowed) {
+    return {
+      authorized: false,
+      errorResponse: jsonResponse({
+        error: 'Rate limit exceeded',
+        reason: rateLimit.reason,
+        limit: rateLimit.limit,
+        remaining: 0,
+        resetAt: rateLimit.resetAt,
+        subscriptionType: subscription.type
+      }, 429)
+    };
+  }
+
+  return {
+    authorized: true,
+    userId,
+    subscription,
+    rateLimit
+  };
+}
+
+// ============================================================================
+// MAIN WORKER EXPORT
+// ============================================================================
 
 export default {
   async fetch(request, env, ctx) {
@@ -363,10 +794,15 @@ async function handleGeminiResponse(response) {
  */
 async function handleFoodAnalysis(request, env) {
   try {
-      // Verify authentication token
-      const authToken = request.headers.get('Authorization');
-      if (!authToken || authToken !== `Bearer ${env.AUTH_TOKEN}`) {
-        return jsonResponse({ error: 'Unauthorized' }, 401);
+      // Unified auth, subscription, and rate limit check
+      const authResult = await authenticateAndCheckLimits(request, env);
+      if (!authResult.authorized) {
+        return authResult.errorResponse;
+      }
+
+      // Log user context for monitoring
+      if (authResult.userId) {
+        console.log(`🍽️ Food analysis for user ${authResult.userId.substring(0, 8)}... (${authResult.subscription?.type}, ${authResult.rateLimit?.remaining} remaining)`);
       }
 
       // Determine which vision provider to use (default: gemini)
@@ -604,18 +1040,24 @@ Return ONLY the JSON object, no additional text.`;
 
 /**
  * Handle natural language meal description parsing
+ * Uses Gemini 2.0 Flash-Lite (cheaper text-only model)
  */
 async function handleMealTextAnalysis(request, env) {
   try {
-    // Verify authentication token
-    const authToken = request.headers.get('Authorization');
-    if (!authToken || authToken !== `Bearer ${env.AUTH_TOKEN}`) {
-      return jsonResponse({ error: 'Unauthorized' }, 401);
+    // Unified auth, subscription, and rate limit check
+    const authResult = await authenticateAndCheckLimits(request, env);
+    if (!authResult.authorized) {
+      return authResult.errorResponse;
     }
 
-    // Verify OpenAI API key is configured
-    if (!env.OPENAI_API_KEY) {
-      console.error('OPENAI_API_KEY not configured');
+    // Log user context for monitoring
+    if (authResult.userId) {
+      console.log(`📝 Text analysis for user ${authResult.userId.substring(0, 8)}... (${authResult.subscription?.type}, ${authResult.rateLimit?.remaining} remaining)`);
+    }
+
+    // Verify Gemini API key is configured
+    if (!env.GEMINI_API_KEY) {
+      console.error('GEMINI_API_KEY not configured');
       return jsonResponse({ error: 'Server configuration error' }, 500);
     }
 
@@ -632,13 +1074,7 @@ async function handleMealTextAnalysis(request, env) {
     console.log('Text:', text);
     console.log('Length:', text.length, 'chars');
 
-    // Build OpenAI API request for text parsing (using chat completion, not vision)
-    const openaiRequest = {
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'user',
-          content: `I'm using a nutrition tracking app and need help logging a meal. Please analyze this meal description and provide nutritional estimates.
+    const prompt = `I'm using a nutrition tracking app and need help logging a meal. Please analyze this meal description and provide nutritional estimates.
 
 Meal description: "${text}"
 
@@ -705,48 +1141,54 @@ QUANTITY PARSING:
 - "large apple" → ~200g
 - "medium banana" → ~120g
 
-Return ONLY the JSON object, no additional text.`
-        }
-      ],
-      max_tokens: 600,
-      response_format: { type: 'json_object' }
+Return ONLY the JSON object, no additional text.`;
+
+    // Call Gemini 2.0 Flash-Lite API (cheaper text-only model)
+    const startTime = Date.now();
+    const geminiRequest = {
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.0,
+        maxOutputTokens: 600,
+        topP: 1.0,
+        responseMimeType: 'application/json'
+      }
     };
 
-    // Call OpenAI API with smart geographic routing
-    const { response: openaiResponse, colo, usedProxy, startTime } = await callOpenAI(request, env, openaiRequest);
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${env.GEMINI_API_KEY}`;
+    console.log('📤 Calling Gemini 2.0 Flash-Lite API for text analysis...');
 
-    // Handle errors with comprehensive error handling
-    const errorResponse = await handleOpenAIResponse(openaiResponse, colo, usedProxy);
-    if (errorResponse) {
-      return errorResponse;
-    }
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(geminiRequest)
+    });
 
-    // Parse OpenAI response
-    const data = await openaiResponse.json();
-    console.log('OpenAI text analysis response:', JSON.stringify(data));
+    console.log(`✅ Gemini response: HTTP ${response.status}`);
 
-    const message = data.choices?.[0]?.message;
-    const content = message?.content;
-    const refusal = message?.refusal;
-
-    // Check for refusal first
-    if (refusal) {
-      console.error('GPT-4o refused to analyze:', refusal);
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('❌ Gemini error:', error);
       return jsonResponse({
-        error: 'AI refused to analyze text',
-        details: refusal
-      }, 500);
+        error: 'AI service error',
+        details: error.error?.message || 'Unknown error',
+        status: response.status
+      }, response.status);
     }
+
+    // Parse Gemini response
+    const data = await response.json();
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!content) {
-      console.error('No content in OpenAI response. Full response:', JSON.stringify(data));
+      console.error('No content in Gemini response:', data);
       return jsonResponse({
         error: 'No response from AI',
-        details: 'OpenAI returned empty content'
+        details: 'Gemini returned empty content'
       }, 500);
     }
 
-    // Parse JSON response from GPT-4o
+    // Parse JSON response
     let analysisResult;
     try {
       analysisResult = JSON.parse(content);
@@ -762,11 +1204,10 @@ Return ONLY the JSON object, no additional text.`
     const latencyMs = Date.now() - startTime;
     console.log(JSON.stringify({
       event: 'meal_text_analysis',
-      colo: colo,
-      routing: usedProxy ? 'aws_proxy' : 'direct',
+      provider: 'gemini-flash-lite',
       status: 'success',
       latency_ms: latencyMs,
-      tokens: data.usage?.total_tokens,
+      tokens: data.usageMetadata?.totalTokenCount,
       predictions: analysisResult.predictions?.length || 0,
       text_length: text.length
     }));
@@ -776,10 +1217,11 @@ Return ONLY the JSON object, no additional text.`
       success: true,
       data: analysisResult,
       usage: {
-        promptTokens: data.usage?.prompt_tokens,
-        completionTokens: data.usage?.completion_tokens,
-        totalTokens: data.usage?.total_tokens
-      }
+        promptTokens: data.usageMetadata?.promptTokenCount || 0,
+        completionTokens: data.usageMetadata?.candidatesTokenCount || 0,
+        totalTokens: data.usageMetadata?.totalTokenCount || 0
+      },
+      provider: 'gemini-flash-lite'
     });
 
   } catch (error) {
@@ -793,13 +1235,25 @@ Return ONLY the JSON object, no additional text.`
 
 /**
  * Handle nutrition label extraction from image
+ * Uses Gemini 2.0 Flash (vision model for reading labels)
  */
 async function handleNutritionLabel(request, env) {
   try {
-    // Verify authentication token
-    const authToken = request.headers.get('Authorization');
-    if (!authToken || authToken !== `Bearer ${env.AUTH_TOKEN}`) {
-      return jsonResponse({ error: 'Unauthorized' }, 401);
+    // Unified auth, subscription, and rate limit check
+    const authResult = await authenticateAndCheckLimits(request, env);
+    if (!authResult.authorized) {
+      return authResult.errorResponse;
+    }
+
+    // Log user context for monitoring
+    if (authResult.userId) {
+      console.log(`🏷️ Label analysis for user ${authResult.userId.substring(0, 8)}... (${authResult.subscription?.type}, ${authResult.rateLimit?.remaining} remaining)`);
+    }
+
+    // Verify Gemini API key is configured
+    if (!env.GEMINI_API_KEY) {
+      console.error('GEMINI_API_KEY not configured');
+      return jsonResponse({ error: 'Server configuration error' }, 500);
     }
 
     // Parse request body
@@ -810,16 +1264,7 @@ async function handleNutritionLabel(request, env) {
       return jsonResponse({ error: 'Missing image data' }, 400);
     }
 
-    // Build OpenAI API request for nutrition label extraction
-    const openaiRequest = {
-      model: 'gpt-4o',
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `IMPORTANT: I'm using a nutrition tracking app and need to log a packaged food item. I need you to analyze ONLY the nutrition facts label in this photo - ignore any people, hands, or faces visible in the image. I am NOT asking you to identify or describe any people. Focus exclusively on the nutrition label text.
+    const prompt = `IMPORTANT: I'm using a nutrition tracking app and need to log a packaged food item. I need you to analyze ONLY the nutrition facts label in this photo - ignore any people, hands, or faces visible in the image. I am NOT asking you to identify or describe any people. Focus exclusively on the nutrition label text.
 
 This photo shows the nutrition facts label on the package. Please help me by extracting the nutrition information from this label so I can accurately track my intake.
 
@@ -852,72 +1297,34 @@ Guidelines for extraction:
 - Use null values if information is not visible or unclear
 - Include fiber, sugar, and sodium if they're shown on the label
 
-Return ONLY the JSON object, no additional text.`
-            },
-            {
-              type: 'image_url',
-              image_url: {
-                url: image.startsWith('data:') ? image : `data:image/jpeg;base64,${image}`,
-                detail: 'high'  // Use high-detail for accurate label reading
-              }
-            }
-          ]
-        }
-      ],
-      max_tokens: 500,
-      response_format: { type: 'json_object' }
-    };
+Return ONLY the JSON object, no additional text.`;
 
-    // Call OpenAI API with smart geographic routing
-    const { response: openaiResponse, colo, usedProxy, startTime } = await callOpenAI(request, env, openaiRequest);
+    // Call Gemini 2.0 Flash API (vision model for reading labels)
+    const { response, startTime } = await callGemini(env, prompt, image, { maxTokens: 500, temperature: 0.0 });
 
-    // Handle errors with comprehensive error handling
-    const errorResponse = await handleOpenAIResponse(openaiResponse, colo, usedProxy);
-    if (errorResponse) {
-      return errorResponse;
-    }
-
-    // Parse OpenAI response
-    const data = await openaiResponse.json();
-    const content = data.choices[0]?.message?.content;
-
-    if (!content) {
-      return jsonResponse({ error: 'No response from AI' }, 500);
-    }
-
-    // Parse JSON response from GPT-4o
-    let labelData;
-    try {
-      labelData = JSON.parse(content);
-    } catch (e) {
-      console.error('Failed to parse AI response:', content);
-      return jsonResponse({
-        error: 'Invalid response format from AI',
-        raw: content
-      }, 500);
+    // Handle Gemini response
+    const geminiResult = await handleGeminiResponse(response);
+    if (geminiResult.error) {
+      return jsonResponse(geminiResult, geminiResult.status || 500);
     }
 
     // Log monitoring metrics for observability
     const latencyMs = Date.now() - startTime;
     console.log(JSON.stringify({
       event: 'nutrition_label',
-      colo: colo,
-      routing: usedProxy ? 'aws_proxy' : 'direct',
+      provider: 'gemini-flash',
       status: 'success',
       latency_ms: latencyMs,
-      tokens: data.usage?.total_tokens,
-      confidence: labelData.confidence
+      tokens: geminiResult.usage?.totalTokens,
+      confidence: geminiResult.data?.confidence
     }));
 
     // Return structured response
     return jsonResponse({
       success: true,
-      data: labelData,
-      usage: {
-        promptTokens: data.usage?.prompt_tokens,
-        completionTokens: data.usage?.completion_tokens,
-        totalTokens: data.usage?.total_tokens
-      }
+      data: geminiResult.data,
+      usage: geminiResult.usage,
+      provider: 'gemini-flash'
     });
 
   } catch (error) {
@@ -950,10 +1357,15 @@ function jsonResponse(data, status = 200) {
  */
 async function handleUSDAMatching(request, env) {
   try {
-    // Verify authentication token
-    const authToken = request.headers.get('Authorization');
-    if (!authToken || authToken !== `Bearer ${env.AUTH_TOKEN}`) {
-      return jsonResponse({ error: 'Unauthorized' }, 401);
+    // Unified auth, subscription, and rate limit check (uses 'enrichment' rate limits - 5x higher)
+    const authResult = await authenticateAndCheckLimits(request, env, 'enrichment');
+    if (!authResult.authorized) {
+      return authResult.errorResponse;
+    }
+
+    // Log user context for monitoring
+    if (authResult.userId) {
+      console.log(`🔍 USDA matching for user ${authResult.userId.substring(0, 8)}... (${authResult.subscription?.type}, ${authResult.rateLimit?.remaining} enrichments remaining)`);
     }
 
     // Verify Gemini API key is configured
