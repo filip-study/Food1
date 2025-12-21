@@ -420,20 +420,12 @@ struct NutritionReviewView: View {
             )
         }
 
-        // Combine date from selectedDate with time from mealTime picker
+        // Use mealTime directly - it contains full date+time from TimeSelectionSheet
+        // (TimeSelectionSheet allows changing both date and time)
         let calendar = Calendar.current
-        let dateComponents = calendar.dateComponents([.year, .month, .day], from: selectedDate)
-        let timeComponents = calendar.dateComponents([.hour, .minute], from: mealTime)
-
-        var combinedComponents = DateComponents()
-        combinedComponents.year = dateComponents.year
-        combinedComponents.month = dateComponents.month
-        combinedComponents.day = dateComponents.day
-        combinedComponents.hour = timeComponents.hour
-        combinedComponents.minute = timeComponents.minute
-        combinedComponents.second = 0  // Zero out seconds for cleaner timestamps
-
-        let finalTimestamp = calendar.date(from: combinedComponents) ?? selectedDate
+        var components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: mealTime)
+        components.second = 0  // Zero out seconds for cleaner timestamps
+        let finalTimestamp = calendar.date(from: components) ?? mealTime
 
         let newMeal = Meal(
             name: mealName,
