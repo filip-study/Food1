@@ -60,7 +60,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - Test sandbox purchase flow
 
 **What's Ready:**
-- ✅ All 33 tests passing
+- ✅ All 38 tests passing (34 active, 4 skipped)
 - ✅ Security (secrets in xcconfig, Cloudflare proxy)
 - ✅ Auth flow (Apple Sign In + Email)
 - ✅ Subscription system (StoreKit 2)
@@ -107,6 +107,7 @@ Prismae ("Food1") is an iOS nutrition tracking app with AI-powered food recognit
 - Test files: Food1Tests/*.swift
 - CI/CD: GitHub Actions runs tests automatically on every push
 - See `.github/workflows/ios-tests.yml` for CI configuration
+- **CI Runner Choice:** Default is `macos-26` (GitHub-hosted, free, has Xcode 26). To run on self-hosted (for watching UI tests locally): `gh workflow run ios-tests.yml -f runner=self-hosted`
 - **Use XcodeBuildMCP tools**: After UI changes, use `xcrun simctl` to take screenshots and verify in both light/dark modes
 
 ## Architecture
