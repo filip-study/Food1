@@ -117,9 +117,7 @@ EOF
         uses: actions/upload-artifact@v4
         with:
           name: test-results
-          path: |
-            ~/Library/Developer/Xcode/DerivedData/Food1-*/Logs/Test/*.xcresult
-            coverage.json
+          path: coverage.json
           if-no-files-found: warn
 
       - name: Test Summary
@@ -130,3 +128,4 @@ EOF
           echo ""
           echo "⚠️  Note: Test failures do NOT block PR merges"
           echo "Manual review and approval required for all changes"
+
