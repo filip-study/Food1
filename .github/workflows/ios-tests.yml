@@ -24,7 +24,7 @@ jobs:
   test:
     name: Run XCTest Suite
     # Use macos-26 (GitHub-hosted with Xcode 26) by default, or self-hosted for local UI test watching
-    runs-on: ${{ inputs.runner || 'macos-26' }}
+    runs-on: ${{ github.event.inputs.runner || 'macos-26' }}
 
     steps:
       - name: Checkout code
