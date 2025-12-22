@@ -1,7 +1,5 @@
 name: iOS Tests
 
-# Run tests on every push to any branch
-# Note: Tests report status but do NOT block PR merges - manual review required
 on:
   push:
     branches:
@@ -18,13 +16,11 @@ on:
         type: choice
         options:
           - macos-15
-          - macos-26-xlarge
           - self-hosted
 
 jobs:
   test:
     name: Run XCTest Suite
-    # Use macos-15 by default (macos-26 for Xcode 26 requires xlarge runner)
     runs-on: ${{ github.event.inputs.runner || 'macos-15' }}
 
     steps:
@@ -33,14 +29,7 @@ jobs:
 
       - name: Select Xcode version
         run: |
-          # Find and use Xcode 26.x (works on both GitHub-hosted macos-26 and self-hosted)
-          if [ -d "/Applications/Xcode_26.0.app" ]; then
-            sudo xcode-select -s /Applications/Xcode_26.0.app
-          elif [ -d "/Applications/Xcode-26.0.1.app" ]; then
-            sudo xcode-select -s /Applications/Xcode-26.0.1.app
-          elif [ -d "/Applications/Xcode.app" ]; then
-            sudo xcode-select -s /Applications/Xcode.app
-          fi
+          sudo xcode-select -s /Applications/Xcode.app
           xcodebuild -version
 
       - name: List available simulators
@@ -48,28 +37,14 @@ jobs:
 
       - name: Setup API Config for CI
         run: |
-          # Copy CI-safe APIConfig template (no real secrets needed for tests)
           cp Food1/Config/APIConfig.swift.template Food1/Config/APIConfig.swift
-
-          # Create dummy Secrets.xcconfig for CI (unit tests don't need real credentials)
-          # The project uses xcconfig for build settings, which are substituted into Info.plist
-          # Note: In xcconfig, // starts a comment, so URLs use $() to escape: https:/$()/ becomes https://
           cat > Food1/Config/Secrets.xcconfig << 'EOF'
-//
-// Secrets.xcconfig (CI-generated dummy values)
-// Unit tests don't need real Supabase/API connections
-//
-
-// Dummy Supabase Configuration
-SUPABASE_URL = https:/$()/test.supabase.co
-SUPABASE_ANON_KEY = test-anon-key
-
-// Dummy Proxy Configuration
-PROXY_ENDPOINT = https:/$()/test-worker.example.com/analyze
-AUTH_TOKEN = test-auth-token
-EOF
-
-          echo "✅ Using test-safe config for CI"
+          SUPABASE_URL = https://test.supabase.co
+          SUPABASE_ANON_KEY = test-anon-key
+          PROXY_ENDPOINT = https://test-worker.example.com/analyze
+          AUTH_TOKEN = test-auth-token
+          EOF
+          echo "Config created"
 
       - name: Build for Testing
         run: |
@@ -77,7 +52,7 @@ EOF
             -project Food1.xcodeproj \
             -scheme Food1 \
             -configuration Debug \
-            -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
             -enableCodeCoverage YES \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
@@ -85,47 +60,13 @@ EOF
 
       - name: Run Tests
         run: |
-          # Run only unit tests (Food1Tests), not UI tests
-          # UI tests run separately via ios-e2e.yml workflow (requires test credentials)
           xcodebuild test-without-building \
             -project Food1.xcodeproj \
             -scheme Food1 \
             -configuration Debug \
-            -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+            -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
             -only-testing:Food1Tests \
             -enableCodeCoverage YES \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
-
-      - name: Generate Code Coverage Report
-        if: always()
-        run: |
-          xcrun xccov view --report --json \
-            ~/Library/Developer/Xcode/DerivedData/Food1-*/Logs/Test/*.xcresult > coverage.json || true
-
-          # Print human-readable coverage summary
-          if [ -f coverage.json ]; then
-            echo "📊 Code Coverage Summary:"
-            cat coverage.json | python3 -m json.tool || echo "Coverage data generated"
-          else
-            echo "⚠️  Coverage report not generated (may need test target setup)"
-          fi
-
-      - name: Upload Test Results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-results
-          path: coverage.json
-          if-no-files-found: warn
-
-      - name: Test Summary
-        if: always()
-        run: |
-          echo "✅ Test run completed!"
-          echo "Review test results in the Actions artifacts"
-          echo ""
-          echo "⚠️  Note: Test failures do NOT block PR merges"
-          echo "Manual review and approval required for all changes"
-
