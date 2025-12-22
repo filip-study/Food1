@@ -47,11 +47,13 @@ jobs:
         run: |
           cp Food1/Config/APIConfig.swift.template Food1/Config/APIConfig.swift
           cat > Food1/Config/Secrets.xcconfig << 'EOF'
-          SUPABASE_URL = https://test.supabase.co
+          // CI-generated dummy config
+          SUPABASE_URL = https:/$()/test.supabase.co
           SUPABASE_ANON_KEY = test-anon-key
-          PROXY_ENDPOINT = https://test-worker.example.com/analyze
+          PROXY_ENDPOINT = https:/$()/test-worker.example.com/analyze
           AUTH_TOKEN = test-auth-token
           EOF
+          cat Food1/Config/Secrets.xcconfig
           echo "Config created"
 
       - name: Build for Testing
@@ -65,6 +67,11 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
+
+      - name: Boot Simulator
+        run: |
+          xcrun simctl boot "iPhone 17 Pro" || true
+          sleep 5
 
       - name: Run Tests
         run: |
