@@ -12,17 +12,17 @@ on:
       runner:
         description: 'Runner to use'
         required: true
-        default: 'macos-26-xlarge'
+        default: 'macos-26'
         type: choice
         options:
-          - macos-26-xlarge
+          - macos-26
           - self-hosted
 
 jobs:
   test:
     name: Run XCTest Suite
-    # macos-26-xlarge has Xcode 26 for iOS 26 apps; self-hosted for local UI test watching
-    runs-on: ${{ github.event.inputs.runner || 'macos-26-xlarge' }}
+    # macos-26 has Xcode 26 for iOS 26 apps; self-hosted for local UI test watching
+    runs-on: ${{ github.event.inputs.runner || 'macos-26' }}
 
     steps:
       - name: Checkout code
