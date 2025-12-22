@@ -63,6 +63,7 @@ struct NutritionReviewView: View {
     // Time selection
     @State private var mealTime: Date
     @State private var showingTimeSheet = false
+    @State private var didSave = false
 
     init(selectedDate: Date, foodName: String, capturedImage: UIImage?, prediction: FoodRecognitionService.FoodPrediction, prefilledCalories: Double? = nil, prefilledProtein: Double? = nil, prefilledCarbs: Double? = nil, prefilledFat: Double? = nil, prefilledEstimatedGrams: Double? = nil, photoTimestamp: Date? = nil, userPrompt: String? = nil) {
         self.selectedDate = selectedDate
@@ -253,11 +254,23 @@ struct NutritionReviewView: View {
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") {
+                    Button {
                         saveMeal()
+                    } label: {
+                        ZStack {
+                            Text("Add")
+                                .fontWeight(.bold)
+                                .opacity(didSave ? 0 : 1)
+
+                            Image(systemName: "checkmark")
+                                .fontWeight(.bold)
+                                .foregroundStyle(.green)
+                                .opacity(didSave ? 1 : 0)
+                                .scaleEffect(didSave ? 1 : 0.5)
+                                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: didSave)
+                        }
                     }
-                    .disabled(mealName.isEmpty || calories.isEmpty)
-                    .bold()
+                    .disabled(mealName.isEmpty || calories.isEmpty || didSave)
                 }
             }
             .sheet(isPresented: $showingTimeSheet) {
@@ -467,10 +480,14 @@ struct NutritionReviewView: View {
             await StatisticsService.shared.updateAggregates(for: newMeal, in: modelContext)
         }
 
-        // Dismiss both sheets
-        dismiss()
-        // Note: This will dismiss the nutrition review sheet.
-        // The parent FoodRecognitionView should also dismiss itself
+        // Success feedback
+        HapticManager.success()
+        didSave = true
+
+        // Brief confirmation then dismiss
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            dismiss()
+        }
     }
 }
 
