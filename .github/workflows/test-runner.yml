@@ -1,0 +1,16 @@
+name: Test Runner
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: macos-15
+    steps:
+      - name: Check system
+        run: |
+          echo "Hello from runner"
+          sw_vers
+          xcodebuild -version
