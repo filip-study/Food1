@@ -9,7 +9,8 @@ st.set_page_config(page_title="User Explorer", page_icon="👤", layout="wide")
 try:
     from utils.queries import (
         get_all_users, get_user_meals, get_meal_ingredients, get_user_by_id,
-        get_user_subscription, extend_user_trial
+        get_user_subscription, extend_user_trial,
+        get_user_onboarding, get_user_meal_reminder_settings, get_user_meal_windows
     )
     from utils.filters import render_filters, filter_by_time
 
@@ -109,6 +110,69 @@ try:
                 st.caption(f"**Last Payment:** {str(last_pay)[:10] if last_pay else '—'}")
         else:
             st.warning("No subscription record found for this user")
+    # ═══════════════════════════════════════════════════════════════════
+
+    # ═══════════════════════════════════════════════════════════════════
+    # Onboarding & Feature Status Section
+    # ═══════════════════════════════════════════════════════════════════
+    with st.expander("🎯 Onboarding & Features", expanded=False):
+        onboarding = get_user_onboarding(user_id)
+        reminder_settings = get_user_meal_reminder_settings(user_id)
+        meal_windows = get_user_meal_windows(user_id)
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("**Onboarding Progress**")
+
+            if onboarding:
+                steps = [
+                    ("Welcome", onboarding.get("welcome_completed_at")),
+                    ("Meal Reminders", onboarding.get("meal_reminders_completed_at")),
+                    ("Profile Setup", onboarding.get("profile_setup_completed_at")),
+                ]
+
+                for step_name, completed_at in steps:
+                    if completed_at:
+                        date_str = str(completed_at)[:10]
+                        st.markdown(f"✅ {step_name} · {date_str}")
+                    else:
+                        st.markdown(f"⬜ {step_name} · *pending*")
+
+                # App version first seen
+                app_ver = onboarding.get("app_version_first_seen")
+                if app_ver:
+                    st.caption(f"First seen version: {app_ver}")
+            else:
+                st.info("No onboarding record (user predates tracking)")
+
+        with col2:
+            st.markdown("**Meal Reminders**")
+
+            if reminder_settings:
+                is_enabled = reminder_settings.get("is_enabled", False)
+                use_learning = reminder_settings.get("use_learning", False)
+                lead_time = reminder_settings.get("lead_time_minutes", 45)
+
+                status_icon = "🟢" if is_enabled else "🔴"
+                st.markdown(f"{status_icon} Feature {'enabled' if is_enabled else 'disabled'}")
+                st.markdown(f"🧠 Smart learning: {'on' if use_learning else 'off'}")
+                st.markdown(f"⏰ Lead time: {lead_time} minutes")
+
+                # Meal windows
+                if not meal_windows.empty:
+                    st.markdown(f"**{len(meal_windows)} Meal Windows:**")
+                    for _, window in meal_windows.iterrows():
+                        name = window.get("name", "?")
+                        target = str(window.get("target_time", ""))[:5]
+                        learned = window.get("learned_time")
+                        enabled = window.get("is_enabled", True)
+
+                        icon = "✓" if enabled else "✗"
+                        learned_str = f" → {str(learned)[:5]}" if learned else ""
+                        st.caption(f"{icon} {name}: {target}{learned_str}")
+            else:
+                st.info("Meal reminders not configured")
     # ═══════════════════════════════════════════════════════════════════
 
     if user_meals.empty:

@@ -23,9 +23,15 @@
 //    • 800 max_tokens - Sufficient for detailed ingredient analysis
 //  Result: Typical 2-5s response time. Further compression may hurt recognition accuracy.
 //
+//  SECURITY (2024-12-21):
+//  - Sends Supabase JWT via X-Supabase-Token header for user identification
+//  - Worker verifies JWT signature cryptographically
+//  - Enables per-user rate limiting and subscription verification at API layer
+//
 
 import UIKit
 import Combine
+import Supabase
 
 /// Service for analyzing food images using OpenAI GPT-4o Vision API via secure proxy
 @MainActor
@@ -79,8 +85,11 @@ class OpenAIVisionService: ObservableObject {
             print("📸 Image encoded: \(base64Image.prefix(50))...")
             #endif
 
-            // Step 2: Build API request
-            let request = try buildRequest(base64Image: base64Image)
+            // Step 2: Get Supabase token for rate limiting
+            let supabaseToken = await getSupabaseToken()
+
+            // Step 3: Build API request with authentication
+            let request = try buildRequest(base64Image: base64Image, supabaseToken: supabaseToken)
 
             #if DEBUG
             print("🌐 Sending request to proxy: \(proxyEndpoint)")
@@ -248,6 +257,20 @@ class OpenAIVisionService: ObservableObject {
         }
     }
 
+    /// Gets the current Supabase access token for API authentication
+    /// Returns nil if user is not authenticated (legacy mode - no rate limiting)
+    private func getSupabaseToken() async -> String? {
+        do {
+            let session = try await SupabaseService.shared.client.auth.session
+            return session.accessToken
+        } catch {
+            #if DEBUG
+            print("⚠️ Could not get Supabase token: \(error.localizedDescription)")
+            #endif
+            return nil
+        }
+    }
+
     /// Builds URLRequest for proxy endpoint
     private func buildRequest(base64Image: String) throws -> URLRequest {
         guard let url = URL(string: proxyEndpoint) else {
@@ -263,7 +286,7 @@ class OpenAIVisionService: ObservableObject {
         // Build request body
         let requestBody: [String: Any] = [
             "image": "data:image/jpeg;base64,\(base64Image)",
-            "userId": "ios-app-user" // Optional: can be used for rate limiting
+            "userId": "ios-app-user" // Legacy field, kept for compatibility
         ]
 
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
@@ -271,8 +294,20 @@ class OpenAIVisionService: ObservableObject {
         return request
     }
 
+    /// Builds URLRequest with Supabase token for rate limiting
+    private func buildRequest(base64Image: String, supabaseToken: String?) throws -> URLRequest {
+        var request = try buildRequest(base64Image: base64Image)
+
+        // Add Supabase JWT for user identification and rate limiting
+        if let token = supabaseToken {
+            request.setValue(token, forHTTPHeaderField: "X-Supabase-Token")
+        }
+
+        return request
+    }
+
     /// Builds URLRequest for nutrition label endpoint
-    private func buildLabelRequest(base64Image: String) throws -> URLRequest {
+    private func buildLabelRequest(base64Image: String, supabaseToken: String? = nil) throws -> URLRequest {
         // Use label endpoint (replace /analyze with /analyze-label)
         let labelEndpoint = proxyEndpoint.replacingOccurrences(of: "/analyze", with: "/analyze-label")
 
@@ -286,10 +321,15 @@ class OpenAIVisionService: ObservableObject {
         request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
         request.timeoutInterval = timeout
 
+        // Add Supabase JWT for user identification and rate limiting
+        if let token = supabaseToken {
+            request.setValue(token, forHTTPHeaderField: "X-Supabase-Token")
+        }
+
         // Build request body
         let requestBody: [String: Any] = [
             "image": "data:image/jpeg;base64,\(base64Image)",
-            "userId": "ios-app-user"
+            "userId": "ios-app-user" // Legacy field, kept for compatibility
         ]
 
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
@@ -319,8 +359,11 @@ class OpenAIVisionService: ObservableObject {
             print("📋 Analyzing nutrition label...")
             #endif
 
-            // Step 2: Build API request for label endpoint
-            let request = try buildLabelRequest(base64Image: base64Image)
+            // Step 2: Get Supabase token for rate limiting
+            let supabaseToken = await getSupabaseToken()
+
+            // Step 3: Build API request for label endpoint
+            let request = try buildLabelRequest(base64Image: base64Image, supabaseToken: supabaseToken)
 
             // Step 3: Make network request
             let (data, response) = try await session.data(for: request)

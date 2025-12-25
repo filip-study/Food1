@@ -9,8 +9,14 @@
 //  Uses GPT-4o via Cloudflare Worker proxy (text-only, no vision tokens).
 //  Endpoint: /analyze-meal-text (to be added to proxy worker)
 //
+//  SECURITY (2024-12-21):
+//  - Sends Supabase JWT via X-Supabase-Token header for user identification
+//  - Worker verifies JWT signature cryptographically
+//  - Enables per-user rate limiting and subscription verification at API layer
+//
 
 import UIKit
+import Supabase
 
 extension OpenAIVisionService {
 
@@ -27,8 +33,11 @@ extension OpenAIVisionService {
         }
 
         do {
-            // Step 1: Build API request for text analysis
-            let request = try buildTextRequest(description: description)
+            // Step 1: Get Supabase token for rate limiting
+            let supabaseToken = await getSupabaseTokenForText()
+
+            // Step 2: Build API request for text analysis
+            let request = try buildTextRequest(description: description, supabaseToken: supabaseToken)
 
             #if DEBUG
             print("💬 Analyzing meal text: \"\(description)\"")
@@ -105,8 +114,22 @@ extension OpenAIVisionService {
 
     // MARK: - Private Methods
 
+    /// Gets the current Supabase access token for API authentication (extension version)
+    /// Returns nil if user is not authenticated (legacy mode - no rate limiting)
+    private func getSupabaseTokenForText() async -> String? {
+        do {
+            let session = try await SupabaseService.shared.client.auth.session
+            return session.accessToken
+        } catch {
+            #if DEBUG
+            print("⚠️ Could not get Supabase token: \(error.localizedDescription)")
+            #endif
+            return nil
+        }
+    }
+
     /// Builds URLRequest for text meal analysis endpoint
-    private func buildTextRequest(description: String) throws -> URLRequest {
+    private func buildTextRequest(description: String, supabaseToken: String? = nil) throws -> URLRequest {
         // Use text endpoint (replace /analyze with /analyze-meal-text)
         let textEndpoint = proxyEndpoint.replacingOccurrences(of: "/analyze", with: "/analyze-meal-text")
 
@@ -120,10 +143,15 @@ extension OpenAIVisionService {
         request.setValue("Bearer \(authToken)", forHTTPHeaderField: "Authorization")
         request.timeoutInterval = timeout
 
+        // Add Supabase JWT for user identification and rate limiting
+        if let token = supabaseToken {
+            request.setValue(token, forHTTPHeaderField: "X-Supabase-Token")
+        }
+
         // Build request body
         let requestBody: [String: Any] = [
             "text": description,
-            "userId": "ios-app-user"
+            "userId": "ios-app-user" // Legacy field, kept for compatibility
         ]
 
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)

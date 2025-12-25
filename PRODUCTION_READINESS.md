@@ -19,8 +19,10 @@ This document tracks Prismae's readiness for public App Store release.
 | **Architecture** | ✅ Ready | Clean separation, documented patterns |
 | **Legal/Compliance** | ⚠️ Partial | Missing Terms & Privacy pages; Account Deletion ✅ |
 | **Monetization** | ⚠️ Verify | StoreKit product needs App Store Connect verification |
+| **API Protection** | 🔴 Missing | No rate limiting; unlimited API cost exposure |
+| **Subscription Security** | 🟡 Acceptable | Client-side verification only; server-side recommended post-launch |
 
-**Bottom Line:** The app is technically solid but has **blocking legal/compliance gaps** that must be resolved before App Store submission.
+**Bottom Line:** The app is technically solid but has **blocking legal/compliance gaps** and **missing API rate limiting** (financial risk) that should be resolved before App Store submission.
 
 ---
 
@@ -64,6 +66,47 @@ This document tracks Prismae's readiness for public App Store release.
   - [ ] Verify pricing is set correctly ($5.99/month as shown in PaywallView)
   - [ ] Test purchase flow in sandbox environment
   - [ ] Verify subscription group configuration
+
+### 5. API Rate Limiting - NOT IMPLEMENTED 🔴
+- **Current State:** Cloudflare Worker has NO per-user rate limiting
+- **Location:** `proxy/food-vision-api/worker.js`
+- **Risk:** A single user (malicious or power user) could run up significant Vision API costs
+- **Financial Exposure:** Unlimited — no caps on requests per user
+- **Action Required:**
+  - [ ] Add per-user daily request limits (recommend: 50 meals/day)
+  - [ ] Add Cloudflare KV for rate limit tracking
+  - [ ] Return 429 status when limit exceeded
+  - [ ] Consider different limits for trial vs. paid users
+
+### 6. Subscription Verification at API Layer - NOT IMPLEMENTED 🟡
+- **Current State:** Vision API only checks AUTH_TOKEN, not subscription status
+- **Location:** `proxy/food-vision-api/worker.js`
+- **Risk:** Expired/cancelled users can still use the Vision API (costs you money)
+- **Action Required:**
+  - [ ] Pass subscription status from iOS to Worker (or verify via Supabase)
+  - [ ] Reject requests from expired users at API layer
+  - [ ] Alternative: Rely on iOS-side paywall gate (current approach)
+
+---
+
+## High Priority (Post-Launch or If Issues Arise)
+
+### Server-Side Receipt Verification
+- **Current State:** iOS app directly updates Supabase subscription_status
+- **Risk Level:** Low-Medium — requires sophisticated attacker, limited financial exposure
+- **Recommendation:** Implement App Store Server Notifications v2 if subscription fraud detected
+- **Action Required (if needed):**
+  - [ ] Set up webhook endpoint (Supabase Edge Function)
+  - [ ] Configure App Store Server Notifications v2 in App Store Connect
+  - [ ] Verify Apple's signed notifications server-side
+  - [ ] Remove client's ability to directly update subscription_status
+
+### RLS Policy Hardening
+- **Current State:** INSERT policies allow inserting without verifying user_id matches
+- **Location:** Supabase RLS policies
+- **Risk:** Low — user can only affect their own data anyway
+- **Action Required:**
+  - [ ] Add `WITH CHECK (auth.uid() = user_id)` to INSERT policies
 
 ---
 
@@ -164,6 +207,7 @@ This document tracks Prismae's readiness for public App Store release.
 
 | Date | Change |
 |------|--------|
+| 2024-12-21 | Added API rate limiting (critical blocker) and subscription security sections after deep investigation. |
 | 2024-12-19 | Implemented account deletion feature (2-step confirmation). 3 blockers remain. |
 | 2024-12-19 | Initial document creation. Identified 4 critical blockers. |
 

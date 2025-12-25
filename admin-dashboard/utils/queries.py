@@ -542,3 +542,236 @@ def extend_user_trial(user_id: str, days: int) -> bool:
         trial_end_date=new_end,
         subscription_type="trial"
     )
+
+
+# ============================================================================
+# ONBOARDING QUERIES
+# ============================================================================
+
+@st.cache_data(ttl=CACHE_TTL)
+def get_all_onboarding() -> pd.DataFrame:
+    """
+    Fetch onboarding status for all users.
+
+    Returns DataFrame with columns:
+    - user_id, welcome_completed_at, meal_reminders_completed_at
+    - profile_setup_completed_at, app_version_first_seen, created_at
+    """
+    client = get_supabase_client()
+
+    result = client.table("user_onboarding").select("*").execute()
+
+    return pd.DataFrame(result.data) if result.data else pd.DataFrame()
+
+
+@st.cache_data(ttl=CACHE_TTL)
+def get_meal_reminder_settings() -> pd.DataFrame:
+    """
+    Fetch meal reminder settings for all users.
+
+    Returns DataFrame with columns:
+    - user_id, is_enabled, lead_time_minutes, auto_dismiss_minutes
+    - use_learning, onboarding_completed, created_at, updated_at
+    """
+    client = get_supabase_client()
+
+    result = client.table("meal_reminder_settings").select("*").execute()
+
+    return pd.DataFrame(result.data) if result.data else pd.DataFrame()
+
+
+@st.cache_data(ttl=CACHE_TTL)
+def get_meal_windows() -> pd.DataFrame:
+    """
+    Fetch all meal windows across all users.
+
+    Returns DataFrame with columns:
+    - id, user_id, name, target_time, learned_time
+    - is_enabled, sort_order, created_at, updated_at
+    """
+    client = get_supabase_client()
+
+    result = client.table("meal_windows").select("*").execute()
+
+    return pd.DataFrame(result.data) if result.data else pd.DataFrame()
+
+
+def get_onboarding_stats() -> dict:
+    """
+    Calculate onboarding completion statistics.
+
+    Returns dict with:
+    - total_users
+    - welcome_completed, welcome_rate
+    - meal_reminders_completed, meal_reminders_rate
+    - profile_setup_completed, profile_setup_rate
+    - fully_onboarded (all steps complete)
+    """
+    users_df = get_all_users()
+    onboarding_df = get_all_onboarding()
+
+    total_users = len(users_df)
+
+    if onboarding_df.empty or total_users == 0:
+        return {
+            "total_users": total_users,
+            "welcome_completed": 0,
+            "welcome_rate": 0,
+            "meal_reminders_completed": 0,
+            "meal_reminders_rate": 0,
+            "profile_setup_completed": 0,
+            "profile_setup_rate": 0,
+            "fully_onboarded": 0,
+            "fully_onboarded_rate": 0,
+        }
+
+    welcome = onboarding_df["welcome_completed_at"].notna().sum()
+    meal_reminders = onboarding_df["meal_reminders_completed_at"].notna().sum()
+    profile_setup = onboarding_df["profile_setup_completed_at"].notna().sum()
+
+    # Fully onboarded = all steps complete
+    fully = (
+        onboarding_df["welcome_completed_at"].notna() &
+        onboarding_df["meal_reminders_completed_at"].notna() &
+        onboarding_df["profile_setup_completed_at"].notna()
+    ).sum()
+
+    return {
+        "total_users": total_users,
+        "welcome_completed": int(welcome),
+        "welcome_rate": round(welcome / total_users * 100, 1),
+        "meal_reminders_completed": int(meal_reminders),
+        "meal_reminders_rate": round(meal_reminders / total_users * 100, 1),
+        "profile_setup_completed": int(profile_setup),
+        "profile_setup_rate": round(profile_setup / total_users * 100, 1),
+        "fully_onboarded": int(fully),
+        "fully_onboarded_rate": round(fully / total_users * 100, 1),
+    }
+
+
+def get_meal_reminder_stats() -> dict:
+    """
+    Calculate meal reminder feature adoption statistics.
+
+    Returns dict with:
+    - total_configured (has settings)
+    - feature_enabled (is_enabled = true)
+    - learning_enabled (use_learning = true)
+    - total_meal_windows
+    - avg_windows_per_user
+    """
+    settings_df = get_meal_reminder_settings()
+    windows_df = get_meal_windows()
+
+    if settings_df.empty:
+        return {
+            "total_configured": 0,
+            "feature_enabled": 0,
+            "feature_enabled_rate": 0,
+            "learning_enabled": 0,
+            "total_meal_windows": 0,
+            "avg_windows_per_user": 0,
+        }
+
+    total = len(settings_df)
+    enabled = settings_df["is_enabled"].sum() if "is_enabled" in settings_df.columns else 0
+    learning = settings_df["use_learning"].sum() if "use_learning" in settings_df.columns else 0
+
+    total_windows = len(windows_df)
+    avg_windows = round(total_windows / total, 1) if total > 0 else 0
+
+    return {
+        "total_configured": total,
+        "feature_enabled": int(enabled),
+        "feature_enabled_rate": round(enabled / total * 100, 1) if total > 0 else 0,
+        "learning_enabled": int(learning),
+        "total_meal_windows": total_windows,
+        "avg_windows_per_user": avg_windows,
+    }
+
+
+def get_onboarding_funnel() -> pd.DataFrame:
+    """
+    Get onboarding funnel data for visualization.
+
+    Returns DataFrame with columns: step, count, rate
+    Ordered: Registered -> Welcome -> Meal Reminders -> Profile Setup
+    """
+    users_df = get_all_users()
+    onboarding_df = get_all_onboarding()
+
+    total = len(users_df)
+
+    if total == 0:
+        return pd.DataFrame(columns=["step", "count", "rate"])
+
+    welcome = onboarding_df["welcome_completed_at"].notna().sum() if not onboarding_df.empty else 0
+    meal_reminders = onboarding_df["meal_reminders_completed_at"].notna().sum() if not onboarding_df.empty else 0
+    profile_setup = onboarding_df["profile_setup_completed_at"].notna().sum() if not onboarding_df.empty else 0
+
+    funnel_data = [
+        {"step": "Registered", "count": total, "rate": 100.0},
+        {"step": "Welcome", "count": int(welcome), "rate": round(welcome / total * 100, 1)},
+        {"step": "Meal Reminders", "count": int(meal_reminders), "rate": round(meal_reminders / total * 100, 1)},
+        {"step": "Profile Setup", "count": int(profile_setup), "rate": round(profile_setup / total * 100, 1)},
+    ]
+
+    return pd.DataFrame(funnel_data)
+
+
+def get_user_onboarding(user_id: str) -> Optional[dict]:
+    """
+    Fetch onboarding status for a specific user.
+
+    Args:
+        user_id: UUID string of the user
+
+    Returns dict with onboarding data, or None if not found.
+    """
+    client = get_supabase_client()
+
+    result = client.table("user_onboarding")\
+        .select("*")\
+        .eq("user_id", user_id)\
+        .execute()
+
+    return result.data[0] if result.data else None
+
+
+def get_user_meal_reminder_settings(user_id: str) -> Optional[dict]:
+    """
+    Fetch meal reminder settings for a specific user.
+
+    Args:
+        user_id: UUID string of the user
+
+    Returns dict with settings, or None if not configured.
+    """
+    client = get_supabase_client()
+
+    result = client.table("meal_reminder_settings")\
+        .select("*")\
+        .eq("user_id", user_id)\
+        .execute()
+
+    return result.data[0] if result.data else None
+
+
+def get_user_meal_windows(user_id: str) -> pd.DataFrame:
+    """
+    Fetch meal windows for a specific user.
+
+    Args:
+        user_id: UUID string of the user
+
+    Returns DataFrame of user's meal windows.
+    """
+    client = get_supabase_client()
+
+    result = client.table("meal_windows")\
+        .select("*")\
+        .eq("user_id", user_id)\
+        .order("sort_order")\
+        .execute()
+
+    return pd.DataFrame(result.data) if result.data else pd.DataFrame()

@@ -45,14 +45,25 @@ struct AccountView: View {
                     }
 
                     if let userId = authViewModel.currentUser?.id {
-                        HStack {
-                            Text("User ID")
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Text(userId.uuidString.prefix(8) + "...")
-                                .foregroundColor(.secondary)
-                                .font(.system(size: 13, design: .monospaced))
+                        Button(action: {
+                            UIPasteboard.general.string = userId.uuidString
+                            // Haptic feedback on copy
+                            let generator = UINotificationFeedbackGenerator()
+                            generator.notificationOccurred(.success)
+                        }) {
+                            HStack {
+                                Text("User ID")
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                                Text(userId.uuidString.prefix(8) + "...")
+                                    .foregroundColor(.primary)
+                                    .font(.system(size: 13, design: .monospaced))
+                                Image(systemName: "doc.on.doc")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.secondary)
+                            }
                         }
+                        .buttonStyle(.plain)
                     }
                 } header: {
                     Text("Account")
@@ -150,6 +161,14 @@ struct AccountView: View {
                     }
                     .disabled(isSigningOut)
                     .opacity(isSigningOut ? 0.6 : 1.0)
+                    .confirmationDialog("Sign Out", isPresented: $showingSignOutConfirmation) {
+                        Button("Sign Out", role: .destructive) {
+                            handleSignOut()
+                        }
+                        Button("Cancel", role: .cancel) {}
+                    } message: {
+                        Text("Are you sure you want to sign out?")
+                    }
                 } footer: {
                     Text("Your meals and data are securely stored in the cloud and will be available when you sign in again.")
                         .font(.system(size: 13))
@@ -170,6 +189,15 @@ struct AccountView: View {
                     .accessibilityIdentifier("deleteAccountButton")  // For E2E tests
                     .disabled(isDeleting)
                     .opacity(isDeleting ? 0.6 : 1.0)
+                    // Step 1: Initial delete confirmation
+                    .confirmationDialog("Delete Account", isPresented: $showingDeleteConfirmation) {
+                        Button("Delete Account", role: .destructive) {
+                            showingDeleteFinalConfirmation = true
+                        }
+                        Button("Cancel", role: .cancel) {}
+                    } message: {
+                        Text("This will permanently delete your account and all your data including:\n\n• Your profile\n• All logged meals\n• Subscription status\n\nThis action cannot be undone.")
+                    }
                 } header: {
                     Text("Danger Zone")
                 } footer: {
@@ -187,24 +215,7 @@ struct AccountView: View {
                     }
                 }
             }
-            .confirmationDialog("Sign Out", isPresented: $showingSignOutConfirmation) {
-                Button("Sign Out", role: .destructive) {
-                    handleSignOut()
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Are you sure you want to sign out?")
-            }
-            // Step 1: Initial delete confirmation
-            .confirmationDialog("Delete Account", isPresented: $showingDeleteConfirmation) {
-                Button("Delete Account", role: .destructive) {
-                    showingDeleteFinalConfirmation = true
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("This will permanently delete your account and all your data including:\n\n• Your profile\n• All logged meals\n• Subscription status\n\nThis action cannot be undone.")
-            }
-            // Step 2: Final confirmation with text input
+            // Step 2: Final confirmation with text input (alert stays at NavigationStack level)
             .alert("Confirm Deletion", isPresented: $showingDeleteFinalConfirmation) {
                 TextField("Type DELETE to confirm", text: $deleteConfirmationText)
                     .autocapitalization(.allCharacters)
