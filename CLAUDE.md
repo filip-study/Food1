@@ -47,8 +47,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Critical Blockers (Must Fix Before App Store):**
 
 1. **Legal Pages Missing:**
-   - `prismae.app/terms` - Currently redirects, needs actual Terms of Use
-   - `prismae.app/privacy` - Currently redirects, needs actual Privacy Policy
+   - `prismae.net/terms` - Needs actual Terms of Use
+   - `prismae.net/privacy` - Needs actual Privacy Policy
    - Referenced in: `PaywallView.swift:198-200`
 
 2. **Account Deletion:** ✅ IMPLEMENTED

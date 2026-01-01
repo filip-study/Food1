@@ -195,9 +195,9 @@ struct PaywallView: View {
 
             // Legal links
             HStack(spacing: 16) {
-                Link("Terms of Use", destination: URL(string: "https://prismae.app/terms")!)
+                Link("Terms of Use", destination: URL(string: "https://prismae.net/terms")!)
                 Text("•").foregroundColor(.secondary)
-                Link("Privacy Policy", destination: URL(string: "https://prismae.app/privacy")!)
+                Link("Privacy Policy", destination: URL(string: "https://prismae.net/privacy")!)
             }
             .font(.system(size: 12))
             .foregroundColor(.secondary)

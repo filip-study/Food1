@@ -19,7 +19,7 @@
 set -e
 
 ACTION="${1:-create}"
-TEST_EMAIL="${TEST_USER_EMAIL:-e2e-test-$(date +%s)@test.prismae.app}"
+TEST_EMAIL="${TEST_USER_EMAIL:-e2e-test-$(date +%s)@test.prismae.net}"
 TEST_PASSWORD="${TEST_USER_PASSWORD:-TestPassword123!}"
 
 # Validate required env vars

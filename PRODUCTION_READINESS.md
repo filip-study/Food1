@@ -29,21 +29,21 @@ This document tracks Prismae's readiness for public App Store release.
 ## Critical Blockers (Must Fix Before Release)
 
 ### 1. Terms of Use - NOT FUNCTIONAL
-- **Current State:** `prismae.app/terms` redirects to `/lander` (no actual content)
+- **Current State:** `prismae.net/terms` needs to be created
 - **Referenced In:** `PaywallView.swift:198`
 - **Requirement:** Apple requires functional legal links for subscription apps
 - **Action Required:**
   - [ ] Create actual Terms of Use content (consult legal counsel)
-  - [ ] Host at `prismae.app/terms` (not redirect)
+  - [ ] Host at `prismae.net/terms`
   - [ ] Include: usage rights, liability disclaimers, subscription terms, termination policy
 
 ### 2. Privacy Policy - NOT FUNCTIONAL
-- **Current State:** `prismae.app/privacy` redirects to `/lander` (no actual content)
+- **Current State:** `prismae.net/privacy` needs to be created
 - **Referenced In:** `PaywallView.swift:200`
 - **Requirement:** Apple requires privacy policy for all apps collecting user data
 - **Action Required:**
   - [ ] Create actual Privacy Policy content (consult legal counsel)
-  - [ ] Host at `prismae.app/privacy` (not redirect)
+  - [ ] Host at `prismae.net/privacy`
   - [ ] Include: data collection, storage, sharing, GDPR compliance, user rights
 
 ### 3. Account Deletion - ✅ IMPLEMENTED

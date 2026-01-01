@@ -55,7 +55,7 @@ jobs:
         id: create_user
         run: |
           # Generate unique test email for this run
-          TEST_EMAIL="e2e-test-$(date +%s)-$RANDOM@test.prismae.app"
+          TEST_EMAIL="e2e-test-$(date +%s)-$RANDOM@test.prismae.net"
           TEST_PASSWORD="E2ETestPass123!"
 
           echo "Creating test user: $TEST_EMAIL"
