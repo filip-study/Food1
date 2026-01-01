@@ -58,8 +58,7 @@ platform :ios do
       distribute_external: false
     )
 
-    # Clean up build artifacts
-    clean_build_artifacts
+    # Keep artifacts for CI upload (don't clean)
   end
 
   # ─────────────────────────────────────────────────────────────────
