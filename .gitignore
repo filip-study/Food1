@@ -73,3 +73,16 @@ specs/
 
 # Local LLM models (too large for git)
 Food1/Services/LocalLLM/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output/
+*.ipa
+*.dSYM.zip
+*.app.dSYM.zip
+
+# App Store Connect API Key (NEVER commit!)
+fastlane/*.p8
+AuthKey_*.p8

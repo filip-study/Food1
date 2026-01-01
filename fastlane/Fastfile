@@ -1,0 +1,106 @@
+# Fastfile - Fastlane automation for Food1
+# For more information, see: https://docs.fastlane.tools/
+
+default_platform(:ios)
+
+platform :ios do
+
+  # ─────────────────────────────────────────────────────────────────
+  # BETA LANE - Deploy to TestFlight
+  # ─────────────────────────────────────────────────────────────────
+  desc "Push a new beta build to TestFlight"
+  lane :beta do
+    # Ensure we're on a clean git state
+    ensure_git_status_clean unless ENV["CI"]
+
+    # Fetch signing certificates and provisioning profiles
+    setup_signing
+
+    # Increment build number (uses current timestamp for uniqueness)
+    increment_build_number(
+      build_number: Time.now.strftime("%Y%m%d%H%M")
+    )
+
+    # Build the app
+    build_app(
+      scheme: "Food1",
+      export_method: "app-store",
+      export_options: {
+        provisioningProfiles: {
+          "com.filipolszak.Food1" => "match AppStore com.filipolszak.Food1",
+          "com.filipolszak.Food1.MealReminderWidget" => "match AppStore com.filipolszak.Food1.MealReminderWidget"
+        }
+      }
+    )
+
+    # Upload to TestFlight
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true,
+      distribute_external: false
+    )
+
+    # Clean up build artifacts
+    clean_build_artifacts
+  end
+
+  # ─────────────────────────────────────────────────────────────────
+  # SIGNING SETUP
+  # ─────────────────────────────────────────────────────────────────
+  desc "Fetch and install signing certificates"
+  lane :setup_signing do
+    # Use App Store Connect API key if available (for CI)
+    if ENV["APP_STORE_CONNECT_API_KEY_KEY_ID"]
+      app_store_connect_api_key(
+        key_id: ENV["APP_STORE_CONNECT_API_KEY_KEY_ID"],
+        issuer_id: ENV["APP_STORE_CONNECT_API_KEY_ISSUER_ID"],
+        key_content: ENV["APP_STORE_CONNECT_API_KEY_KEY"],
+        is_key_content_base64: true
+      )
+    end
+
+    # Sync certificates and profiles
+    match(
+      type: "appstore",
+      readonly: is_ci,
+      app_identifier: [
+        "com.filipolszak.Food1",
+        "com.filipolszak.Food1.MealReminderWidget"
+      ]
+    )
+  end
+
+  # ─────────────────────────────────────────────────────────────────
+  # HELPER LANES
+  # ─────────────────────────────────────────────────────────────────
+  desc "Register new devices and regenerate profiles"
+  lane :register_device do |options|
+    device_name = options[:name]
+    device_udid = options[:udid]
+
+    register_devices(
+      devices: {
+        device_name => device_udid
+      }
+    )
+
+    match(
+      type: "development",
+      force_for_new_devices: true
+    )
+  end
+
+  desc "Sync all certificates (run locally, not on CI)"
+  lane :sync_certs do
+    match(type: "development")
+    match(type: "appstore")
+  end
+
+  desc "Nuke and regenerate all certificates (use with caution!)"
+  lane :nuke_certs do
+    match_nuke(type: "development")
+    match_nuke(type: "appstore")
+    match(type: "development")
+    match(type: "appstore")
+  end
+
+end

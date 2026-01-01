@@ -1,0 +1,14 @@
+# Appfile - App identifiers for Fastlane
+# For more information, see: https://docs.fastlane.tools/advanced/Appfile/
+
+app_identifier("com.filipolszak.Food1")
+apple_id("olszak@protonmail.com") # Your Apple Developer email
+team_id("UJ4482ZF9C")
+
+# App Store Connect Team (for upload)
+itc_team_id("126723668") # You may need to update this - run `fastlane spaceship` to find it
+
+# For all lanes
+for_lane :beta do
+  app_identifier("com.filipolszak.Food1")
+end
