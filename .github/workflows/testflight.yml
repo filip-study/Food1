@@ -38,6 +38,9 @@ jobs:
 
       - name: Setup API Config
         run: |
+          # Copy APIConfig.swift template
+          cp Food1/Config/APIConfig.swift.template Food1/Config/APIConfig.swift
+
           # Create production config from secrets
           cat > Food1/Config/Secrets.xcconfig << EOF
           SUPABASE_URL = ${{ secrets.SUPABASE_URL }}
@@ -45,6 +48,9 @@ jobs:
           PROXY_ENDPOINT = ${{ secrets.PROXY_ENDPOINT }}
           AUTH_TOKEN = ${{ secrets.PROXY_AUTH_TOKEN }}
           EOF
+
+          cat Food1/Config/Secrets.xcconfig
+          echo "Config files created"
 
       - name: Setup App Store Connect API Key
         run: |
