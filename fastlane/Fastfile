@@ -13,12 +13,31 @@ platform :ios do
     # Ensure we're on a clean git state
     ensure_git_status_clean unless ENV["CI"]
 
-    # Fetch signing certificates and provisioning profiles
+    # Setup CI keychain and signing
     setup_signing
 
     # Increment build number (uses current timestamp for uniqueness)
     increment_build_number(
       build_number: Time.now.strftime("%Y%m%d%H%M")
+    )
+
+    # Update code signing settings to use manual signing
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "Food1.xcodeproj",
+      team_id: "UJ4482ZF9C",
+      profile_name: "match AppStore com.filipolszak.Food1",
+      code_sign_identity: "Apple Distribution",
+      targets: ["Food1"]
+    )
+
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: "Food1.xcodeproj",
+      team_id: "UJ4482ZF9C",
+      profile_name: "match AppStore com.filipolszak.Food1.MealReminderWidget",
+      code_sign_identity: "Apple Distribution",
+      targets: ["MealReminderWidgetExtension"]
     )
 
     # Build the app
@@ -58,10 +77,24 @@ platform :ios do
       )
     end
 
+    # Create a temporary keychain for CI
+    if is_ci
+      create_keychain(
+        name: "ci_keychain",
+        password: ENV["MATCH_PASSWORD"],
+        default_keychain: true,
+        unlock: true,
+        timeout: 3600,
+        lock_when_sleeps: false
+      )
+    end
+
     # Sync certificates and profiles
     match(
       type: "appstore",
       readonly: is_ci,
+      keychain_name: is_ci ? "ci_keychain" : nil,
+      keychain_password: is_ci ? ENV["MATCH_PASSWORD"] : nil,
       app_identifier: [
         "com.filipolszak.Food1",
         "com.filipolszak.Food1.MealReminderWidget"
