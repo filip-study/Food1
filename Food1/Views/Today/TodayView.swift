@@ -31,6 +31,7 @@ struct TodayView: View {
 
     // Manual goals override
     @AppStorage("useAutoGoals") private var useAutoGoals: Bool = true
+    @AppStorage("appTheme") private var selectedTheme: AppTheme = .system
     @AppStorage("manualCalorieGoal") private var manualCalories: Double = 2000
     @AppStorage("manualProteinGoal") private var manualProtein: Double = 150
     @AppStorage("manualCarbsGoal") private var manualCarbs: Double = 225
@@ -288,6 +289,7 @@ struct TodayView: View {
             }
             .sheet(isPresented: $showingSettings) {
                 SettingsView()
+                    .preferredColorScheme(selectedTheme.resolvedColorScheme)
             }
         }
     }

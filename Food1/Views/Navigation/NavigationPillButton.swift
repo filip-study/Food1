@@ -19,7 +19,6 @@ struct NavigationPillButton: View {
 
     var body: some View {
         Button(action: {
-            HapticManager.light()
             action()
         }) {
             VStack(spacing: 4) {

@@ -10,6 +10,12 @@ import UIKit
 /// Centralized haptic feedback manager for consistent tactile responses
 enum HapticManager {
 
+    /// Soft impact - for frequent interactions like navigation tabs
+    static func soft() {
+        let generator = UIImpactFeedbackGenerator(style: .soft)
+        generator.impactOccurred()
+    }
+
     /// Light impact - for button presses, card taps
     static func light() {
         let generator = UIImpactFeedbackGenerator(style: .light)

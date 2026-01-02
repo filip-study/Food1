@@ -46,8 +46,6 @@ struct DateNavigationHeader: View {
         HStack(spacing: 16) {
             // Previous day button - minimal with large hit area
             Button(action: {
-                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                impactFeedback.impactOccurred()
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                     selectedDate = Calendar.current.date(byAdding: .day, value: -1, to: selectedDate)!
                 }
@@ -112,8 +110,6 @@ struct DateNavigationHeader: View {
             // Next day button - minimal with large hit area
             Button(action: {
                 if canGoForward {
-                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                    impactFeedback.impactOccurred()
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                         selectedDate = Calendar.current.date(byAdding: .day, value: 1, to: selectedDate)!
                     }
