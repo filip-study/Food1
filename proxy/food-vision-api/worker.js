@@ -704,7 +704,7 @@ async function callGemini(env, prompt, imageBase64, options = {}) {
     }
   };
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${env.GEMINI_API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${env.GEMINI_API_KEY}`;
 
   console.log('📤 Calling Gemini 2.0 Flash API...');
 
