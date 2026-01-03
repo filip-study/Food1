@@ -2,14 +2,18 @@
 //  Food1App.swift
 //  Food1
 //
-//  App entry point with SwiftData persistence and background enrichment.
+//  App entry point - orchestrates SwiftData, auth, and navigation.
 //
 //  WHY THIS ARCHITECTURE:
-//  - Schema includes all @Model classes for SwiftData to manage relationships correctly
-//  - Migration failure handling: Deletes corrupt store and creates fresh container (dev safety, not prod)
-//  - Background task registration enables iOS to run enrichment when app is suspended
-//  - resumeUnfinishedEnrichment() on launch handles interrupted enrichments (app closed mid-process)
-//  - 10-minute window for "recent" ingredients prevents infinite re-attempts on old data
+//  - Uses AppSchemaManager for ModelContainer creation (extracted for testability)
+//  - Uses BackgroundEnrichmentManager for background task handling (extracted for clarity)
+//  - Auth routing: WelcomeView → OnboardingView → MainTabView
+//  - LaunchScreenView overlay for animated splash screen
+//  - Deep link handling for auth callbacks and meal reminders
+//
+//  EXTRACTED CONCERNS:
+//  - AppSchemaManager.swift: Schema definition, migration handling
+//  - BackgroundEnrichmentManager.swift: BGTask registration, scheduling, execution
 //
 
 import SwiftUI
@@ -37,157 +41,16 @@ struct Food1App: App {
     @ObservedObject private var demoModeManager = DemoModeManager.shared
     #endif
 
-    // Background task identifiers
-    private static let enrichmentTaskIdentifier = "com.filipolszak.Food1.enrichment"
+    /// Reference to background enrichment manager for scheduling
+    private let enrichmentManager = BackgroundEnrichmentManager.shared
 
     init() {
-        do {
-            let schema = Schema([
-                Meal.self,
-                MealIngredient.self,
-                DailyAggregate.self,
-                WeeklyAggregate.self,
-                MonthlyAggregate.self
-            ])
-            let modelConfiguration = ModelConfiguration(
-                schema: schema,
-                isStoredInMemoryOnly: false,
-                allowsSave: true
-            )
+        // Create ModelContainer using extracted schema manager
+        modelContainer = AppSchemaManager.createModelContainer()
 
-            // Try to initialize with migration
-            do {
-                modelContainer = try ModelContainer(
-                    for: schema,
-                    configurations: [modelConfiguration]
-                )
-            } catch {
-                // If migration fails, delete the old store and start fresh
-                // PRODUCTION NOTE: This will delete user data. In production, consider:
-                // 1. Showing alert before deletion
-                // 2. Creating backup before deletion
-                // 3. Providing data export/recovery options
-                print("⚠️  Migration failed, resetting ModelContainer: \(error)")
-
-                // Get the store URL and delete it
-                let storeURL = modelConfiguration.url
-                try? FileManager.default.removeItem(at: storeURL)
-                print("⚠️  Deleted corrupted database at: \(storeURL)")
-                print("⚠️  User will lose existing meal history")
-
-                // Recreate container
-                modelContainer = try ModelContainer(
-                    for: schema,
-                    configurations: [modelConfiguration]
-                )
-                print("✅ Created fresh ModelContainer")
-            }
-        } catch {
-            // PRODUCTION: Don't crash - create in-memory container as fallback
-            // This allows users to at least use the app temporarily
-            print("❌ CRITICAL: Could not initialize ModelContainer: \(error)")
-            print("⚠️  Creating temporary in-memory database")
-
-            do {
-                let schema = Schema([
-                    Meal.self,
-                    MealIngredient.self,
-                    DailyAggregate.self,
-                    WeeklyAggregate.self,
-                    MonthlyAggregate.self
-                ])
-                let inMemoryConfig = ModelConfiguration(
-                    schema: schema,
-                    isStoredInMemoryOnly: true,
-                    allowsSave: false
-                )
-                modelContainer = try ModelContainer(
-                    for: schema,
-                    configurations: [inMemoryConfig]
-                )
-                print("✅ Created temporary in-memory database")
-                print("⚠️  Data will not be saved. Please reinstall the app.")
-            } catch {
-                // Last resort: This should never happen, but if it does,
-                // we have no choice but to crash
-                fatalError("CRITICAL: Could not create even in-memory database: \(error)")
-            }
-        }
-
-        // Register background task for enrichment
-        let container = modelContainer
-        BGTaskScheduler.shared.register(
-            forTaskWithIdentifier: Self.enrichmentTaskIdentifier,
-            using: nil
-        ) { task in
-            // Safe cast - if wrong type, skip the task
-            guard let processingTask = task as? BGProcessingTask else {
-                print("⚠️  Received unexpected task type: \(type(of: task))")
-                task.setTaskCompleted(success: false)
-                return
-            }
-            Food1App.handleEnrichmentBackgroundTask(processingTask, container: container)
-        }
-
-        // Register background task for meal reminders
+        // Register background tasks (must happen before first UI render)
+        enrichmentManager.register(with: modelContainer)
         MealActivityScheduler.registerBackgroundTask()
-    }
-
-    /// Schedule background enrichment task when app goes to background
-    private func scheduleEnrichmentTask() {
-        let request = BGProcessingTaskRequest(identifier: Self.enrichmentTaskIdentifier)
-        request.requiresNetworkConnectivity = false
-        request.requiresExternalPower = false
-        request.earliestBeginDate = Date(timeIntervalSinceNow: 1) // Run ASAP
-
-        do {
-            try BGTaskScheduler.shared.submit(request)
-            #if DEBUG
-            print("📋 Scheduled background enrichment task")
-            #endif
-        } catch {
-            #if DEBUG
-            print("❌ Failed to schedule background task: \(error)")
-            #endif
-        }
-    }
-
-    /// Handle the background enrichment task
-    private static func handleEnrichmentBackgroundTask(_ task: BGProcessingTask, container: ModelContainer) {
-        let enrichmentTask = Task { @MainActor in
-            let context = container.mainContext
-            let tenMinutesAgo = Date().addingTimeInterval(-600)
-
-            let descriptor = FetchDescriptor<MealIngredient>(
-                predicate: #Predicate<MealIngredient> { ingredient in
-                    ingredient.enrichmentAttempted == false &&
-                    ingredient.usdaFdcId == nil &&
-                    ingredient.createdAt > tenMinutesAgo
-                }
-            )
-
-            do {
-                let unenrichedIngredients = try context.fetch(descriptor)
-                if !unenrichedIngredients.isEmpty {
-                    await BackgroundEnrichmentService.shared.enrichIngredients(unenrichedIngredients)
-                }
-            } catch {
-                #if DEBUG
-                print("❌ Background enrichment failed: \(error)")
-                #endif
-            }
-        }
-
-        // Handle task expiration
-        task.expirationHandler = {
-            enrichmentTask.cancel()
-        }
-
-        // Mark complete when done
-        Task {
-            await enrichmentTask.value
-            task.setTaskCompleted(success: true)
-        }
     }
 
     var body: some Scene {
@@ -210,7 +73,7 @@ struct Food1App: App {
                     MainTabView()
                         .environmentObject(authViewModel)
                         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
-                            scheduleEnrichmentTask()
+                            enrichmentManager.scheduleEnrichmentTask()
                         }
                 } else {
                     // Not authenticated: Show welcome or onboarding
@@ -242,7 +105,7 @@ struct Food1App: App {
                     MainTabView()
                         .environmentObject(authViewModel)
                         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
-                            scheduleEnrichmentTask()
+                            enrichmentManager.scheduleEnrichmentTask()
                         }
                 } else {
                     // Not authenticated: Show welcome or onboarding
@@ -322,7 +185,7 @@ struct Food1App: App {
                 }
 
                 // Resume unfinished enrichment (after app is fully loaded and migration complete)
-                await resumeUnfinishedEnrichment()
+                await enrichmentManager.resumeUnfinishedEnrichment()
 
                 // Load centralized onboarding state (shows pending onboarding automatically)
                 await onboardingService.loadOnboardingState()
@@ -358,11 +221,10 @@ struct Food1App: App {
         }
         .modelContainer(modelContainer)
         .onChange(of: scenePhase) { oldPhase, newPhase in
-            // Refresh subscription status when app comes to foreground
+            // Refresh subscription and activities when app comes to foreground
             if newPhase == .active && authViewModel.isAuthenticated {
                 Task {
-                    await authViewModel.refreshSubscription()
-                    // Also refresh StoreKit entitlements
+                    // Refresh StoreKit entitlements (updates hasAccess via Combine)
                     await SubscriptionService.shared.updateSubscriptionStatus()
                     // Check and update meal reminder activities
                     await MealActivityScheduler.shared.checkAndScheduleActivities()
@@ -423,47 +285,6 @@ struct Food1App: App {
                     await onboardingService.completeStep(.profileSetup)
                 }
             }
-        }
-    }
-
-    /// Resume enrichment for any ingredients that weren't processed
-    /// This handles cases where app was closed during enrichment
-    @MainActor
-    private func resumeUnfinishedEnrichment() async {
-        let context = modelContainer.mainContext
-
-        // Find ingredients that need enrichment:
-        // 1. Not attempted yet (enrichmentAttempted == false)
-        // 2. No USDA match yet (usdaFdcId == nil)
-        // 3. Created recently (within last 10 minutes - might have been interrupted)
-        let tenMinutesAgo = Date().addingTimeInterval(-600)
-
-        let descriptor = FetchDescriptor<MealIngredient>(
-            predicate: #Predicate<MealIngredient> { ingredient in
-                ingredient.enrichmentAttempted == false &&
-                ingredient.usdaFdcId == nil &&
-                ingredient.createdAt > tenMinutesAgo
-            }
-        )
-
-        do {
-            let unenrichedIngredients = try context.fetch(descriptor)
-
-            if !unenrichedIngredients.isEmpty {
-                #if DEBUG
-                print("🔄 Resuming enrichment for \(unenrichedIngredients.count) ingredients")
-                #endif
-
-                await BackgroundEnrichmentService.shared.enrichIngredients(unenrichedIngredients)
-
-                #if DEBUG
-                print("✅ Resumed enrichment complete")
-                #endif
-            }
-        } catch {
-            #if DEBUG
-            print("❌ Failed to fetch unenriched ingredients: \(error)")
-            #endif
         }
     }
 

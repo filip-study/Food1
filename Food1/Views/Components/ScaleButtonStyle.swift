@@ -2,7 +2,17 @@
 //  ScaleButtonStyle.swift
 //  Food1
 //
-//  Created by Claude on 2025-11-14.
+//  Subtle press-down scale animation for buttons.
+//
+//  WHY THIS EXISTS:
+//  - Default iOS button feedback is minimal
+//  - Scale effect provides satisfying tactile feedback without haptics
+//  - 0.96 scale is subtle enough to not feel "bouncy" but noticeable
+//  - Spring animation (0.3s response) feels natural and responsive
+//
+//  USAGE:
+//  Button("Tap me") { }
+//      .buttonStyle(ScaleButtonStyle())
 //
 
 import SwiftUI
