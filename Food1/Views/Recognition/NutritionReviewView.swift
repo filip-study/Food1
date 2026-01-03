@@ -484,6 +484,13 @@ struct NutritionReviewView: View {
         HapticManager.success()
         didSave = true
 
+        // Track meal logged event
+        AnalyticsService.shared.track(.mealLogged, properties: [
+            "method": photoData != nil ? "photo" : "manual",
+            "ingredient_count": mealIngredients?.count ?? 0,
+            "meal_type": newMeal.mealType ?? "unknown"
+        ])
+
         // Brief confirmation then dismiss
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             dismiss()

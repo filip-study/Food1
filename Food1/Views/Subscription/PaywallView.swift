@@ -59,6 +59,9 @@ struct PaywallView: View {
             } message: {
                 Text(errorMessage)
             }
+            .onAppear {
+                AnalyticsService.shared.track(.paywallViewed, properties: ["type": "upgrade"])
+            }
         }
     }
 

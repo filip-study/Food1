@@ -91,6 +91,9 @@ class FoodRecognitionService: ObservableObject {
 
         recognitionLogger.error("🔍 [Recognition] Starting food recognition, image: \(Int(image.size.width))x\(Int(image.size.height))")
 
+        // Track recognition start
+        AnalyticsService.shared.track(.recognitionStarted)
+
         do {
             // Preprocess image (resize, optimize)
             let processedImage = preprocessImage(image)
@@ -103,11 +106,16 @@ class FoodRecognitionService: ObservableObject {
             if predictions.isEmpty {
                 recognitionLogger.error("⚠️ [Recognition] No food detected in image")
                 errorMessage = "Could not identify any food in this image. Try taking another photo with better lighting."
+                AnalyticsService.shared.track(.recognitionFailed, properties: ["reason": "no_food_detected"])
             } else {
                 recognitionLogger.error("✅ [Recognition] Found \(predictions.count) predictions")
                 if hasPackaging {
                     recognitionLogger.error("📦 [Recognition] Packaging detected")
                 }
+                AnalyticsService.shared.track(.recognitionCompleted, properties: [
+                    "prediction_count": predictions.count,
+                    "has_packaging": hasPackaging
+                ])
             }
 
             return (predictions, hasPackaging)
@@ -116,12 +124,14 @@ class FoodRecognitionService: ObservableObject {
             // Handle specific vision API errors
             errorMessage = error.localizedDescription
             recognitionLogger.error("❌ [Recognition] Vision API error: \(error.localizedDescription)")
+            AnalyticsService.shared.track(.recognitionFailed, properties: ["reason": "vision_api_error"])
             return ([], false)
 
         } catch {
             // Handle unexpected errors
             errorMessage = "An unexpected error occurred. Please try again."
             recognitionLogger.error("❌ [Recognition] Unexpected error: \(error.localizedDescription)")
+            AnalyticsService.shared.track(.recognitionFailed, properties: ["reason": "unexpected_error"])
             return ([], false)
         }
     }

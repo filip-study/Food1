@@ -247,13 +247,25 @@ struct Food1App: App {
             }
         }
         .onChange(of: authViewModel.isAuthenticated) { oldValue, newValue in
-            // When user logs in, load centralized onboarding state
+            // When user logs in, identify for analytics and load onboarding state
             if newValue && !oldValue {
                 Task {
+                    // Identify user for analytics (uses anonymized Supabase UUID)
+                    if let userId = try? await SupabaseService.shared.requireUserId() {
+                        AnalyticsService.shared.identify(userId: userId)
+                        AnalyticsService.shared.track(.signIn)
+                    }
+
                     // Small delay for better UX after login animation
                     try? await Task.sleep(for: .seconds(1.5))
                     await onboardingService.loadOnboardingState()
                 }
+            }
+
+            // When user logs out, reset analytics identity
+            if !newValue && oldValue {
+                AnalyticsService.shared.track(.signOut)
+                AnalyticsService.shared.reset()
             }
         }
     }

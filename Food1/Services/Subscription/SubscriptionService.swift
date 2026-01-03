@@ -158,6 +158,19 @@ final class SubscriptionService: ObservableObject {
 
             logger.info("Purchase successful: \(transaction.productID)")
 
+            // Track subscription analytics
+            // Check if this is an introductory offer (free trial)
+            let isTrialOffer = transaction.offer?.type == .introductory
+            if isTrialOffer {
+                AnalyticsService.shared.track(.trialStarted, properties: [
+                    "product_id": transaction.productID
+                ])
+            } else {
+                AnalyticsService.shared.track(.subscriptionStarted, properties: [
+                    "product_id": transaction.productID
+                ])
+            }
+
             // Update subscription status in Supabase
             await syncPurchaseToSupabase(transaction: transaction)
 

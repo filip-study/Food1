@@ -48,6 +48,9 @@ struct OnboardingPaywallView: View {
         } message: {
             Text(errorMessage)
         }
+        .onAppear {
+            AnalyticsService.shared.track(.paywallViewed, properties: ["type": "onboarding"])
+        }
     }
 
     // MARK: - Subviews
