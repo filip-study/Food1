@@ -121,7 +121,7 @@ struct SettingsView: View {
         SettingsCard {
             SettingsRow(
                 icon: "person.crop.circle.fill",
-                iconColor: .green,
+                iconColor: ColorPalette.accentPrimary,
                 title: "Account",
                 subtitle: accountSubtitle,
                 badge: trialBadge
@@ -162,6 +162,7 @@ struct SettingsView: View {
 
                 Divider()
                     .padding(.leading, 52)
+                    .padding(.vertical, 6)
 
                 // Nutrition targets row
                 SettingsRow(
@@ -193,7 +194,7 @@ struct SettingsView: View {
             VStack(spacing: 20) {
                 // Appearance section
                 VStack(alignment: .leading, spacing: 12) {
-                    SettingsSectionHeader(icon: "paintpalette.fill", title: "Appearance", color: .purple)
+                    SettingsSectionHeader(icon: "circle.lefthalf.filled", title: "Appearance")
 
                     Picker("Appearance", selection: $selectedTheme) {
                         ForEach(AppTheme.allCases) { theme in
@@ -207,7 +208,7 @@ struct SettingsView: View {
 
                 // Units section
                 VStack(alignment: .leading, spacing: 12) {
-                    SettingsSectionHeader(icon: "scalemass.fill", title: "Nutrition Units", color: ColorPalette.macroProtein)
+                    SettingsSectionHeader(icon: "scalemass.fill", title: "Nutrition Units")
 
                     Picker("Units", selection: $nutritionUnit) {
                         ForEach(NutritionUnit.allCases) { unit in
@@ -221,7 +222,7 @@ struct SettingsView: View {
 
                 // Micronutrient standard section
                 VStack(alignment: .leading, spacing: 12) {
-                    SettingsSectionHeader(icon: "chart.bar.fill", title: "Micronutrient Targets", color: ColorPalette.macroCarbs)
+                    SettingsSectionHeader(icon: "chart.bar.fill", title: "Micronutrient Targets")
 
                     Picker("Standard", selection: $micronutrientStandard) {
                         ForEach(MicronutrientStandard.allCases) { standard in
@@ -245,7 +246,7 @@ struct SettingsView: View {
         SettingsCard {
             SettingsRow(
                 icon: "bell.badge.fill",
-                iconColor: .teal,
+                iconColor: ColorPalette.accentPrimary,
                 title: "Meal Reminders",
                 subtitle: "Lock Screen & Dynamic Island"
             ) {
@@ -329,15 +330,20 @@ private struct SettingsRow: View {
                             .foregroundColor(.secondary)
                             .lineLimit(1)
                     }
-
-                    if let badge = badge {
-                        Text(badge)
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(badgeColor(for: badge))
-                    }
                 }
 
                 Spacer()
+
+                // Badge pill (moved to right side for consistent row heights)
+                if let badge = badge {
+                    Text(badge)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(badgeColor(for: badge))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(badgeColor(for: badge).opacity(0.12))
+                        .clipShape(Capsule())
+                }
 
                 // Chevron indicator
                 if action != nil {
@@ -346,7 +352,7 @@ private struct SettingsRow: View {
                         .foregroundColor(.secondary.opacity(0.5))
                 }
             }
-            .padding(.vertical, 6)
+            .padding(.vertical, 8)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -370,13 +376,12 @@ private struct SettingsRow: View {
 private struct SettingsSectionHeader: View {
     let icon: String
     let title: String
-    let color: Color
 
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.system(size: 14))
-                .foregroundColor(color)
+                .foregroundColor(.secondary)
 
             Text(title)
                 .font(.system(size: 13, weight: .semibold))
