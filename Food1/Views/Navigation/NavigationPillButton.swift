@@ -60,7 +60,7 @@ struct NavigationPillButton: View {
 
     private var foregroundColor: Color {
         if isSelected {
-            return ColorPalette.accentPrimary
+            return .primary
         } else {
             return Color.secondary.opacity(0.45)
         }

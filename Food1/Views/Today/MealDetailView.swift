@@ -6,10 +6,10 @@
 //
 //  WHY THIS ARCHITECTURE:
 //  - Uses MealImageView for 3-layer image hierarchy: photoData → photoThumbnailUrl → emoji
-//  - Macro section displays nutrition in compact rows with color-coded icons
-//  - Micronutrient section shows RDA progress bars with color thresholds (deficient→excellent)
+//  - Glassmorphic card design matches app's premium visual language
+//  - ColorPalette macro colors (protein=teal, fat=blue, carbs=coral) for visual consistency
+//  - Micronutrient section shows RDA progress bars with color thresholds
 //  - Enrichment progress indicator shows real-time status during background USDA lookups
-//  - "Show All" toggle prevents overwhelming users with many micronutrients (shows top 3 by default)
 //
 
 import SwiftUI
@@ -17,6 +17,7 @@ import SwiftData
 
 struct MealDetailView: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     @AppStorage("nutritionUnit") private var nutritionUnit: NutritionUnit = .metric
 
@@ -41,16 +42,12 @@ struct MealDetailView: View {
         let total = ingredients.count
         let enriched = ingredients.filter { $0.usdaFdcId != nil }.count
 
-        // Count attempted: either explicitly marked OR has fdcId (succeeded) OR old ingredient (> 120s)
-        // This handles data migration for meals created before enrichmentAttempted existed
-        // 120s timeout accounts for LLM reranking which can take up to 2 minutes per ingredient
         let attempted = ingredients.filter { ingredient in
             ingredient.enrichmentAttempted ||
             ingredient.usdaFdcId != nil ||
             Date().timeIntervalSince(ingredient.createdAt) > 120
         }.count
 
-        // In progress if any ingredients haven't been attempted yet
         let inProgress = attempted < total && total > 0
 
         return (enriched, total, inProgress)
@@ -70,7 +67,6 @@ struct MealDetailView: View {
     private var groupedMicronutrients: [(String, [Micronutrient])] {
         let grouped = Dictionary(grouping: meal.micronutrients) { $0.category }
 
-        // Order: Vitamins, Minerals, Electrolytes, Other
         return [
             ("Vitamins", grouped[.vitamin] ?? []),
             ("Minerals", grouped[.mineral] ?? []),
@@ -87,400 +83,46 @@ struct MealDetailView: View {
             AdaptiveAnimatedBackground()
 
             ScrollView {
-                VStack(spacing: 24) {
-                    // Header with photo/emoji
-                VStack(spacing: 12) {
-                    // Show photo or emoji - uses 3-layer hierarchy: photoData → photoThumbnailUrl → emoji
-                    MealImageView(meal: meal, size: 120, cornerRadius: 20)
+                VStack(spacing: 20) {
+                    // Header with photo/emoji and meal info
+                    headerSection
 
-                    Text(meal.name)
-                        .font(.system(size: 28, weight: .bold))
-                        .multilineTextAlignment(.center)
+                    // Macro nutrients card
+                    macroCard
 
-                    Text(timeString)
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(.secondary)
+                    // Ingredients section
+                    if let ingredients = meal.ingredients, !ingredients.isEmpty {
+                        ingredientsCard(ingredients: ingredients)
+                    }
+
+                    // Micronutrients section
+                    if meal.hasMicronutrients || enrichmentProgress.inProgress {
+                        micronutrientsCard
+                    } else if let ingredients = meal.ingredients, !ingredients.isEmpty {
+                        micronutrientsEmptyState
+                    }
+
+                    // Notes section
+                    if let notes = meal.notes, !notes.isEmpty {
+                        notesCard(notes: notes)
+                    }
+
+                    // Debug section - only in DEBUG builds
+                    #if DEBUG
+                    if let ingredients = meal.ingredients, !ingredients.isEmpty {
+                        debugCard(ingredients: ingredients)
+                    }
+                    #endif
+
+                    // Action buttons
+                    actionButtons
                 }
-                .padding(.top, 20)
-
-                // Nutrition Info
-                VStack(spacing: 16) {
-                    NutritionRow(
-                        icon: "flame.fill",
-                        label: "Calories",
-                        value: "\(Int(meal.calories))",
-                        color: .secondary
-                    )
-
-                    Divider()
-
-                    NutritionRow(
-                        icon: "drop.fill",
-                        label: "Protein",
-                        value: NutritionFormatter.format(meal.protein, unit: nutritionUnit),
-                        color: .secondary
-                    )
-
-                    Divider()
-
-                    NutritionRow(
-                        icon: "leaf.fill",
-                        label: "Carbs",
-                        value: NutritionFormatter.format(meal.carbs, unit: nutritionUnit),
-                        color: .secondary
-                    )
-
-                    Divider()
-
-                    NutritionRow(
-                        icon: "circle.fill",
-                        label: "Fat",
-                        value: NutritionFormatter.format(meal.fat, unit: nutritionUnit),
-                        color: .secondary
-                    )
-
-                    // Show fiber if available (> 0)
-                    if meal.fiber > 0 {
-                        Divider()
-
-                        NutritionRow(
-                            icon: "leaf.arrow.circlepath",
-                            label: "Fiber",
-                            value: NutritionFormatter.format(meal.fiber, unit: nutritionUnit),
-                            color: .secondary
-                        )
-                    }
-                }
-                .padding(20)
-                .background(
-                    RoundedRectangle(cornerRadius: 16)
-                        .fill(Color(.secondarySystemBackground))
-                )
-                .padding(.horizontal)
-
-                // Ingredients section
-                if let ingredients = meal.ingredients, !ingredients.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("INGREDIENTS")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(.secondary)
-
-                            Spacer()
-
-                            Text("\(ingredients.count)")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(.secondary)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(
-                                    Circle()
-                                        .fill(Color(.tertiarySystemBackground))
-                                )
-                        }
-
-                        ForEach(ingredients) { ingredient in
-                            IngredientReadOnlyRow(ingredient: ingredient, showStatus: true)
-
-                            if ingredient.id != ingredients.last?.id {
-                                Divider()
-                            }
-                        }
-
-                        // Footer when some ingredients couldn't be matched
-                        if hasUnmatchedIngredients {
-                            HStack(spacing: 6) {
-                                Image(systemName: "info.circle")
-                                    .font(.caption2)
-                                Text("Some ingredients have limited nutrition data")
-                                    .font(.caption2)
-                            }
-                            .foregroundColor(.secondary)
-                            .padding(.top, 4)
-                        }
-                    }
-                    .padding(20)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color(.secondarySystemBackground))
-                    )
-                    .padding(.horizontal)
-                }
-
-                // Micronutrients section
-                if meal.hasMicronutrients || enrichmentProgress.inProgress {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack(alignment: .top) {
-                            Text("Micronutrients")
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundColor(.primary)
-
-                            Spacer()
-
-                            // Progress indicator
-                            if enrichmentProgress.inProgress {
-                                HStack(spacing: 6) {
-                                    ProgressView()
-                                        .scaleEffect(0.8)
-                                        .tint(.blue)
-
-                                    Text(enrichmentProgress.enriched > 0 ?
-                                         "\(enrichmentProgress.enriched) of \(enrichmentProgress.total)" :
-                                         "Loading...")
-                                        .font(.system(size: 12, weight: .medium))
-                                        .foregroundColor(.blue)
-                                }
-                            } else {
-                                Image(systemName: "info.circle")
-                                    .font(.system(size: 15))
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .padding(.bottom, 4)
-
-                        // Info message or partial data indicator
-                        if enrichmentProgress.inProgress && enrichmentProgress.enriched == 0 {
-                            HStack(spacing: 8) {
-                                Image(systemName: "sparkles")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.blue)
-                                Text("Analyzing ingredients and matching nutrition data...")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.bottom, 8)
-                        } else if enrichmentProgress.enriched < enrichmentProgress.total && enrichmentProgress.enriched > 0 {
-                            Text("Partial data - based on \(enrichmentProgress.enriched) of \(enrichmentProgress.total) ingredients")
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
-                                .padding(.bottom, 8)
-                        } else {
-                            Text("Shows vitamins and minerals as % of Recommended Daily Allowance (RDA)")
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
-                                .padding(.bottom, 8)
-                        }
-
-                        // Show priority or all micronutrients
-                        if showAllMicronutrients {
-                            // Grouped by category
-                            ForEach(groupedMicronutrients, id: \.0) { category, nutrients in
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text(category.uppercased())
-                                        .font(.system(size: 11, weight: .semibold))
-                                        .foregroundColor(.secondary)
-                                        .padding(.top, 8)
-
-                                    ForEach(nutrients) { micronutrient in
-                                        MicronutrientRow(micronutrient: micronutrient)
-
-                                        if micronutrient.id != nutrients.last?.id {
-                                            Divider()
-                                        }
-                                    }
-                                }
-                            }
-                        } else {
-                            // Top 3 priority micronutrients
-                            ForEach(priorityMicronutrients) { micronutrient in
-                                MicronutrientRow(micronutrient: micronutrient)
-
-                                if micronutrient.id != priorityMicronutrients.last?.id {
-                                    Divider()
-                                }
-                            }
-                        }
-
-                        // Show All / Show Less button
-                        if meal.micronutrients.count > 3 {
-                            Button(action: {
-                                withAnimation {
-                                    showAllMicronutrients.toggle()
-                                }
-                            }) {
-                                HStack {
-                                    Text(showAllMicronutrients ? "Show Less" : "Show All (\(meal.micronutrients.count) nutrients)")
-                                        .font(.system(size: 15, weight: .medium))
-                                    Image(systemName: showAllMicronutrients ? "chevron.up" : "chevron.down")
-                                        .font(.system(size: 13))
-                                }
-                                .foregroundColor(.blue)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                            }
-                            .padding(.top, 4)
-                        }
-                    }
-                    .padding(20)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color(.secondarySystemBackground))
-                    )
-                    .padding(.horizontal)
-                } else if let ingredients = meal.ingredients, !ingredients.isEmpty {
-                    // Empty state - ingredients exist but no micronutrients and enrichment not in progress
-                    VStack(spacing: 12) {
-                        Image(systemName: "exclamationmark.triangle")
-                            .font(.system(size: 40))
-                            .foregroundColor(.orange.opacity(0.7))
-                            .padding(.top, 20)
-
-                        Text("Micronutrient data unavailable")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundColor(.primary)
-
-                        Text("Ingredients couldn't be matched to nutrition database")
-                            .font(.system(size: 15))
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                            .padding(.bottom, 20)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(20)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color(.secondarySystemBackground))
-                    )
-                    .padding(.horizontal)
-                }
-
-                // Notes section
-                if let notes = meal.notes, !notes.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Notes")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundColor(.primary)
-
-                        Text(notes)
-                            .font(.system(size: 15))
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(20)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color(.secondarySystemBackground))
-                    )
-                    .padding(.horizontal)
-                }
-
-                // Debug section - only in DEBUG builds
-                #if DEBUG
-                if let ingredients = meal.ingredients, !ingredients.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Image(systemName: "ant.fill")
-                                .foregroundColor(.orange)
-                            Text("DEBUG: USDA Matches")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(.orange)
-                        }
-
-                        ForEach(ingredients) { ingredient in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(ingredient.name)
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundColor(.primary)
-
-                                if let fdcId = ingredient.usdaFdcId,
-                                   let fdcIdInt = Int(fdcId),
-                                   let food = LocalUSDAService.shared.getFood(byId: fdcIdInt) {
-                                    Text("→ \(food.description)")
-                                        .font(.system(size: 11))
-                                        .foregroundColor(.green)
-                                    HStack(spacing: 8) {
-                                        Text("fdcId: \(fdcId)")
-                                            .font(.system(size: 10, design: .monospaced))
-                                            .foregroundColor(.secondary)
-                                        if let method = ingredient.matchMethod {
-                                            Text("[\(method)]")
-                                                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                                .foregroundColor(method == "Shortcut" ? .blue : method == "Exact" ? .cyan : .purple)
-                                        }
-                                    }
-                                } else if ingredient.usdaFdcId != nil {
-                                    Text("→ fdcId: \(ingredient.usdaFdcId!) (lookup failed)")
-                                        .font(.system(size: 11))
-                                        .foregroundColor(.yellow)
-                                } else if ingredient.matchMethod == "Blacklisted" {
-                                    Text("→ Blacklisted (no micronutrients)")
-                                        .font(.system(size: 11))
-                                        .foregroundColor(.gray)
-                                } else if enrichmentProgress.inProgress {
-                                    HStack(spacing: 6) {
-                                        ProgressView()
-                                            .scaleEffect(0.6)
-                                        Text("Processing...")
-                                            .font(.system(size: 11))
-                                            .foregroundColor(.orange)
-                                    }
-                                } else {
-                                    Text("→ No match")
-                                        .font(.system(size: 11))
-                                        .foregroundColor(.red)
-                                }
-                            }
-                            .padding(.vertical, 4)
-
-                            if ingredient.id != ingredients.last?.id {
-                                Divider()
-                            }
-                        }
-                    }
-                    .padding(16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.orange.opacity(0.1))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.orange.opacity(0.3), lineWidth: 1)
-                            )
-                    )
-                    .padding(.horizontal)
-                }
-                #endif
-
-                // Action buttons
-                VStack(spacing: 12) {
-                    Button(action: {
-                        showingEditSheet = true
-                    }) {
-                        HStack {
-                            Image(systemName: "pencil")
-                            Text("Edit Meal")
-                        }
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(Color.blue)
-                        .cornerRadius(12)
-                    }
-
-                    Button(action: {
-                        showingDeleteAlert = true
-                    }) {
-                        HStack {
-                            Image(systemName: "trash")
-                            Text("Delete Meal")
-                        }
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.red)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.red, lineWidth: 2)
-                        )
-                    }
-                }
-                .padding(.horizontal)
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
                 .padding(.bottom, 80)
             }
+            .scrollIndicators(.hidden)
         }
-        .scrollIndicators(.hidden)
-        }  // Close ZStack
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingEditSheet) {
             MealEditView(editingMeal: meal)
@@ -495,37 +137,455 @@ struct MealDetailView: View {
         }
     }
 
+    // MARK: - Header Section
+
+    private var headerSection: some View {
+        VStack(spacing: 14) {
+            MealImageView(meal: meal, size: 100, cornerRadius: 24)
+                .shadow(
+                    color: colorScheme == .dark ? .black.opacity(0.4) : .black.opacity(0.15),
+                    radius: 20,
+                    y: 10
+                )
+
+            VStack(spacing: 6) {
+                Text(meal.name)
+                    .font(.system(size: 24, weight: .bold))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+
+                Text(timeString)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.top, 16)
+        .padding(.bottom, 4)
+    }
+
+    // MARK: - Macro Card
+
+    private var macroCard: some View {
+        DetailCard {
+            VStack(spacing: 0) {
+                // Calories - prominent at top
+                HStack {
+                    HStack(spacing: 10) {
+                        Image(systemName: "flame.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(ColorPalette.calories)
+                            .frame(width: 28)
+
+                        Text("Calories")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.primary)
+                    }
+
+                    Spacer()
+
+                    Text("\(Int(meal.calories))")
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .foregroundColor(.primary)
+                }
+                .padding(.bottom, 16)
+
+                Divider()
+                    .padding(.bottom, 14)
+
+                // Macros grid
+                HStack(spacing: 0) {
+                    MacroItem(
+                        label: "Protein",
+                        value: NutritionFormatter.format(meal.protein, unit: nutritionUnit),
+                        color: ColorPalette.macroProtein
+                    )
+
+                    MacroItem(
+                        label: "Carbs",
+                        value: NutritionFormatter.format(meal.carbs, unit: nutritionUnit),
+                        color: ColorPalette.macroCarbs
+                    )
+
+                    MacroItem(
+                        label: "Fat",
+                        value: NutritionFormatter.format(meal.fat, unit: nutritionUnit),
+                        color: ColorPalette.macroFat
+                    )
+
+                    if meal.fiber > 0 {
+                        MacroItem(
+                            label: "Fiber",
+                            value: NutritionFormatter.format(meal.fiber, unit: nutritionUnit),
+                            color: .green
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Ingredients Card
+
+    private func ingredientsCard(ingredients: [MealIngredient]) -> some View {
+        DetailCard {
+            VStack(alignment: .leading, spacing: 14) {
+                // Header
+                HStack {
+                    HStack(spacing: 8) {
+                        Image(systemName: "list.bullet")
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary)
+
+                        Text("Ingredients")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+
+                    Text("\(ingredients.count)")
+                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule()
+                                .fill(Color.secondary.opacity(0.15))
+                        )
+                }
+
+                // Ingredient rows
+                ForEach(ingredients) { ingredient in
+                    IngredientReadOnlyRow(ingredient: ingredient, showStatus: true)
+
+                    if ingredient.id != ingredients.last?.id {
+                        Divider()
+                    }
+                }
+
+                // Footer when some ingredients couldn't be matched
+                if hasUnmatchedIngredients {
+                    HStack(spacing: 6) {
+                        Image(systemName: "info.circle")
+                            .font(.system(size: 11))
+                        Text("Some ingredients have limited nutrition data")
+                            .font(.system(size: 11))
+                    }
+                    .foregroundColor(.secondary)
+                    .padding(.top, 4)
+                }
+            }
+        }
+    }
+
+    // MARK: - Micronutrients Card
+
+    private var micronutrientsCard: some View {
+        DetailCard {
+            VStack(alignment: .leading, spacing: 14) {
+                // Header
+                HStack(alignment: .center) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "leaf.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(.green)
+
+                        Text("Micronutrients")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+
+                    // Progress indicator
+                    if enrichmentProgress.inProgress {
+                        HStack(spacing: 6) {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                                .tint(ColorPalette.accentPrimary)
+
+                            Text(enrichmentProgress.enriched > 0 ?
+                                 "\(enrichmentProgress.enriched)/\(enrichmentProgress.total)" :
+                                 "Loading...")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(ColorPalette.accentPrimary)
+                        }
+                    }
+                }
+
+                // Info message
+                if enrichmentProgress.inProgress && enrichmentProgress.enriched == 0 {
+                    HStack(spacing: 8) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 12))
+                            .foregroundColor(ColorPalette.accentPrimary)
+                        Text("Analyzing ingredients...")
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                    }
+                } else if enrichmentProgress.enriched < enrichmentProgress.total && enrichmentProgress.enriched > 0 {
+                    Text("Based on \(enrichmentProgress.enriched) of \(enrichmentProgress.total) ingredients")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                } else {
+                    Text("% of daily recommended intake")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+
+                Divider()
+                    .padding(.vertical, 2)
+
+                // Micronutrient rows
+                if showAllMicronutrients {
+                    ForEach(groupedMicronutrients, id: \.0) { category, nutrients in
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text(category.uppercased())
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(.secondary)
+                                .tracking(0.5)
+                                .padding(.top, 6)
+
+                            ForEach(nutrients) { micronutrient in
+                                MicronutrientRow(micronutrient: micronutrient)
+
+                                if micronutrient.id != nutrients.last?.id {
+                                    Divider()
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    ForEach(priorityMicronutrients) { micronutrient in
+                        MicronutrientRow(micronutrient: micronutrient)
+
+                        if micronutrient.id != priorityMicronutrients.last?.id {
+                            Divider()
+                        }
+                    }
+                }
+
+                // Show All / Show Less button
+                if meal.micronutrients.count > 3 {
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showAllMicronutrients.toggle()
+                        }
+                        HapticManager.light()
+                    }) {
+                        HStack {
+                            Text(showAllMicronutrients ? "Show Less" : "View All \(meal.micronutrients.count) Nutrients")
+                                .font(.system(size: 14, weight: .medium))
+                            Image(systemName: showAllMicronutrients ? "chevron.up" : "chevron.down")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundColor(ColorPalette.accentPrimary)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(ColorPalette.accentPrimary.opacity(0.1))
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 6)
+                }
+            }
+        }
+    }
+
+    // MARK: - Micronutrients Empty State
+
+    private var micronutrientsEmptyState: some View {
+        DetailCard {
+            VStack(spacing: 12) {
+                Image(systemName: "leaf.arrow.triangle.circlepath")
+                    .font(.system(size: 32, weight: .light))
+                    .foregroundColor(.secondary.opacity(0.5))
+
+                Text("Micronutrient data unavailable")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(.secondary)
+
+                Text("Ingredients couldn't be matched")
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary.opacity(0.7))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+        }
+    }
+
+    // MARK: - Notes Card
+
+    private func notesCard(notes: String) -> some View {
+        DetailCard {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    Image(systemName: "note.text")
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+
+                    Text("Notes")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.secondary)
+                }
+
+                Text(notes)
+                    .font(.system(size: 15))
+                    .foregroundColor(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    // MARK: - Debug Card
+
+    #if DEBUG
+    private func debugCard(ingredients: [MealIngredient]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "ant.fill")
+                    .foregroundColor(.orange)
+                Text("DEBUG: USDA Matches")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.orange)
+            }
+
+            ForEach(ingredients) { ingredient in
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(ingredient.name)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.primary)
+
+                    if let fdcId = ingredient.usdaFdcId,
+                       let fdcIdInt = Int(fdcId),
+                       let food = LocalUSDAService.shared.getFood(byId: fdcIdInt) {
+                        Text("→ \(food.description)")
+                            .font(.system(size: 10))
+                            .foregroundColor(.green)
+                        HStack(spacing: 8) {
+                            Text("fdcId: \(fdcId)")
+                                .font(.system(size: 9, design: .monospaced))
+                                .foregroundColor(.secondary)
+                            if let method = ingredient.matchMethod {
+                                Text("[\(method)]")
+                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                    .foregroundColor(method == "Shortcut" ? .blue : method == "Exact" ? .cyan : .purple)
+                            }
+                        }
+                    } else if ingredient.usdaFdcId != nil {
+                        Text("→ fdcId: \(ingredient.usdaFdcId!) (lookup failed)")
+                            .font(.system(size: 10))
+                            .foregroundColor(.yellow)
+                    } else if ingredient.matchMethod == "Blacklisted" {
+                        Text("→ Blacklisted")
+                            .font(.system(size: 10))
+                            .foregroundColor(.gray)
+                    } else if enrichmentProgress.inProgress {
+                        HStack(spacing: 4) {
+                            ProgressView()
+                                .scaleEffect(0.5)
+                            Text("Processing...")
+                                .font(.system(size: 10))
+                                .foregroundColor(.orange)
+                        }
+                    } else {
+                        Text("→ No match")
+                            .font(.system(size: 10))
+                            .foregroundColor(.red)
+                    }
+                }
+                .padding(.vertical, 2)
+
+                if ingredient.id != ingredients.last?.id {
+                    Divider()
+                }
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color.orange.opacity(0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color.orange.opacity(0.2), lineWidth: 1)
+                )
+        )
+    }
+    #endif
+
+    // MARK: - Action Buttons
+
+    private var actionButtons: some View {
+        VStack(spacing: 12) {
+            // Edit button
+            Button(action: {
+                showingEditSheet = true
+                HapticManager.light()
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 15, weight: .semibold))
+                    Text("Edit Meal")
+                        .font(.system(size: 16, weight: .semibold))
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(ColorPalette.accentPrimary)
+                )
+            }
+            .buttonStyle(.plain)
+
+            // Delete button
+            Button(action: {
+                showingDeleteAlert = true
+                HapticManager.light()
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 14, weight: .medium))
+                    Text("Delete")
+                        .font(.system(size: 15, weight: .medium))
+                }
+                .foregroundColor(.red.opacity(0.8))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.red.opacity(0.1))
+                )
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.top, 8)
+    }
+
+    // MARK: - Delete Meal
+
     private func deleteMeal() {
-        // Capture necessary data before any deletion (meal object may become invalid)
         let mealDate = meal.timestamp
         let mealToDelete = meal
 
         Task {
-            // Step 1: Delete from cloud FIRST (must complete before local delete to prevent re-sync)
-            // Returns true if succeeded or meal wasn't synced to cloud
             let cloudDeleteSucceeded = await SyncCoordinator.shared.deleteMeal(mealToDelete)
 
             guard cloudDeleteSucceeded else {
                 print("❌ Cloud delete failed, aborting local delete to prevent re-sync")
-                // Could show an alert here, but for now just log
-                // The meal stays so user can retry
                 return
             }
 
-            // Step 2: DISMISS FIRST to prevent SwiftUI from accessing deleted objects
-            // This must happen before local delete to avoid the SwiftData crash:
-            // "Cannot fulfill future for PersistentIdentifier... without a context"
             await MainActor.run {
                 dismiss()
             }
 
-            // Small delay to allow view dismissal animation to complete
-            try? await Task.sleep(nanoseconds: 100_000_000)  // 100ms
+            try? await Task.sleep(nanoseconds: 100_000_000)
 
-            // Step 3: Delete locally and save (on main actor since SwiftData requires main thread)
             await MainActor.run {
                 modelContext.delete(mealToDelete)
-                // Explicitly save to ensure deletion persists
                 do {
                     try modelContext.save()
                     print("✅ Local delete saved to context")
@@ -534,35 +594,69 @@ struct MealDetailView: View {
                 }
             }
 
-            // Step 4: Update statistics aggregates
             await StatisticsService.shared.invalidateAggregate(for: mealDate, in: modelContext)
         }
     }
 }
 
-struct NutritionRow: View {
-    let icon: String
+// MARK: - Detail Card Container
+
+private struct DetailCard<Content: View>: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .padding(18)
+            .background {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .shadow(
+                        color: colorScheme == .dark ? .black.opacity(0.25) : .black.opacity(0.06),
+                        radius: 12,
+                        x: 0,
+                        y: 6
+                    )
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(colorScheme == .dark ? 0.1 : 0.35),
+                                        Color.white.opacity(0)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 0.5
+                            )
+                    }
+            }
+    }
+}
+
+// MARK: - Macro Item
+
+private struct MacroItem: View {
     let label: String
     let value: String
     let color: Color
 
     var body: some View {
-        HStack {
-            Image(systemName: icon)
-                .font(.system(size: 20))
-                .foregroundColor(color)
-                .frame(width: 32)
-
-            Text(label)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(.primary)
-
-            Spacer()
-
+        VStack(spacing: 6) {
             Text(value)
                 .font(.system(size: 18, weight: .bold, design: .rounded))
-                .foregroundColor(.primary)
+                .foregroundColor(color)
+
+            Text(label)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(.secondary)
         }
+        .frame(maxWidth: .infinity)
     }
 }
 
