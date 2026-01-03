@@ -130,15 +130,34 @@ Architecture documentation is maintained in individual code files. See file head
 
 **Setup:** USDA API key required for database population. See service file headers for setup details and architecture decisions.
 
+## Backend API (Separate Repository)
+
+The Cloudflare Worker backend is maintained in a **separate repository**:
+
+**Backend Repo:** https://github.com/filip-study/food-vision-api
+
+This separation enables:
+- Cloudflare Git integration for auto-deploy on push to main
+- Independent versioning from the iOS app
+- Cleaner CI/CD (iOS tests don't run for backend changes)
+
+When making backend changes, clone that repo:
+```bash
+cd ~/Documents/git
+git clone https://github.com/filip-study/food-vision-api.git
+cd food-vision-api
+npm install
+```
+
 ## GPT-4o Vision API Setup
 
 **Prerequisites:** OpenAI API key (https://platform.openai.com/api-keys) and Cloudflare account (free: https://dash.cloudflare.com/sign-up)
 
 **Quick Setup:**
 
-1. **Deploy Cloudflare Worker Proxy:**
+1. **Deploy Cloudflare Worker Proxy:** (in the food-vision-api repo)
    ```bash
-   cd proxy/food-vision-api
+   cd ~/Documents/git/food-vision-api
    npm install && npx wrangler login
    npx wrangler secret put OPENAI_API_KEY  # Paste your OpenAI key
    npx wrangler secret put AUTH_TOKEN      # Generate random UUID
@@ -157,8 +176,8 @@ Architecture documentation is maintained in individual code files. See file head
 **Troubleshooting:**
 - **"Unauthorized":** Check APIConfig.swift AUTH_TOKEN matches Cloudflare secret
 - **"Rate limit exceeded":** OpenAI tier limits reached (check https://platform.openai.com/account/limits)
-- **Debug logs:** Run `npx wrangler tail` in proxy/food-vision-api directory for real-time request/response monitoring
-- **More details:** See `proxy/food-vision-api/README.md`
+- **Debug logs:** Run `npx wrangler tail` in food-vision-api directory for real-time logs
+- **More details:** See food-vision-api repo README.md
 
 
 ## Development Tools
