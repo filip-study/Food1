@@ -202,26 +202,24 @@ class MealActivityScheduler: ObservableObject {
     }
 
     /// Start a Live Activity for a meal window
+    /// NOTE: ActivityKit CAN start activities from background app refresh tasks.
+    /// The activity will appear on lock screen regardless of app state.
     func startActivity(for window: MealWindow) async {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else {
-            logger.warning("Cannot start activity - not authorized")
+            logger.warning("Cannot start activity - not authorized by user in Settings")
             return
         }
-
-        // Ensure app is in foreground - Live Activities can only be started from foreground
-        guard await MainActor.run(body: {
-            UIApplication.shared.applicationState == .active
-        }) else {
-            logger.debug("Skipping activity start - app not in foreground")
-            return
-        }
-
-        // Small delay to ensure ActivityKit is ready (race condition fix)
-        try? await Task.sleep(for: .milliseconds(100))
 
         // Don't start if already active
         guard activeActivities[window.id] == nil else {
-            logger.info("Activity already exists for window: \(window.name)")
+            logger.debug("Activity already exists for window: \(window.name)")
+            return
+        }
+
+        // Also check ActivityKit's list in case our cache is stale
+        let existingActivities = Activity<MealReminderAttributes>.activities
+        if existingActivities.contains(where: { $0.attributes.windowId == window.id }) {
+            logger.debug("Activity exists in ActivityKit for window: \(window.name)")
             return
         }
 
@@ -239,25 +237,30 @@ class MealActivityScheduler: ObservableObject {
             dismissAt: dismissAt
         )
 
+        // Log app state for debugging background execution
+        let appState = await MainActor.run { UIApplication.shared.applicationState }
+        let stateDescription = switch appState {
+            case .active: "foreground"
+            case .inactive: "inactive"
+            case .background: "background"
+            @unknown default: "unknown"
+        }
+        logger.info("Attempting to start activity for \(window.name) from \(stateDescription) state")
+
         do {
             let activity = try Activity.request(
                 attributes: attributes,
                 content: .init(state: initialState, staleDate: dismissAt),
-                pushType: nil  // No push updates for now
+                pushType: nil
             )
 
             activeActivities[window.id] = activity
-            logger.info("Started Live Activity for: \(window.name), id=\(activity.id), state=\(String(describing: activity.activityState))")
+            logger.info("✅ Started Live Activity for: \(window.name), id=\(activity.id)")
 
-            // Log all current activities for debugging
-            let allActivities = Activity<MealReminderAttributes>.activities
-            logger.debug("Total active activities: \(allActivities.count)")
-            for act in allActivities {
-                logger.debug("  - \(act.attributes.mealName): state=\(String(describing: act.activityState))")
-            }
-
+        } catch let error as ActivityAuthorizationError {
+            logger.error("❌ Activity authorization error for \(window.name): \(error.localizedDescription)")
         } catch {
-            logger.error("Failed to start Live Activity: \(error.localizedDescription)")
+            logger.error("❌ Failed to start Live Activity for \(window.name): \(error.localizedDescription), error type: \(type(of: error))")
         }
     }
 
@@ -334,50 +337,83 @@ class MealActivityScheduler: ObservableObject {
 
     /// Handle background refresh task
     func handleBackgroundTask(_ task: BGAppRefreshTask) async {
-        logger.info("Background task running")
+        logger.info("🔄 Background task executing at \(Date())")
 
         // Set expiration handler
         task.expirationHandler = {
+            logger.warning("⚠️ Background task expired before completion")
             task.setTaskCompleted(success: false)
         }
 
         // Check and update activities
         await checkAndScheduleActivities()
 
+        logger.info("✅ Background task completed successfully")
         task.setTaskCompleted(success: true)
     }
 
     /// Schedule next background check
+    /// NOTE: iOS does NOT guarantee background tasks run at the requested time.
+    /// We schedule for ideal time but also rely on app foreground events as primary trigger.
     func scheduleBackgroundCheck() {
+        guard isEnabled else {
+            logger.debug("Skipping background schedule - reminders disabled")
+            return
+        }
+
         let request = BGAppRefreshTaskRequest(identifier: mealReminderTaskIdentifier)
 
-        // Find next meal window start time
+        // Find next meal window start time (including tomorrow if needed)
         if let nextStartTime = nextActivityStartTime() {
-            request.earliestBeginDate = nextStartTime
-            logger.info("Scheduled background check for: \(nextStartTime)")
+            // Schedule slightly before the ideal time to give iOS flexibility
+            let scheduledTime = nextStartTime.addingTimeInterval(-300) // 5 min buffer
+            request.earliestBeginDate = scheduledTime
+
+            let formatter = DateFormatter()
+            formatter.dateFormat = "HH:mm"
+            logger.info("📅 Scheduled background check for \(formatter.string(from: scheduledTime)) (next meal: \(formatter.string(from: nextStartTime)))")
         } else {
-            // Default to 1 hour from now
-            request.earliestBeginDate = Date().addingTimeInterval(3600)
+            // No upcoming meals today - schedule periodic check every 2 hours as fallback
+            request.earliestBeginDate = Date().addingTimeInterval(7200)
+            logger.info("📅 Scheduled fallback background check in 2 hours")
         }
 
         do {
             try BGTaskScheduler.shared.submit(request)
+        } catch BGTaskScheduler.Error.unavailable {
+            logger.warning("⚠️ Background tasks unavailable (likely simulator or restricted)")
+        } catch BGTaskScheduler.Error.tooManyPendingTaskRequests {
+            logger.debug("Background task already scheduled")
         } catch {
-            logger.error("Failed to schedule background task: \(error.localizedDescription)")
+            logger.error("❌ Failed to schedule background task: \(error.localizedDescription)")
         }
     }
 
-    /// Calculate next activity start time
+    /// Calculate next activity start time (includes tomorrow if all today's meals are past)
     private func nextActivityStartTime() -> Date? {
         guard isEnabled else { return nil }
 
         let now = Date()
         let leadTime = settings?.leadTimeInterval ?? 2700
 
-        let startTimes = mealWindows
+        // Try today's meals first
+        var startTimes = mealWindows
             .filter { $0.isEnabled }
             .map { $0.dateForToday().addingTimeInterval(-leadTime) }
             .filter { $0 > now }
+            .sorted()
+
+        if let nextToday = startTimes.first {
+            return nextToday
+        }
+
+        // All today's meals are past - look at tomorrow
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: now) ?? now
+        startTimes = mealWindows
+            .filter { $0.isEnabled }
+            .map { window in
+                window.dateFor(date: tomorrow).addingTimeInterval(-leadTime)
+            }
             .sorted()
 
         return startTimes.first

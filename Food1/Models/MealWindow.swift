@@ -48,6 +48,11 @@ struct MealWindow: Codable, Identifiable, Equatable {
         effectiveTime.dateForToday()
     }
 
+    /// Create a Date for a specific day at this meal's effective time
+    func dateFor(date: Date) -> Date {
+        effectiveTime.dateFor(date: date)
+    }
+
     /// Icon for this meal based on time of day
     var icon: String {
         let hour = effectiveTime.hour
@@ -141,13 +146,17 @@ struct TimeComponents: Codable, Equatable, Hashable {
 
     /// Create a Date for today at this time
     func dateForToday() -> Date {
+        dateFor(date: Date())
+    }
+
+    /// Create a Date for a specific day at this time
+    func dateFor(date: Date) -> Date {
         let calendar = Calendar.current
-        let now = Date()
-        var components = calendar.dateComponents([.year, .month, .day], from: now)
+        var components = calendar.dateComponents([.year, .month, .day], from: date)
         components.hour = hour
         components.minute = minute
         components.second = 0
-        return calendar.date(from: components) ?? now
+        return calendar.date(from: components) ?? date
     }
 
     /// Create from a Date (extracts hour and minute)
