@@ -8,12 +8,14 @@
 //  - Sheet presentation (not separate tab) keeps settings as secondary action
 //  - @AppStorage persists preferences without SwiftData overhead
 //  - ProfileEditor as separate sheet enables focused editing with save/cancel
-//  - Form-based layout follows iOS native patterns for settings screens
+//  - Custom card-based layout matches app's premium glassmorphic design language
 //
 
 import SwiftUI
 
 struct SettingsView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
     @AppStorage("appTheme") private var selectedTheme: AppTheme = .system
     @EnvironmentObject var authViewModel: AuthViewModel
 
@@ -31,6 +33,7 @@ struct SettingsView: View {
     @State private var showingProfileEditor = false
     @State private var showingAccount = false
     @State private var showingNutritionGoals = false
+    @State private var showingReminders = false
 
     // Nutrition goals for display
     @AppStorage("useAutoGoals") private var useAutoGoals: Bool = true
@@ -43,197 +46,40 @@ struct SettingsView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                // Account Section (Cloud)
-                Section {
-                    Button(action: {
-                        showingAccount = true
-                    }) {
-                        HStack(spacing: 16) {
-                            Image(systemName: "person.crop.circle.fill")
-                                .font(.system(size: 24))
-                                .foregroundColor(.green)
+            ZStack {
+                // Premium animated background
+                AdaptiveAnimatedBackground()
 
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Account")
-                                    .foregroundColor(.primary)
-                                    .font(.system(size: 17, weight: .semibold))
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // Account Card
+                        accountCard
 
-                                if let email = authViewModel.profile?.email {
-                                    Text(email)
-                                        .font(.system(size: 14))
-                                        .foregroundColor(.secondary)
-                                }
+                        // Profile & Goals Card
+                        profileGoalsCard
 
-                                if let subscription = authViewModel.subscription, subscription.isInTrial {
-                                    Text("\(subscription.trialDaysRemaining) days of trial left")
-                                        .font(.system(size: 13))
-                                        .foregroundColor(.orange)
-                                }
-                            }
+                        // Preferences Card
+                        preferencesCard
 
-                            Spacer()
-
-                            // Disclosure indicator for navigation
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.secondary.opacity(0.5))
-                        }
-                        .padding(.vertical, 4)
-                        .contentShape(Rectangle())  // Ensures entire row is tappable for XCUITest
+                        // Reminders Card
+                        remindersCard
                     }
-                    .accessibilityIdentifier("accountSettingsButton")  // For E2E tests
-                } header: {
-                    Text("Account")
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, 40)
                 }
-
-                // Profile Section (Local)
-                Section {
-                    Button(action: {
-                        showingProfileEditor = true
-                    }) {
-                        HStack(spacing: 16) {
-                            Image(systemName: "person.circle.fill")
-                                .font(.system(size: 24))
-                                .foregroundColor(.blue)
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Your Profile")
-                                    .foregroundColor(.primary)
-                                    .font(.system(size: 17, weight: .semibold))
-
-                                Text("\(age) years • \(String(format: "%.1f", weight)) \(weightUnit.rawValue) • \(activityLevel.rawValue)")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.secondary)
-                            }
-
-                            Spacer()
-
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.secondary.opacity(0.5))
-                        }
-                        .padding(.vertical, 4)
-                        .contentShape(Rectangle())
-                    }
-                } header: {
-                    Text("Profile")
-                }
-
-                // Nutrition Targets Section
-                Section {
-                    Button(action: {
-                        showingNutritionGoals = true
-                    }) {
-                        HStack(spacing: 16) {
-                            Image(systemName: "target")
-                                .font(.system(size: 24))
-                                .foregroundColor(.orange)
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Nutrition Targets")
-                                    .foregroundColor(.primary)
-                                    .font(.system(size: 17, weight: .semibold))
-
-                                HStack(spacing: 8) {
-                                    Text("\(Int(currentGoals.calories)) kcal")
-                                        .font(.system(size: 14))
-                                        .foregroundColor(.secondary)
-
-                                    Text("•")
-                                        .foregroundColor(.secondary.opacity(0.5))
-
-                                    Text("\(Int(currentGoals.protein))g protein")
-                                        .font(.system(size: 14))
-                                        .foregroundColor(.secondary)
-                                }
-
-                                Text(useAutoGoals ? "Auto-calculated" : "Custom")
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(useAutoGoals ? .green : .blue)
-                            }
-
-                            Spacer()
-
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.secondary.opacity(0.5))
-                        }
-                        .padding(.vertical, 4)
-                        .contentShape(Rectangle())
-                    }
-                } header: {
-                    Text("Goals")
-                }
-
-                // Appearance Section
-                Section {
-                    Picker("Appearance", selection: $selectedTheme) {
-                        ForEach(AppTheme.allCases) { theme in
-                            Text(theme.rawValue).tag(theme)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                } header: {
-                    Text("Appearance")
-                }
-
-                // Nutrition Units Section
-                Section {
-                    Picker("Units", selection: $nutritionUnit) {
-                        ForEach(NutritionUnit.allCases) { unit in
-                            Text(unit.rawValue).tag(unit)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                } header: {
-                    Text("Nutrition Units")
-                }
-
-                // Micronutrient Standard Section
-                Section {
-                    Picker("Standard", selection: $micronutrientStandard) {
-                        ForEach(MicronutrientStandard.allCases) { standard in
-                            Text(standard.rawValue).tag(standard)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                } header: {
-                    Text("Micronutrient Targets")
-                } footer: {
-                    Text(micronutrientStandard.description)
-                }
-
-                // Meal Reminders Section
-                Section {
-                    NavigationLink {
-                        MealRemindersSettingsView()
-                    } label: {
-                        HStack(spacing: 16) {
-                            Image(systemName: "bell.badge.fill")
-                                .font(.system(size: 24))
-                                .foregroundColor(.teal)
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Meal Reminders")
-                                    .foregroundColor(.primary)
-                                    .font(.system(size: 17, weight: .semibold))
-
-                                Text("Lock Screen & Dynamic Island")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.secondary)
-                            }
-
-                            Spacer()
-                        }
-                        .padding(.vertical, 4)
-                    }
-                } header: {
-                    Text("Reminders")
-                }
-
+                .scrollIndicators(.hidden)
             }
             .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .fontWeight(.medium)
+                }
+            }
             .sheet(isPresented: $showingProfileEditor) {
                 ProfileEditorView(
                     age: $age,
@@ -261,10 +107,285 @@ struct SettingsView: View {
             .sheet(isPresented: $showingNutritionGoals) {
                 NutritionGoalsEditorView()
             }
+            .sheet(isPresented: $showingReminders) {
+                NavigationStack {
+                    MealRemindersSettingsView()
+                }
+            }
+        }
+    }
+
+    // MARK: - Account Card
+
+    private var accountCard: some View {
+        SettingsCard {
+            SettingsRow(
+                icon: "person.crop.circle.fill",
+                iconColor: .green,
+                title: "Account",
+                subtitle: accountSubtitle,
+                badge: trialBadge
+            ) {
+                showingAccount = true
+                HapticManager.light()
+            }
+            .accessibilityIdentifier("accountSettingsButton")
+        }
+    }
+
+    private var accountSubtitle: String? {
+        authViewModel.profile?.email
+    }
+
+    private var trialBadge: String? {
+        if let subscription = authViewModel.subscription, subscription.isInTrial {
+            return "\(subscription.trialDaysRemaining) days trial"
+        }
+        return nil
+    }
+
+    // MARK: - Profile & Goals Card
+
+    private var profileGoalsCard: some View {
+        SettingsCard {
+            VStack(spacing: 0) {
+                // Profile row
+                SettingsRow(
+                    icon: "person.circle.fill",
+                    iconColor: ColorPalette.accentPrimary,
+                    title: "Your Profile",
+                    subtitle: profileSubtitle
+                ) {
+                    showingProfileEditor = true
+                    HapticManager.light()
+                }
+
+                Divider()
+                    .padding(.leading, 52)
+
+                // Nutrition targets row
+                SettingsRow(
+                    icon: "target",
+                    iconColor: .orange,
+                    title: "Nutrition Targets",
+                    subtitle: goalsSubtitle,
+                    badge: useAutoGoals ? "Auto" : "Custom"
+                ) {
+                    showingNutritionGoals = true
+                    HapticManager.light()
+                }
+            }
+        }
+    }
+
+    private var profileSubtitle: String {
+        "\(age) years • \(String(format: "%.1f", weight)) \(weightUnit.rawValue) • \(activityLevel.rawValue)"
+    }
+
+    private var goalsSubtitle: String {
+        "\(Int(currentGoals.calories)) kcal • \(Int(currentGoals.protein))g protein"
+    }
+
+    // MARK: - Preferences Card
+
+    private var preferencesCard: some View {
+        SettingsCard {
+            VStack(spacing: 20) {
+                // Appearance section
+                VStack(alignment: .leading, spacing: 12) {
+                    SettingsSectionHeader(icon: "paintpalette.fill", title: "Appearance", color: .purple)
+
+                    Picker("Appearance", selection: $selectedTheme) {
+                        ForEach(AppTheme.allCases) { theme in
+                            Text(theme.rawValue).tag(theme)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+
+                Divider()
+
+                // Units section
+                VStack(alignment: .leading, spacing: 12) {
+                    SettingsSectionHeader(icon: "scalemass.fill", title: "Nutrition Units", color: ColorPalette.macroProtein)
+
+                    Picker("Units", selection: $nutritionUnit) {
+                        ForEach(NutritionUnit.allCases) { unit in
+                            Text(unit.rawValue).tag(unit)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+
+                Divider()
+
+                // Micronutrient standard section
+                VStack(alignment: .leading, spacing: 12) {
+                    SettingsSectionHeader(icon: "chart.bar.fill", title: "Micronutrient Targets", color: ColorPalette.macroCarbs)
+
+                    Picker("Standard", selection: $micronutrientStandard) {
+                        ForEach(MicronutrientStandard.allCases) { standard in
+                            Text(standard.rawValue).tag(standard)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+
+                    Text(micronutrientStandard.description)
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+
+    // MARK: - Reminders Card
+
+    private var remindersCard: some View {
+        SettingsCard {
+            SettingsRow(
+                icon: "bell.badge.fill",
+                iconColor: .teal,
+                title: "Meal Reminders",
+                subtitle: "Lock Screen & Dynamic Island"
+            ) {
+                showingReminders = true
+                HapticManager.light()
+            }
+        }
+    }
+}
+
+// MARK: - Settings Card Container
+
+private struct SettingsCard<Content: View>: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .padding(16)
+            .background {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .shadow(
+                        color: colorScheme == .dark ? .black.opacity(0.3) : .black.opacity(0.08),
+                        radius: 16,
+                        x: 0,
+                        y: 8
+                    )
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(colorScheme == .dark ? 0.12 : 0.4),
+                                        Color.white.opacity(0)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                lineWidth: 0.5
+                            )
+                    }
+            }
+    }
+}
+
+// MARK: - Settings Row
+
+private struct SettingsRow: View {
+    let icon: String
+    let iconColor: Color
+    let title: String
+    var subtitle: String? = nil
+    var badge: String? = nil
+    var action: (() -> Void)? = nil
+
+    var body: some View {
+        Button(action: {
+            action?()
+        }) {
+            HStack(spacing: 14) {
+                // Icon
+                Image(systemName: icon)
+                    .font(.system(size: 22))
+                    .foregroundColor(iconColor)
+                    .frame(width: 32)
+
+                // Text content
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.primary)
+
+                    if let subtitle = subtitle {
+                        Text(subtitle)
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
+
+                    if let badge = badge {
+                        Text(badge)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(badgeColor(for: badge))
+                    }
+                }
+
+                Spacer()
+
+                // Chevron indicator
+                if action != nil {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.secondary.opacity(0.5))
+                }
+            }
+            .padding(.vertical, 6)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(action == nil)
+    }
+
+    private func badgeColor(for badge: String) -> Color {
+        if badge.contains("trial") {
+            return .orange
+        } else if badge == "Auto" {
+            return .green
+        } else if badge == "Custom" {
+            return ColorPalette.accentPrimary
+        }
+        return .secondary
+    }
+}
+
+// MARK: - Settings Section Header
+
+private struct SettingsSectionHeader: View {
+    let icon: String
+    let title: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 14))
+                .foregroundColor(color)
+
+            Text(title)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(.secondary)
         }
     }
 }
 
 #Preview {
     SettingsView()
+        .environmentObject(AuthViewModel())
 }

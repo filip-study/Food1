@@ -44,7 +44,7 @@ struct MyHealthPlaceholderView: View {
                 .padding(.horizontal, 40)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(UIColor.systemBackground))
+        .background(AdaptiveAnimatedBackground())
     }
 }
 

@@ -148,6 +148,15 @@ struct StatsView: View {
                                         ? Color(.systemGray6).opacity(0.5)
                                         : Color.white.opacity(0.7)
                                     )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .strokeBorder(
+                                                colorScheme == .dark
+                                                    ? Color.white.opacity(0.08)
+                                                    : Color.black.opacity(0.04),
+                                                lineWidth: 0.5
+                                            )
+                                    )
                             )
                             .padding(.horizontal, 16)
 

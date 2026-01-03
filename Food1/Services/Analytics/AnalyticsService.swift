@@ -8,7 +8,7 @@
 //  - Singleton ensures one PostHog instance across app
 //  - Credentials loaded from Info.plist (populated via Secrets.xcconfig at build time)
 //  - Wrapper provides type-safe event methods
-//  - Debug mode skips tracking to avoid polluting production data
+//  - Debug builds are tracked with build_type="debug" property for filtering in PostHog
 //
 //  PRIVACY:
 //  - No PII collected by default
@@ -80,13 +80,6 @@ final class AnalyticsService {
 
     /// Configure PostHog with credentials from Info.plist
     private func configure() {
-        // Skip in DEBUG builds to avoid polluting production analytics
-        #if DEBUG
-        print("📊 [Analytics] DEBUG build - analytics disabled")
-        isConfigured = false
-        return
-        #else
-
         // Load API key from Info.plist
         guard let apiKey = Bundle.main.infoDictionary?["POSTHOG_API_KEY"] as? String,
               !apiKey.isEmpty,
@@ -115,7 +108,14 @@ final class AnalyticsService {
         PostHogSDK.shared.setup(config)
         isConfigured = true
 
-        print("✅ [Analytics] PostHog configured successfully")
+        // Register build_type as a super property so it's sent with every event
+        // This allows filtering debug vs release builds in PostHog dashboard
+        #if DEBUG
+        PostHogSDK.shared.register(["build_type": "debug"])
+        print("✅ [Analytics] PostHog configured (DEBUG build)")
+        #else
+        PostHogSDK.shared.register(["build_type": "release"])
+        print("✅ [Analytics] PostHog configured (RELEASE build)")
         #endif
     }
 
