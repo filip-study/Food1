@@ -23,7 +23,7 @@ struct StreakIndicator: View {
 
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.accessibilityReduceMotion) var reduceMotion
-    @State private var appeared = false
+    @State private var appeared = true  // Show immediately (no delayed animation on tab switch)
     @State private var celebrating = false
     @State private var flameFlicker = false  // Repeating flame animation
 
@@ -81,16 +81,6 @@ struct StreakIndicator: View {
         .buttonStyle(PlainButtonStyle())
         .opacity(appeared ? 1 : 0)
         .offset(x: appeared ? 0 : 8)
-        .onAppear {
-            // Animate in after greeting shimmer completes
-            let animation: Animation = reduceMotion
-                ? .easeOut(duration: 0.3).delay(1.3)
-                : .spring(response: 0.5, dampingFraction: 0.8).delay(1.3)
-
-            withAnimation(animation) {
-                appeared = true
-            }
-        }
         .onChange(of: celebrate) { _, shouldCelebrate in
             if shouldCelebrate {
                 triggerCelebration()

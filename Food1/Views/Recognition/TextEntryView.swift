@@ -49,11 +49,11 @@ struct TextEntryView: View {
     @State private var predictions: [FoodRecognitionService.FoodPrediction] = []
     @State private var showingReview = false
 
-    private let maxCharacterLimit = 200
+    private let maxCharacterLimit = 300
 
     private var isInputValid: Bool {
         let trimmed = mealDescription.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.count >= 5 && trimmed.count <= maxCharacterLimit
+        return trimmed.count >= 3 && trimmed.count <= maxCharacterLimit
     }
 
     private var characterCount: Int {
@@ -61,7 +61,7 @@ struct TextEntryView: View {
     }
 
     private var showCharacterCount: Bool {
-        characterCount >= 160
+        characterCount >= 240
     }
 
     private let loadingMessages: [(title: String, subtitle: String)] = [
@@ -85,8 +85,8 @@ struct TextEntryView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Background
-                backgroundGradient
+                // Animated mesh gradient background
+                AdaptiveAnimatedBackground()
 
                 // Main content
                 ScrollView {
@@ -106,6 +106,7 @@ struct TextEntryView: View {
                         Spacer(minLength: 120)
                     }
                 }
+                .scrollIndicators(.hidden)
 
                 // CTA Button (fixed at bottom)
                 VStack {
@@ -142,9 +143,9 @@ struct TextEntryView: View {
                 }
             }
             .onAppear {
-                // Focus the text field automatically
+                // Focus text field with minimal delay - just enough for view to settle
                 Task { @MainActor in
-                    try? await Task.sleep(for: .milliseconds(400))
+                    try? await Task.sleep(for: .milliseconds(100))
                     textFieldFocused = true
                 }
 
@@ -183,19 +184,6 @@ struct TextEntryView: View {
                 }
             }
         }
-    }
-
-    // MARK: - Background
-
-    private var backgroundGradient: some View {
-        LinearGradient(
-            colors: colorScheme == .light
-                ? [Color(.systemBackground), Color.blue.opacity(0.03)]
-                : [Color(.systemBackground), Color.blue.opacity(0.05)],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-        .ignoresSafeArea()
     }
 
     // MARK: - Text Input Section

@@ -214,6 +214,7 @@ struct AccountView: View {
                         .foregroundColor(.secondary)
                 }
             }
+            .scrollIndicators(.hidden)
             .navigationTitle("Account")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

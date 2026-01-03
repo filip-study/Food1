@@ -112,6 +112,7 @@ struct EmailConfirmationPendingView: View {
                     Spacer()
                 }
             }
+            .scrollIndicators(.hidden)
         }
         .onDisappear {
             timer?.invalidate()

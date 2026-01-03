@@ -146,6 +146,7 @@ struct OnboardingView: View {
                         .frame(height: 40)
                 }
             }
+            .scrollIndicators(.hidden)
             .scrollDismissesKeyboard(.interactively)
         }
     }

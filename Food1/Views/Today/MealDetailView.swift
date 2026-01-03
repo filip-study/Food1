@@ -82,9 +82,13 @@ struct MealDetailView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                // Header with photo/emoji
+        ZStack {
+            // Animated mesh gradient background
+            AdaptiveAnimatedBackground()
+
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Header with photo/emoji
                 VStack(spacing: 12) {
                     // Show photo or emoji - uses 3-layer hierarchy: photoData → photoThumbnailUrl → emoji
                     MealImageView(meal: meal, size: 120, cornerRadius: 20)
@@ -475,6 +479,8 @@ struct MealDetailView: View {
                 .padding(.bottom, 80)
             }
         }
+        .scrollIndicators(.hidden)
+        }  // Close ZStack
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingEditSheet) {
             MealEditView(editingMeal: meal)

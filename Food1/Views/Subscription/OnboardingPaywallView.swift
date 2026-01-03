@@ -42,6 +42,7 @@ struct OnboardingPaywallView: View {
             }
             .padding()
         }
+        .scrollIndicators(.hidden)
         .background(Color(.systemGroupedBackground))
         .alert("Error", isPresented: $showError) {
             Button("OK", role: .cancel) {}

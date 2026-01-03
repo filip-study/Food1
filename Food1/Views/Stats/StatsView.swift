@@ -120,8 +120,12 @@ struct StatsView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 0) {
+            ZStack {
+                // Animated mesh gradient background
+                AdaptiveAnimatedBackground()
+
+                ScrollView {
+                    VStack(spacing: 0) {
                     // Period selector - integrated at top of content
                     PeriodTabSelector(
                         selectedPeriod: $selectedPeriod,
@@ -133,28 +137,19 @@ struct StatsView: View {
                     // Note: Locked periods are disabled in the selector, so we always have an unlocked period here
                     if let stats = statistics {
                         if stats.totalMeals >= 1 && hasEnoughDataForChart {
-                            // Chart section - edge-to-edge immersive
+                            // Chart section - contained card
                             VStack(spacing: 0) {
                                 MacroTrendsChart(statistics: stats, period: selectedPeriod)
                                     .padding(.vertical, 20)
                             }
                             .background(
-                                RoundedRectangle(cornerRadius: 0)
-                                    .fill(.ultraThinMaterial)
-                                    .overlay(
-                                        Rectangle()
-                                            .fill(
-                                                LinearGradient(
-                                                    colors: [
-                                                        Color.white.opacity(colorScheme == .dark ? 0.05 : 0.1),
-                                                        Color.clear
-                                                    ],
-                                                    startPoint: .top,
-                                                    endPoint: .bottom
-                                                )
-                                            )
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(colorScheme == .dark
+                                        ? Color(.systemGray6).opacity(0.5)
+                                        : Color.white.opacity(0.7)
                                     )
                             )
+                            .padding(.horizontal, 16)
 
                             // Fiber section
                             FiberSection(
@@ -193,16 +188,8 @@ struct StatsView: View {
                     }
                 }
             }
-            .background(
-                LinearGradient(
-                    colors: colorScheme == .light
-                        ? [Color.white, Color.blue.opacity(0.05)]
-                        : [Color.black, Color.blue.opacity(0.08)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
-            )
+            .scrollIndicators(.hidden)
+            }  // Close ZStack
             .navigationBarHidden(true)
             .task(id: selectedPeriod) {
                 if isPeriodUnlocked(selectedPeriod) {
@@ -597,14 +584,8 @@ private struct PeriodTabSelector: View {
 
                             if isSelected {
                                 RoundedRectangle(cornerRadius: 1.5)
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [ColorPalette.macroProtein, ColorPalette.macroCarbs],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                                    .frame(height: 3)
+                                    .fill(Color.primary.opacity(0.8))
+                                    .frame(height: 2)
                                     .matchedGeometryEffect(id: "underline", in: animation)
                             }
                         }

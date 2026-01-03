@@ -44,6 +44,7 @@ struct PaywallView: View {
                 }
                 .padding()
             }
+            .scrollIndicators(.hidden)
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Upgrade to Premium")
             .navigationBarTitleDisplayMode(.inline)

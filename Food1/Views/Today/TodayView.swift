@@ -207,15 +207,8 @@ struct TodayView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Gradient background layer
-                LinearGradient(
-                    colors: colorScheme == .light
-                        ? [Color.white, Color.blue.opacity(0.15)]
-                        : [Color.black, Color.blue.opacity(0.2)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
+                // Animated mesh gradient background (iOS 18+, falls back to static)
+                AdaptiveAnimatedBackground()
 
                 ScrollView {
                     VStack(spacing: 32) {
@@ -360,6 +353,7 @@ struct TodayView: View {
                     .padding(.top, 8)
                     .padding(.bottom, 100)  // Clearance for tab bar + FAB
                 }
+                .scrollIndicators(.hidden)
 
             }
             .offset(x: dragOffset)

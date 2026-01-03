@@ -59,6 +59,7 @@ struct MealRemindersOnboardingView: View {
                 .padding(.horizontal, 24)
                 .padding(.top, 16)
             }
+            .scrollIndicators(.hidden)
             .background(Color(.systemGroupedBackground))
             .safeAreaInset(edge: .bottom) {
                 bottomButtons

@@ -256,6 +256,7 @@ struct MicronutrientDetailView: View {
                 }
                 .padding(.top, 16)
             }
+            .scrollIndicators(.hidden)
             .background(
                 LinearGradient(
                     colors: colorScheme == .light
