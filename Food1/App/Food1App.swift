@@ -32,6 +32,11 @@ struct Food1App: App {
     @StateObject private var onboardingService = OnboardingService.shared
     @Environment(\.scenePhase) private var scenePhase
 
+    #if DEBUG
+    /// Demo mode state (DEBUG only) - use ObservedObject since singleton already exists
+    @ObservedObject private var demoModeManager = DemoModeManager.shared
+    #endif
+
     // Background task identifiers
     private static let enrichmentTaskIdentifier = "com.filipolszak.Food1.enrichment"
 
@@ -188,17 +193,55 @@ struct Food1App: App {
     var body: some Scene {
         WindowGroup {
             ZStack {
-                // Auth routing: Show onboarding, confirmation pending, or main app
-                if let pendingEmail = authViewModel.emailPendingConfirmation {
-                    // Email confirmation pending: Show confirmation screen
+                // Auth routing: Show onboarding, confirmation pending, demo mode, or main app
+                #if DEBUG
+                // DEBUG: Include demo mode check
+                if demoModeManager.isActive, let demoContainer = demoModeManager.demoContainer {
+                    // Demo mode active: Show main app with demo data (no banner for clean screenshots)
+                    MainTabView()
+                        .environmentObject(authViewModel)
+                        .modelContainer(demoContainer)
+                } else if let pendingEmail = authViewModel.emailPendingConfirmation {
+                    // Email confirmation pending
                     EmailConfirmationPendingView(email: pendingEmail)
                         .environmentObject(authViewModel)
                 } else if authViewModel.isAuthenticated {
-                    // Authenticated and confirmed: Show main app
+                    // Authenticated: Show main app
                     MainTabView()
                         .environmentObject(authViewModel)
                         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
-                            // Schedule background task when app goes to background
+                            scheduleEnrichmentTask()
+                        }
+                } else {
+                    // Not authenticated: Show welcome or onboarding
+                    if showOnboarding {
+                        OnboardingView()
+                            .environmentObject(authViewModel)
+                            .transition(.asymmetric(
+                                insertion: .move(edge: .trailing).combined(with: .opacity),
+                                removal: .move(edge: .leading).combined(with: .opacity)
+                            ))
+                    } else {
+                        WelcomeView(
+                            showOnboarding: $showOnboarding,
+                            onDemoModeActivated: {
+                                activateDemoMode()
+                            }
+                        )
+                        .transition(.opacity)
+                    }
+                }
+                #else
+                // RELEASE: No demo mode
+                if let pendingEmail = authViewModel.emailPendingConfirmation {
+                    // Email confirmation pending
+                    EmailConfirmationPendingView(email: pendingEmail)
+                        .environmentObject(authViewModel)
+                } else if authViewModel.isAuthenticated {
+                    // Authenticated: Show main app
+                    MainTabView()
+                        .environmentObject(authViewModel)
+                        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
                             scheduleEnrichmentTask()
                         }
                 } else {
@@ -215,6 +258,7 @@ struct Food1App: App {
                             .transition(.opacity)
                     }
                 }
+                #endif
 
                 // Migration progress overlay
                 if migrationService.isMigrating {
@@ -233,6 +277,23 @@ struct Food1App: App {
             .task {
                 // Configure SyncCoordinator FIRST so it's ready when auth triggers sync
                 SyncCoordinator.shared.configure(with: modelContainer)
+
+                #if DEBUG
+                // Check for demo mode launch argument (-demoMode)
+                if demoModeManager.shouldActivateFromLaunchArgument {
+                    demoModeManager.activate()
+
+                    // Generate statistics aggregates for Stats view (must complete before UI loads)
+                    await demoModeManager.generateStatisticsAggregates()
+
+                    // Still need to wait for and dismiss splash screen
+                    try? await Task.sleep(for: .milliseconds(1400))
+                    withAnimation(.easeOut(duration: 0.4)) {
+                        launchScreenState.finish()
+                    }
+                    return  // Skip normal auth flow in demo mode
+                }
+                #endif
 
                 // Check for existing session on launch
                 await authViewModel.checkSession()
@@ -497,4 +558,60 @@ struct Food1App: App {
             #endif
         }
     }
+
+    // MARK: - Demo Mode (DEBUG Only)
+
+    #if DEBUG
+    /// Activate demo mode with sample data
+    @MainActor
+    private func activateDemoMode() {
+        print("[DemoMode] Activating demo mode from app...")
+        demoModeManager.activate()
+    }
+    #endif
 }
+
+// MARK: - Demo Mode Banner (DEBUG Only)
+
+#if DEBUG
+/// Visual indicator that demo mode is active
+struct DemoModeBanner: View {
+    @StateObject private var demoModeManager = DemoModeManager.shared
+
+    var body: some View {
+        if demoModeManager.isActive {
+            HStack(spacing: 6) {
+                Image(systemName: "theatermask.and.paintbrush")
+                    .font(.system(size: 12, weight: .semibold))
+
+                Text("DEMO MODE")
+                    .font(.system(size: 11, weight: .bold))
+                    .tracking(0.5)
+
+                Spacer()
+
+                Button {
+                    withAnimation {
+                        demoModeManager.deactivate()
+                    }
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(.white.opacity(0.8))
+                }
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(
+                LinearGradient(
+                    colors: [Color.purple, Color.blue],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .padding(.top, 50) // Below status bar
+        }
+    }
+}
+#endif

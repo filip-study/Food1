@@ -22,6 +22,8 @@
 	<string>Food1 uses speech recognition to convert your voice into text when describing meals. This makes logging meals faster and easier.</string>
 	<key>PROXY_ENDPOINT</key>
 	<string>$(PROXY_ENDPOINT)</string>
+	<key>DEV_PROXY_ENDPOINT</key>
+	<string>$(DEV_PROXY_ENDPOINT)</string>
 	<key>AUTH_TOKEN</key>
 	<string>$(AUTH_TOKEN)</string>
 	<key>SUPABASE_URL</key>

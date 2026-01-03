@@ -149,6 +149,8 @@ cd food-vision-api
 npm install
 ```
 
+**Preview deployments:** Push to `dev` branch → Cloudflare creates preview at `https://dev.food-vision-api.filipfood1.workers.dev`
+
 ## GPT-4o Vision API Setup
 
 **Prerequisites:** OpenAI API key (https://platform.openai.com/api-keys) and Cloudflare account (free: https://dash.cloudflare.com/sign-up)
@@ -186,6 +188,7 @@ npm install
 
 ## Notes
 
+- NEVER run destructive commands (delete, drop, wrangler delete, etc.) without explicit user approval
 - dont fucking commit and push if i havent confirmed it works after ur fix
 - dont just make up stuff about what features you plan to add. its my call what features to add. you can include RECOMMENDATIONS but it should be clearly stated they are comming from you as AI agent and I need to sign off on them and i may have a different opinion. it should be clear. technical improvements that dont affect functionality much is a different story and i can be a bit less involved
 - why did you put the api key directly in the code? are you crazy? this is a production app never do that again

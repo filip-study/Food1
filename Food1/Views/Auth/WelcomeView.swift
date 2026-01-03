@@ -12,6 +12,10 @@
 //  - Feature highlights prime users for the value proposition
 //  - Animated elements create sense of quality and polish
 //
+//  DEBUG ONLY:
+//  - Triple-tap on logo activates Demo Mode (for screenshots/testing)
+//  - Completely stripped from release builds via #if DEBUG
+//
 
 import SwiftUI
 
@@ -20,6 +24,15 @@ struct WelcomeView: View {
     @State private var animateContent = false
     @State private var animateButton = false
     @Environment(\.colorScheme) var colorScheme
+
+    #if DEBUG
+    /// Callback to activate demo mode (injected from parent)
+    var onDemoModeActivated: (() -> Void)?
+
+    /// Track tap count for demo mode activation
+    @State private var logoTapCount = 0
+    @State private var lastTapTime = Date.distantPast
+    #endif
 
     var body: some View {
         ZStack {
@@ -36,6 +49,14 @@ struct WelcomeView: View {
                         .scaleEffect(1.3)
                         .opacity(animateContent ? 1 : 0)
                         .offset(y: animateContent ? 0 : 20)
+                        #if DEBUG
+                        .frame(width: 200, height: 200)  // Explicit frame for tap target
+                        .contentShape(Rectangle())  // Make entire frame tappable
+                        .onTapGesture {
+                            handleLogoTap()
+                        }
+                        .accessibilityIdentifier("demoModeLogo")
+                        #endif
 
                     // App name and tagline
                     VStack(spacing: 12) {
@@ -154,6 +175,40 @@ struct WelcomeView: View {
             }
         }
     }
+
+    // MARK: - Demo Mode (DEBUG Only)
+
+    #if DEBUG
+    /// Handle logo tap for demo mode activation (triple-tap within 1 second)
+    private func handleLogoTap() {
+        let now = Date()
+        let timeSinceLastTap = now.timeIntervalSince(lastTapTime)
+
+        // Reset count if more than 5 seconds since last tap
+        // (longer timeout to allow for automation testing latency)
+        if timeSinceLastTap > 5.0 {
+            logoTapCount = 1
+        } else {
+            logoTapCount += 1
+        }
+
+        lastTapTime = now
+
+        // Activate demo mode on third tap
+        if logoTapCount >= 3 {
+            logoTapCount = 0
+            let impact = UIImpactFeedbackGenerator(style: .heavy)
+            impact.impactOccurred()
+
+            print("[DemoMode] Triple-tap detected - activating demo mode")
+            onDemoModeActivated?()
+        } else {
+            // Light feedback on each tap
+            let impact = UIImpactFeedbackGenerator(style: .light)
+            impact.impactOccurred()
+        }
+    }
+    #endif
 }
 
 // MARK: - Feature Row Component
