@@ -21,8 +21,7 @@ struct FloatingPillNavigation: View {
     var onEntryModeSelected: (MealEntryMode) -> Void
     var calorieProgress: Double? = nil  // Optional: shows progress on add button
     var hasLoggedMeals: Bool = false    // Controls ring visibility
-
-    @State private var showingAddMenu = false  // Controls add button menu visibility
+    @Binding var showingAddMenu: Bool   // Controls add button menu visibility (exposed for blur backdrop)
 
     private let pillSpacing: CGFloat = 20  // Increased from 12 for better visual separation
     private let horizontalPadding: CGFloat = 16
@@ -30,18 +29,6 @@ struct FloatingPillNavigation: View {
 
     var body: some View {
         ZStack {
-            // Full-screen tap catcher - dismisses menu when tapping outside
-            if showingAddMenu {
-                Color.clear
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                            showingAddMenu = false
-                        }
-                    }
-                    .ignoresSafeArea()
-            }
-
             // Floating navigation pills
             GeometryReader { geometry in
                 VStack {
@@ -89,6 +76,7 @@ struct FloatingPillNavigation: View {
 }
 
 #Preview("Light Mode") {
+    @Previewable @State var showingMenu = false
     ZStack(alignment: .bottom) {
         // Mock content
         VStack {
@@ -102,12 +90,14 @@ struct FloatingPillNavigation: View {
         // Navigation
         FloatingPillNavigation(
             selectedTab: .constant(.meals),
-            onEntryModeSelected: { mode in print("Selected: \(mode)") }
+            onEntryModeSelected: { mode in print("Selected: \(mode)") },
+            showingAddMenu: $showingMenu
         )
     }
 }
 
 #Preview("Dark Mode") {
+    @Previewable @State var showingMenu = false
     ZStack(alignment: .bottom) {
         // Mock content
         VStack {
@@ -121,7 +111,8 @@ struct FloatingPillNavigation: View {
         // Navigation
         FloatingPillNavigation(
             selectedTab: .constant(.stats),
-            onEntryModeSelected: { mode in print("Selected: \(mode)") }
+            onEntryModeSelected: { mode in print("Selected: \(mode)") },
+            showingAddMenu: $showingMenu
         )
     }
     .preferredColorScheme(.dark)

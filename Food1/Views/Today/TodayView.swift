@@ -42,8 +42,11 @@ struct TodayView: View {
     @State private var showingManualEntry = false
     @State private var showingSettings = false
     @Binding var selectedDate: Date  // Shared with MainTabView for FAB date sync
+    @Binding var showStreakTooltip: Bool  // Controlled by MainTabView for blur coordination
     @State private var dragOffset: CGFloat = 0
     @State private var shimmerPhase: CGFloat = 0  // For greeting shimmer animation
+    @State private var celebrateStreak = false  // Triggers streak flame animation
+    @State private var lastKnownMealCount = 0   // For detecting new meals
 
     /// Daily goals - either auto-calculated from profile or manual override
     private var personalizedGoals: DailyGoals {
@@ -104,6 +107,71 @@ struct TodayView: View {
         Calendar.current.isDateInToday(selectedDate)
     }
 
+    // MARK: - Streak Calculation
+
+    /// Current consecutive days with meals (counting backward from today/yesterday)
+    private var currentStreak: Int {
+        let calendar = Calendar.current
+        var streak = 0
+        var checkDate = calendar.startOfDay(for: Date())
+
+        // Check if today has meals
+        let todayHasMeals = allMeals.contains {
+            calendar.isDate($0.timestamp, inSameDayAs: checkDate)
+        }
+
+        // If no meals today yet, start counting from yesterday
+        if !todayHasMeals {
+            guard let yesterday = calendar.date(byAdding: .day, value: -1, to: checkDate) else {
+                return 0
+            }
+            checkDate = yesterday
+        }
+
+        // Count consecutive days backward
+        while true {
+            let hasMeals = allMeals.contains {
+                calendar.isDate($0.timestamp, inSameDayAs: checkDate)
+            }
+            if !hasMeals { break }
+            streak += 1
+            guard let prevDay = calendar.date(byAdding: .day, value: -1, to: checkDate) else { break }
+            checkDate = prevDay
+        }
+
+        return streak
+    }
+
+    /// Longest consecutive streak ever achieved
+    private var longestStreak: Int {
+        let calendar = Calendar.current
+
+        // Get unique dates with meals, sorted ascending
+        let datesWithMeals = Set(allMeals.map { calendar.startOfDay(for: $0.timestamp) })
+            .sorted()
+
+        guard !datesWithMeals.isEmpty else { return 0 }
+
+        var longest = 1
+        var current = 1
+
+        for i in 1..<datesWithMeals.count {
+            let prevDate = datesWithMeals[i - 1]
+            let currDate = datesWithMeals[i]
+
+            // Check if consecutive (exactly 1 day apart)
+            if let nextDay = calendar.date(byAdding: .day, value: 1, to: prevDate),
+               calendar.isDate(nextDay, inSameDayAs: currDate) {
+                current += 1
+                longest = max(longest, current)
+            } else {
+                current = 1
+            }
+        }
+
+        return longest
+    }
+
     /// Dynamic daily insight based on nutrition progress
     // private var currentInsight: (icon: String, title: String, message: String, color: Color)? {
     //     guard !mealsForSelectedDate.isEmpty else { return nil }
@@ -151,8 +219,8 @@ struct TodayView: View {
 
                 ScrollView {
                     VStack(spacing: 32) {
-                        // Personalized greeting: Fancy time greeting + bold name with shimmer
-                        HStack {
+                        // Personalized greeting header
+                        HStack(alignment: .top) {
                             VStack(alignment: .leading, spacing: 4) {
                                 // Time greeting in elegant Instrument Serif
                                 Text(timeGreeting)
@@ -190,7 +258,19 @@ struct TodayView: View {
                                         )
                                 }
                             }
+
                             Spacer()
+
+                            // Streak indicator (hidden when streak is 0)
+                            if currentStreak >= 1 {
+                                StreakIndicator(
+                                    currentStreak: currentStreak,
+                                    longestStreak: longestStreak,
+                                    totalMealsLogged: allMeals.count,
+                                    celebrate: celebrateStreak,
+                                    isShowingTooltip: $showStreakTooltip
+                                )
+                            }
                         }
                         .padding(.horizontal)
                         .padding(.top, 16)
@@ -198,6 +278,18 @@ struct TodayView: View {
                             // Trigger shimmer animation on appear
                             withAnimation(.easeInOut(duration: 1.2).delay(0.3)) {
                                 shimmerPhase = 2.0
+                            }
+                            // Initialize meal count tracking
+                            lastKnownMealCount = mealsForSelectedDate.count
+                        }
+                        .onChange(of: mealsForSelectedDate.count) { oldCount, newCount in
+                            // Celebrate when a new meal is added today
+                            if newCount > oldCount && isViewingToday {
+                                celebrateStreak = true
+                                // Reset after animation completes
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                    celebrateStreak = false
+                                }
                             }
                         }
 
@@ -268,7 +360,7 @@ struct TodayView: View {
                     .padding(.top, 8)
                     .padding(.bottom, 100)  // Clearance for tab bar + FAB
                 }
-                }
+
             }
             .offset(x: dragOffset)
             .gesture(
@@ -312,8 +404,10 @@ struct TodayView: View {
                 SettingsView()
                     .preferredColorScheme(selectedTheme.resolvedColorScheme)
             }
+            .animation(.spring(response: 0.25, dampingFraction: 0.8), value: showStreakTooltip)
         }
     }
+}
 
 // MARK: - Empty Meals View
 
@@ -335,7 +429,7 @@ struct EmptyMealsView: View {
 
 #Preview {
     let preview = PreviewContainer()
-    return TodayView(selectedDate: .constant(Date()))
+    return TodayView(selectedDate: .constant(Date()), showStreakTooltip: .constant(false))
         .modelContainer(preview.container)
         .environmentObject(AuthViewModel())
 }

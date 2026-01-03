@@ -20,6 +20,8 @@ struct MainTabView: View {
     @State private var selectedEntryMode: MealEntryMode? = nil  // Triggers fullScreenCover when set
     @State private var showingPaywall = false  // Paywall gate for expired/no subscription
     @State private var selectedDate = Date()  // Shared date state for meal logging
+    @State private var showingAddMenu = false  // Controls add button menu + blur backdrop
+    @State private var showStreakTooltip = false  // Controls streak tooltip + blur backdrop
     @AppStorage("appTheme") private var selectedTheme: AppTheme = .system
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -82,13 +84,89 @@ struct MainTabView: View {
         return totals.calories / personalizedGoals.calories
     }
 
+    // MARK: - Streak Calculation (for tooltip overlay)
+
+    /// Current consecutive days with meals (counting backward from today/yesterday)
+    private var currentStreak: Int {
+        let calendar = Calendar.current
+        var streak = 0
+        var checkDate = calendar.startOfDay(for: Date())
+
+        let todayHasMeals = allMeals.contains {
+            calendar.isDate($0.timestamp, inSameDayAs: checkDate)
+        }
+
+        if !todayHasMeals {
+            guard let yesterday = calendar.date(byAdding: .day, value: -1, to: checkDate) else {
+                return 0
+            }
+            checkDate = yesterday
+        }
+
+        while true {
+            let hasMeals = allMeals.contains {
+                calendar.isDate($0.timestamp, inSameDayAs: checkDate)
+            }
+            if !hasMeals { break }
+            streak += 1
+            guard let prevDay = calendar.date(byAdding: .day, value: -1, to: checkDate) else { break }
+            checkDate = prevDay
+        }
+
+        return streak
+    }
+
+    /// Longest consecutive streak ever achieved
+    private var longestStreak: Int {
+        let calendar = Calendar.current
+        let datesWithMeals = Set(allMeals.map { calendar.startOfDay(for: $0.timestamp) }).sorted()
+        guard !datesWithMeals.isEmpty else { return 0 }
+
+        var longest = 1
+        var current = 1
+
+        for i in 1..<datesWithMeals.count {
+            let prevDate = datesWithMeals[i - 1]
+            let currDate = datesWithMeals[i]
+
+            if let nextDay = calendar.date(byAdding: .day, value: 1, to: prevDate),
+               calendar.isDate(nextDay, inSameDayAs: currDate) {
+                current += 1
+                longest = max(longest, current)
+            } else {
+                current = 1
+            }
+        }
+
+        return longest
+    }
+
+    /// User's first name for greeting placeholder
+    private var userFirstName: String? {
+        guard let fullName = authViewModel.profile?.fullName, !fullName.isEmpty else {
+            return nil
+        }
+        return fullName.components(separatedBy: " ").first
+    }
+
+    /// Time-based greeting
+    private var timeGreeting: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 5..<12: return "Good morning"
+        case 12..<17: return "Good afternoon"
+        case 17..<22: return "Good evening"
+        default: return "Good night"
+        }
+    }
+
     var body: some View {
         ZStack(alignment: .bottom) {
             // Content views
             Group {
                 switch selectedTab {
                 case .meals:
-                    TodayView(selectedDate: $selectedDate)
+                    TodayView(selectedDate: $selectedDate, showStreakTooltip: $showStreakTooltip)
                 case .stats:
                     StatsView()
                 case .myHealth:
@@ -101,24 +179,106 @@ struct MainTabView: View {
                 Color.clear.frame(height: 76)
             }
 
-            // Floating pill navigation with calorie progress
+            // Blur backdrop for FAB menu only (nav bar stays above this)
+            if showingAddMenu {
+                Color.black.opacity(0.001)
+                    .background(.ultraThinMaterial)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            showingAddMenu = false
+                        }
+                    }
+                    .transition(.opacity)
+            }
+
+            // Floating pill navigation (always rendered, above FAB blur)
             FloatingPillNavigation(
                 selectedTab: $selectedTab,
                 onEntryModeSelected: { mode in
                     // Paywall gate: check if user has access before allowing meal entry
-                    // UI testing mode bypasses paywall to allow testing without subscription
                     if authViewModel.hasAccess || UITestingSupport.shouldBypassPaywall {
                         selectedEntryMode = mode
                     } else {
-                        // Show paywall instead - trial expired or no subscription
                         HapticManager.medium()
                         showingPaywall = true
                     }
                 },
                 calorieProgress: todayCalorieProgress,
-                hasLoggedMeals: hasLoggedMealsToday
+                hasLoggedMeals: hasLoggedMealsToday,
+                showingAddMenu: $showingAddMenu
             )
         }
+        // Streak tooltip overlay - covers EVERYTHING including nav bar
+        .overlay {
+            if showStreakTooltip && currentStreak >= 1 {
+                ZStack {
+                    // Full-screen blur backdrop (animates in)
+                    Color.black.opacity(0.001)
+                        .background(.ultraThinMaterial)
+                        .ignoresSafeArea()
+                        .onTapGesture {
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                showStreakTooltip = false
+                            }
+                        }
+                        .transition(.opacity)
+
+                    // Streak indicator - appears INSTANTLY (no animation)
+                    // This prevents the "disappear/reappear" flicker
+                    VStack {
+                        HStack(alignment: .top) {
+                            // Invisible greeting placeholder for exact positioning
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(timeGreeting)
+                                    .font(.custom("InstrumentSerif-Regular", size: 26))
+                                    .opacity(0)
+                                if userFirstName != nil {
+                                    Text("Name")
+                                        .font(.custom("PlusJakartaSans-Bold", size: 26))
+                                        .opacity(0)
+                                }
+                            }
+                            Spacer()
+                            StreakIndicator(
+                                currentStreak: currentStreak,
+                                longestStreak: longestStreak,
+                                totalMealsLogged: allMeals.count,
+                                celebrate: false,
+                                isShowingTooltip: $showStreakTooltip
+                            )
+                        }
+                        .padding(.horizontal)
+                        .padding(.top, 24)
+                        Spacer()
+                    }
+                    .transaction { $0.animation = nil }  // Disable animation - appear instantly
+
+                    // Tooltip card (animates in with scale)
+                    VStack {
+                        HStack {
+                            Spacer()
+                            StreakTooltip(
+                                currentStreak: currentStreak,
+                                longestStreak: longestStreak,
+                                totalMealsLogged: allMeals.count,
+                                onDismiss: {
+                                    withAnimation(.easeOut(duration: 0.2)) {
+                                        showStreakTooltip = false
+                                    }
+                                }
+                            )
+                            .padding(.trailing, 16)
+                        }
+                        Spacer()
+                    }
+                    .padding(.top, 72)
+                    .transition(.opacity.combined(with: .scale(scale: 0.92, anchor: .topTrailing)))
+                }
+            }
+        }
+        .animation(.spring(response: 0.25, dampingFraction: 0.8), value: showingAddMenu)
+        .animation(.spring(response: 0.25, dampingFraction: 0.8), value: showStreakTooltip)
         .accessibilityElement(children: .contain)  // Make ZStack an accessibility container
         .accessibilityIdentifier("mainTabView")  // For E2E test detection
         .preferredColorScheme(selectedTheme.colorScheme)
