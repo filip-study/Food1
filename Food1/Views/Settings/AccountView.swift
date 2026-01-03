@@ -3,7 +3,7 @@
 //  Food1
 //
 //  Account management screen shown in Settings.
-//  Displays user email, subscription status, sign out, and account deletion.
+//  Displays sign-in method, subscription status, sign out, and account deletion.
 //
 //  WHY TWO-STEP DELETE CONFIRMATION:
 //  - Apple requires account deletion for apps with account creation
@@ -22,6 +22,7 @@ struct AccountView: View {
     @State private var showingSignOutConfirmation = false
     @State private var isSigningOut = false
     @State private var showingPaywall = false
+    @State private var copiedUserId = false
 
     // Account deletion states
     @State private var showingDeleteConfirmation = false
@@ -31,36 +32,96 @@ struct AccountView: View {
     @State private var showDeleteError = false
     @State private var deleteErrorMessage = ""
 
+    /// Detect if user signed in with Apple (check identities array)
+    private var isAppleUser: Bool {
+        guard let user = authViewModel.currentUser else { return false }
+        // Check identities array for apple provider
+        if let identities = user.identities {
+            return identities.contains(where: { $0.provider == "apple" })
+        }
+        return false
+    }
+
+    /// User's email - may be hidden for Apple users
+    private var userEmail: String? {
+        // Try profile email first
+        if let email = authViewModel.profile?.email, !email.isEmpty {
+            return email
+        }
+        // Try user email from auth
+        if let email = authViewModel.currentUser?.email, !email.isEmpty {
+            return email
+        }
+        return nil
+    }
+
     var body: some View {
         NavigationStack {
             List {
                 // Account Info Section
                 Section {
+                    // Sign-in method
                     HStack {
-                        Text("Email")
+                        Text("Signed in with")
                             .foregroundColor(.secondary)
                         Spacer()
-                        Text(authViewModel.profile?.email ?? "No email")
+                        if isAppleUser {
+                            HStack(spacing: 6) {
+                                Image(systemName: "apple.logo")
+                                    .font(.system(size: 14))
+                                Text("Apple")
+                            }
                             .foregroundColor(.primary)
+                        } else {
+                            HStack(spacing: 6) {
+                                Image(systemName: "envelope.fill")
+                                    .font(.system(size: 12))
+                                Text("Email")
+                            }
+                            .foregroundColor(.primary)
+                        }
                     }
 
+                    // Email (only show if available)
+                    if let email = userEmail {
+                        HStack {
+                            Text("Email")
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text(email)
+                                .foregroundColor(.primary)
+                                .font(.system(size: 15))
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+                    }
+
+                    // User ID (tappable to copy)
                     if let userId = authViewModel.currentUser?.id {
                         Button(action: {
                             UIPasteboard.general.string = userId.uuidString
-                            // Haptic feedback on copy
-                            let generator = UINotificationFeedbackGenerator()
-                            generator.notificationOccurred(.success)
+                            HapticManager.success()
+                            copiedUserId = true
+                            // Reset after delay
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                copiedUserId = false
+                            }
                         }) {
                             HStack {
                                 Text("User ID")
                                     .foregroundColor(.secondary)
                                 Spacer()
-                                Text(userId.uuidString.prefix(8) + "...")
-                                    .foregroundColor(.primary)
-                                    .font(.system(size: 13, design: .monospaced))
-                                Image(systemName: "doc.on.doc")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.secondary)
+                                if copiedUserId {
+                                    Text("Copied!")
+                                        .foregroundColor(.green)
+                                        .font(.system(size: 13))
+                                } else {
+                                    Text(userId.uuidString)
+                                        .foregroundColor(.primary)
+                                        .font(.system(size: 11, design: .monospaced))
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                }
                             }
                         }
                         .buttonStyle(.plain)
@@ -70,42 +131,31 @@ struct AccountView: View {
                 }
 
                 // Subscription Section
-                // Simplified: StoreKit is the only source of truth
                 Section {
-                    if authViewModel.storeKitIsPremium {
-                        // Premium active (includes App Store free trial period)
-                        HStack {
-                            Image(systemName: "crown.fill")
-                                .foregroundColor(.yellow)
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Premium Active")
-                                    .font(.system(size: 16, weight: .semibold))
-                                Text("Manage in Settings → Subscriptions")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.secondary)
-                            }
+                    HStack {
+                        Text("Status")
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        if authViewModel.storeKitIsPremium {
+                            Text("Active")
+                                .foregroundColor(.green)
+                        } else {
+                            Text("Inactive")
+                                .foregroundColor(.secondary)
                         }
-                    } else {
-                        // No active subscription
-                        HStack {
-                            Image(systemName: "sparkles")
-                                .foregroundColor(.blue)
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Get Premium")
-                                    .font(.system(size: 16, weight: .semibold))
-                                Text("Unlock unlimited meal logging")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.secondary)
-                            }
-                        }
+                    }
 
+                    if !authViewModel.storeKitIsPremium {
                         Button(action: { showingPaywall = true }) {
                             HStack {
-                                Image(systemName: "star.fill")
-                                Text("Start Free Trial")
+                                Text("Subscribe")
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.secondary)
                             }
-                            .foregroundColor(.blue)
                         }
+                        .buttonStyle(.plain)
                     }
                 } header: {
                     Text("Subscription")
@@ -117,10 +167,10 @@ struct AccountView: View {
                         showingSignOutConfirmation = true
                     }) {
                         HStack {
-                            Image(systemName: "arrow.right.square")
-                                .foregroundColor(.red)
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                                .foregroundColor(.primary)
                             Text("Sign Out")
-                                .foregroundColor(.red)
+                                .foregroundColor(.primary)
                         }
                     }
                     .disabled(isSigningOut)
@@ -133,9 +183,6 @@ struct AccountView: View {
                     } message: {
                         Text("Are you sure you want to sign out?")
                     }
-                } footer: {
-                    Text("Your meals and data are securely stored in the cloud and will be available when you sign in again.")
-                        .font(.system(size: 13))
                 }
 
                 // Delete Account Section
@@ -144,28 +191,25 @@ struct AccountView: View {
                         showingDeleteConfirmation = true
                     }) {
                         HStack {
-                            Image(systemName: "trash.fill")
+                            Image(systemName: "trash")
                                 .foregroundColor(.red)
                             Text("Delete Account")
                                 .foregroundColor(.red)
                         }
                     }
-                    .accessibilityIdentifier("deleteAccountButton")  // For E2E tests
+                    .accessibilityIdentifier("deleteAccountButton")
                     .disabled(isDeleting)
                     .opacity(isDeleting ? 0.6 : 1.0)
-                    // Step 1: Initial delete confirmation
                     .confirmationDialog("Delete Account", isPresented: $showingDeleteConfirmation) {
                         Button("Delete Account", role: .destructive) {
                             showingDeleteFinalConfirmation = true
                         }
                         Button("Cancel", role: .cancel) {}
                     } message: {
-                        Text("This will permanently delete your account and all your data including:\n\n• Your profile\n• All logged meals\n• Subscription status\n\nThis action cannot be undone.")
+                        Text("This will permanently delete your account and all data. This cannot be undone.")
                     }
-                } header: {
-                    Text("Danger Zone")
                 } footer: {
-                    Text("Permanently delete your account and all associated data. This action cannot be undone.")
+                    Text("Permanently delete your account and all data.")
                         .font(.system(size: 13))
                         .foregroundColor(.secondary)
                 }
@@ -179,7 +223,6 @@ struct AccountView: View {
                     }
                 }
             }
-            // Step 2: Final confirmation with text input (alert stays at NavigationStack level)
             .alert("Confirm Deletion", isPresented: $showingDeleteFinalConfirmation) {
                 TextField("Type DELETE to confirm", text: $deleteConfirmationText)
                     .autocapitalization(.allCharacters)
@@ -191,9 +234,8 @@ struct AccountView: View {
                 }
                 .disabled(deleteConfirmationText != "DELETE")
             } message: {
-                Text("To confirm deletion, type DELETE in the field below.")
+                Text("Type DELETE to confirm.")
             }
-            // Error alert
             .alert("Deletion Failed", isPresented: $showDeleteError) {
                 Button("OK", role: .cancel) {}
             } message: {
