@@ -585,7 +585,7 @@ private struct PeriodTabSelector: View {
                         }
                         .foregroundColor(
                             isSelected ? .primary :
-                            (isUnlocked ? .secondary : .secondary.opacity(0.4))
+                            (isUnlocked ? .secondary : .secondary.opacity(0.55))
                         )
 
                         // Animated underline indicator

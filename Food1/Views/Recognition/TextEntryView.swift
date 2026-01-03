@@ -18,6 +18,7 @@ import Speech
 struct TextEntryView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.colorScheme) private var colorScheme
 
     let selectedDate: Date
     let onMealCreated: () -> Void
@@ -64,79 +65,60 @@ struct TextEntryView: View {
     }
 
     private let loadingMessages: [(title: String, subtitle: String)] = [
-        ("Analyzing your meal", "Identifying ingredients and portions"),
-        ("Understanding quantities", "Interpreting serving sizes and units"),
-        ("Calculating nutrition", "Estimating calories, protein, carbs, and fat"),
+        ("Reading your description", "Understanding ingredients and portions"),
+        ("Calculating nutrition", "Estimating calories and macros"),
         ("Almost ready", "Finalizing your meal breakdown")
     ]
 
-    // Verbose examples that demonstrate effective description patterns for better AI accuracy
-    // Each example shows: quantities, cooking methods, and specific ingredients
+    // Example meals with concise tips
     private let exampleMeals: [(text: String, tip: String)] = [
-        ("2 large eggs scrambled with butter and 2 strips of crispy bacon", "Include quantities and cooking style"),
-        ("6oz grilled chicken breast with 1 cup steamed rice and roasted broccoli", "Specify weights and portions"),
-        ("Large bowl of oatmeal with sliced banana, 2 tbsp honey, and almonds", "Describe size and toppings"),
-        ("Turkey sandwich on whole wheat with lettuce, tomato, mayo, and swiss cheese", "List all ingredients"),
-        ("Greek yogurt parfait with mixed berries, granola, and a drizzle of honey", "Be specific about components"),
-        ("Salmon filet about 5oz pan-seared with olive oil, side of quinoa", "Include cooking method and fats used"),
-        ("Protein shake with 1 scoop whey, banana, peanut butter, and almond milk", "Mention all additions"),
-        ("Bowl of spaghetti with meat sauce, about 2 cups pasta with parmesan", "Estimate portion sizes")
+        ("2 large eggs scrambled with butter and 2 strips of crispy bacon", "Include quantities"),
+        ("6oz grilled chicken breast with 1 cup steamed rice", "Specify weights"),
+        ("Large bowl of oatmeal with banana, honey, and almonds", "Describe portions"),
+        ("Turkey sandwich on whole wheat with lettuce, tomato, and cheese", "List ingredients"),
+        ("Greek yogurt with mixed berries and granola", "Be specific"),
+        ("Salmon filet pan-seared with olive oil and quinoa", "Add cooking method"),
+        ("Protein shake with banana, peanut butter, and almond milk", "Mention additions"),
+        ("Bowl of spaghetti with meat sauce and parmesan", "Estimate amounts")
     ]
-
-    private var accentGradient: LinearGradient {
-        LinearGradient(
-            colors: [.blue, .cyan],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
-
-    private var clearGradient: LinearGradient {
-        LinearGradient(
-            colors: [.clear],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
 
     var body: some View {
         NavigationStack {
             ZStack {
-                mainContent
+                // Background
+                backgroundGradient
+
+                // Main content
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Text input area
+                        textInputSection
+                            .padding(.horizontal, 20)
+                            .padding(.top, 16)
+
+                        // Example hint
+                        if showExamples {
+                            exampleHint
+                                .padding(.horizontal, 20)
+                                .transition(.opacity.combined(with: .move(edge: .bottom)))
+                        }
+
+                        Spacer(minLength: 120)
+                    }
+                }
 
                 // CTA Button (fixed at bottom)
                 VStack {
                     Spacer()
-
-                    Button(action: analyzeMeal) {
-                        HStack(spacing: 8) {
-                            Text("Analyze with AI")
-                                .font(.system(size: 17, weight: .semibold))
-
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 14))
-                        }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 56)
-                        .background(
-                            LinearGradient(
-                                colors: isInputValid ? [.blue, .cyan] : [.gray, .gray],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .cornerRadius(16)
-                        .shadow(color: isInputValid ? .blue.opacity(0.3) : .clear, radius: 8, y: 4)
-                    }
-                    .disabled(!isInputValid)
-                    .padding(.horizontal)
-                    .padding(.bottom, 16)
+                    analyzeButton
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 16)
                 }
 
                 // Loading overlay
                 if isAnalyzing {
                     loadingOverlay
+                        .transition(.opacity)
                 }
 
                 // Error alert
@@ -145,32 +127,36 @@ struct TextEntryView: View {
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
             }
-            .navigationTitle("Log Meal")
+            .navigationTitle("Describe Meal")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
-                        // Use explicit callback if provided (for embedded usage)
-                        // Otherwise fall back to environment dismiss
                         if let onCancel = onCancel {
                             onCancel()
                         } else {
                             dismiss()
                         }
                     }
+                    .foregroundColor(.secondary)
                 }
             }
             .onAppear {
-                // Show examples after a short delay and start rotation
+                // Focus the text field automatically
                 Task { @MainActor in
-                    try? await Task.sleep(for: .seconds(1.5))
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    try? await Task.sleep(for: .milliseconds(400))
+                    textFieldFocused = true
+                }
+
+                // Show examples after a delay
+                Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(2))
+                    withAnimation(.easeOut(duration: 0.4)) {
                         showExamples = true
                     }
                     startExampleRotation()
                 }
 
-                // Request microphone permission
                 requestMicrophonePermission()
             }
             .onDisappear {
@@ -188,7 +174,7 @@ struct TextEntryView: View {
                         prefilledCarbs: prediction.carbs,
                         prefilledFat: prediction.fat,
                         prefilledEstimatedGrams: prediction.estimatedGrams,
-                        userPrompt: mealDescription  // Store original user input
+                        userPrompt: mealDescription
                     )
                     .onDisappear {
                         dismiss()
@@ -199,47 +185,249 @@ struct TextEntryView: View {
         }
     }
 
+    // MARK: - Background
+
+    private var backgroundGradient: some View {
+        LinearGradient(
+            colors: colorScheme == .light
+                ? [Color(.systemBackground), Color.blue.opacity(0.03)]
+                : [Color(.systemBackground), Color.blue.opacity(0.05)],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .ignoresSafeArea()
+    }
+
+    // MARK: - Text Input Section
+
+    private var textInputSection: some View {
+        VStack(spacing: 12) {
+            // Main input container
+            HStack(alignment: .top, spacing: 0) {
+                // Text field
+                TextField("What did you eat?", text: $mealDescription, axis: .vertical)
+                    .font(.system(size: 18, weight: .regular))
+                    .focused($textFieldFocused)
+                    .lineLimit(3...6)
+                    .padding(.leading, 20)
+                    .padding(.trailing, 8)
+                    .padding(.vertical, 18)
+                    .onChange(of: mealDescription) { oldValue, newValue in
+                        if newValue.count > maxCharacterLimit {
+                            mealDescription = String(newValue.prefix(maxCharacterLimit))
+                            HapticManager.light()
+                        }
+                    }
+
+                // Mic button
+                micButton
+                    .padding(.trailing, 12)
+                    .padding(.top, 12)
+            }
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(.ultraThinMaterial)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(
+                        textFieldFocused
+                            ? LinearGradient(
+                                colors: [ColorPalette.accentPrimary.opacity(0.5), ColorPalette.accentSecondary.opacity(0.3)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                              )
+                            : LinearGradient(colors: [Color.clear], startPoint: .top, endPoint: .bottom),
+                        lineWidth: 1.5
+                    )
+            )
+            .shadow(
+                color: textFieldFocused ? ColorPalette.accentPrimary.opacity(0.08) : .clear,
+                radius: 12,
+                y: 4
+            )
+
+            // Character count
+            if showCharacterCount {
+                HStack {
+                    Spacer()
+                    Text("\(characterCount)/\(maxCharacterLimit)")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(characterCount >= maxCharacterLimit ? .red : .secondary)
+                }
+                .padding(.horizontal, 4)
+                .transition(.opacity)
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: textFieldFocused)
+        .animation(.easeOut(duration: 0.2), value: showCharacterCount)
+    }
+
+    // MARK: - Mic Button
+
+    private var micButton: some View {
+        Button(action: {
+            if isRecording {
+                stopRecording()
+            } else {
+                startVoiceInput()
+            }
+        }) {
+            ZStack {
+                // Background circle
+                Circle()
+                    .fill(
+                        isRecording
+                            ? Color.red.opacity(0.15)
+                            : (colorScheme == .light ? Color(.systemGray6) : Color(.systemGray5))
+                    )
+                    .frame(width: 44, height: 44)
+
+                // Pulsing ring when recording
+                if isRecording {
+                    Circle()
+                        .stroke(Color.red.opacity(0.3), lineWidth: 2)
+                        .frame(width: 44, height: 44)
+                        .scaleEffect(isRecording ? 1.3 : 1.0)
+                        .opacity(isRecording ? 0 : 1)
+                        .animation(
+                            .easeOut(duration: 1.0).repeatForever(autoreverses: false),
+                            value: isRecording
+                        )
+                }
+
+                Image(systemName: isRecording ? "waveform" : "mic.fill")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(isRecording ? .red : ColorPalette.accentPrimary)
+                    .symbolEffect(.variableColor.iterative, options: .repeating, value: isRecording)
+            }
+        }
+        .opacity(hasMicrophonePermission ? 1.0 : 0.4)
+        .disabled(!hasMicrophonePermission)
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Example Hint
+
+    private var exampleHint: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Tip label
+            HStack(spacing: 6) {
+                Image(systemName: "sparkle")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(ColorPalette.accentSecondary)
+
+                Text(exampleMeals[currentExampleIndex].tip)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.secondary)
+                    .textCase(.uppercase)
+                    .tracking(0.5)
+            }
+
+            // Example text
+            Text(exampleMeals[currentExampleIndex].text)
+                .font(.system(size: 15, weight: .regular))
+                .foregroundColor(.secondary.opacity(0.8))
+                .lineLimit(2)
+                .id("example-\(currentExampleIndex)")
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(colorScheme == .light
+                    ? Color(.systemGray6).opacity(0.7)
+                    : Color(.systemGray6).opacity(0.3)
+                )
+        )
+    }
+
+    // MARK: - Analyze Button
+
+    private var analyzeButton: some View {
+        Button(action: analyzeMeal) {
+            HStack(spacing: 10) {
+                Text("Analyze")
+                    .font(.system(size: 17, weight: .semibold))
+
+                Image(systemName: "sparkles")
+                    .font(.system(size: 15, weight: .medium))
+            }
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 54)
+            .background(
+                Group {
+                    if isInputValid {
+                        LinearGradient(
+                            colors: [ColorPalette.accentPrimary, ColorPalette.accentSecondary],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    } else {
+                        Color(.systemGray4)
+                    }
+                }
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .shadow(
+                color: isInputValid ? ColorPalette.accentPrimary.opacity(0.3) : .clear,
+                radius: 12,
+                y: 6
+            )
+        }
+        .disabled(!isInputValid)
+        .animation(.easeOut(duration: 0.2), value: isInputValid)
+    }
+
     // MARK: - Loading Overlay
 
     private var loadingOverlay: some View {
         ZStack {
             // Blurred background
-            Color.black.opacity(0.4)
+            Color.black.opacity(0.5)
                 .ignoresSafeArea()
+                .background(.ultraThinMaterial)
 
             // Loading card
-            VStack(spacing: 24) {
-                // Rotating sparkles
+            VStack(spacing: 28) {
+                // Animated sparkles
                 Image(systemName: "sparkles")
-                    .font(.system(size: 48))
-                    .foregroundStyle(.linearGradient(
-                        colors: [.blue, .cyan],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ))
-                    .rotationEffect(.degrees(Double(currentLoadingMessageIndex) * 90))
-                    .animation(.linear(duration: 2).repeatForever(autoreverses: false), value: currentLoadingMessageIndex)
+                    .font(.system(size: 44, weight: .light))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [ColorPalette.accentPrimary, ColorPalette.accentSecondary],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .symbolEffect(.pulse.byLayer, options: .repeating, value: isAnalyzing)
 
-                VStack(spacing: 8) {
+                VStack(spacing: 6) {
                     Text(loadingMessages[currentLoadingMessageIndex].title)
-                        .font(.system(size: 20, weight: .semibold))
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.primary)
 
                     Text(loadingMessages[currentLoadingMessageIndex].subtitle)
-                        .font(.system(size: 15))
+                        .font(.system(size: 14))
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                 }
+                .id(currentLoadingMessageIndex)
+                .transition(.opacity)
             }
-            .padding(32)
-            .background(.ultraThinMaterial)
-            .cornerRadius(20)
-            .shadow(radius: 20)
+            .padding(.horizontal, 36)
+            .padding(.vertical, 32)
+            .background(
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(.ultraThickMaterial)
+            )
+            .shadow(color: .black.opacity(0.2), radius: 30, y: 10)
         }
         .onAppear {
-            // Rotate messages every 2 seconds
-            Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
+            Timer.scheduledTimer(withTimeInterval: 2.5, repeats: true) { _ in
                 guard isAnalyzing else { return }
-                withAnimation {
+                withAnimation(.easeInOut(duration: 0.3)) {
                     currentLoadingMessageIndex = (currentLoadingMessageIndex + 1) % loadingMessages.count
                 }
             }
@@ -251,11 +439,12 @@ struct TextEntryView: View {
     private func errorBanner(message: String) -> some View {
         VStack {
             HStack(spacing: 12) {
-                Image(systemName: "exclamationmark.triangle.fill")
+                Image(systemName: "exclamationmark.circle.fill")
+                    .font(.system(size: 20))
                     .foregroundColor(.orange)
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Couldn't understand meal")
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Couldn't analyze meal")
                         .font(.system(size: 15, weight: .semibold))
 
                     Text(message)
@@ -266,92 +455,37 @@ struct TextEntryView: View {
                 Spacer()
 
                 Button(action: { withAnimation { showError = false } }) {
-                    Image(systemName: "xmark.circle.fill")
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .medium))
                         .foregroundColor(.secondary)
+                        .frame(width: 28, height: 28)
+                        .background(Circle().fill(Color(.systemGray5)))
                 }
+                .buttonStyle(.plain)
             }
-            .padding()
-            .background(.ultraThinMaterial)
-            .cornerRadius(12)
-            .shadow(radius: 8)
-            .padding()
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(.ultraThinMaterial)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.1), radius: 12, y: 4)
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
 
             Spacer()
         }
     }
 
-    // MARK: - Subviews
-
-    private var mainContent: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                // Header section
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 10) {
-                        Image(systemName: "pencil.line")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundStyle(accentGradient)
-
-                        Text("Describe your meal")
-                            .font(.system(size: 20, weight: .semibold))
-
-                        Spacer()
-                    }
-
-                    Text("Include quantities and ingredients for accurate nutrition")
-                        .font(.system(size: 13))
-                        .foregroundColor(.secondary)
-                }
-                .padding(.horizontal)
-                .padding(.top, 12)
-
-                // Text input field
-                textInputField
-                    .padding(.horizontal)
-
-                examplesSection
-
-                Spacer(minLength: 100)
-            }
-            .padding(.vertical)
-        }
-    }
-
-    @ViewBuilder
-    private var examplesSection: some View {
-        if showExamples {
-            VStack(alignment: .leading, spacing: 10) {
-                // Example text with tip
-                HStack(spacing: 6) {
-                    Image(systemName: "lightbulb.min.fill")
-                        .font(.system(size: 11))
-                        .foregroundColor(.orange)
-
-                    Text("Tip: \(exampleMeals[currentExampleIndex].tip.lowercased())")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.secondary)
-                }
-
-                Text("\"\(exampleMeals[currentExampleIndex].text)\"")
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
-                    .italic()
-                    .lineLimit(2)
-                    .id("example-\(currentExampleIndex)")
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(14)
-            .background(Color(.secondarySystemBackground))
-            .cornerRadius(12)
-            .padding(.horizontal)
-            .transition(.opacity)
-        }
-    }
+    // MARK: - Example Rotation
 
     private func startExampleRotation() {
         exampleTimer?.invalidate()
-        exampleTimer = Timer.scheduledTimer(withTimeInterval: 15.0, repeats: true) { _ in
-            withAnimation(.easeInOut(duration: 0.3)) {
+        exampleTimer = Timer.scheduledTimer(withTimeInterval: 12.0, repeats: true) { _ in
+            withAnimation(.easeInOut(duration: 0.4)) {
                 currentExampleIndex = (currentExampleIndex + 1) % exampleMeals.count
             }
         }
@@ -360,60 +494,6 @@ struct TextEntryView: View {
     private func stopExampleRotation() {
         exampleTimer?.invalidate()
         exampleTimer = nil
-    }
-
-    private var textInputField: some View {
-        VStack(spacing: 8) {
-            HStack(alignment: .top, spacing: 12) {
-                TextField("What did you eat?", text: $mealDescription, axis: .vertical)
-                    .font(.system(size: 17))
-                    .focused($textFieldFocused)
-                    .lineLimit(2...5)
-                    .padding(.vertical, 2)
-                    .onChange(of: mealDescription) { oldValue, newValue in
-                        // Enforce character limit
-                        if newValue.count > maxCharacterLimit {
-                            mealDescription = String(newValue.prefix(maxCharacterLimit))
-                            HapticManager.light()
-                        }
-                    }
-
-                // Voice input button
-                Button(action: {
-                    if isRecording {
-                        stopRecording()
-                    } else {
-                        startVoiceInput()
-                    }
-                }) {
-                    Image(systemName: isRecording ? "mic.fill" : "mic")
-                        .font(.system(size: 20))
-                        .foregroundColor(isRecording ? .red : .blue)
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
-                }
-                .opacity(hasMicrophonePermission ? 1.0 : 0.5)
-                .disabled(!hasMicrophonePermission)
-            }
-            .padding(16)
-            .background(Color(.secondarySystemBackground))
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(textFieldFocused ? accentGradient : clearGradient, lineWidth: 2)
-            )
-            .cornerRadius(12)
-
-            // Character counter (shown when approaching limit)
-            if showCharacterCount {
-                HStack {
-                    Spacer()
-                    Text("\(characterCount)/\(maxCharacterLimit)")
-                        .font(.system(size: 13))
-                        .foregroundColor(characterCount >= maxCharacterLimit ? .red : .secondary)
-                }
-                .padding(.horizontal, 4)
-            }
-        }
     }
 
     // MARK: - Actions
@@ -428,7 +508,6 @@ struct TextEntryView: View {
             isAnalyzing = true
             currentLoadingMessageIndex = 0
 
-            // Minimum display time for loading overlay
             let startTime = Date()
 
             do {
@@ -462,7 +541,6 @@ struct TextEntryView: View {
             showError = true
         }
 
-        // Auto-dismiss after 6 seconds
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(6))
             withAnimation {
@@ -487,11 +565,9 @@ struct TextEntryView: View {
             return
         }
 
-        // Cancel any ongoing recognition
         recognitionTask?.cancel()
         recognitionTask = nil
 
-        // Configure audio session
         let audioSession = AVAudioSession.sharedInstance()
         try? audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
         try? audioSession.setActive(true, options: .notifyOthersOnDeactivation)
