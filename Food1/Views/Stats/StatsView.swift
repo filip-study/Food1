@@ -122,11 +122,17 @@ struct StatsView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 0) {
-                    // Check if selected period is locked
-                    if !isPeriodUnlocked(selectedPeriod) {
-                        LockedPeriodView(period: selectedPeriod)
-                    } else if let stats = statistics {
-                        if stats.totalMeals >= 1 {
+                    // Period selector - integrated at top of content
+                    PeriodTabSelector(
+                        selectedPeriod: $selectedPeriod,
+                        isPeriodUnlocked: isPeriodUnlocked
+                    )
+                    .padding(.top, 8)
+                    .padding(.bottom, 16)
+
+                    // Note: Locked periods are disabled in the selector, so we always have an unlocked period here
+                    if let stats = statistics {
+                        if stats.totalMeals >= 1 && hasEnoughDataForChart {
                             // Chart section - edge-to-edge immersive
                             VStack(spacing: 0) {
                                 MacroTrendsChart(statistics: stats, period: selectedPeriod)
@@ -172,7 +178,9 @@ struct StatsView: View {
 
                             Spacer(minLength: 80)
                         } else {
-                            EmptyTrendsView()
+                            // Not enough data for chart (0 or 1 day)
+                            // Show blurred preview of what trends will look like
+                            BlurredTrendPreview(period: selectedPeriod)
                         }
                     } else if isLoading {
                         Spacer()
@@ -180,7 +188,8 @@ struct StatsView: View {
                             .padding(.top, 100)
                         Spacer()
                     } else {
-                        EmptyTrendsView()
+                        // No statistics loaded yet - show blurred preview
+                        BlurredTrendPreview(period: selectedPeriod)
                     }
                 }
             }
@@ -194,15 +203,7 @@ struct StatsView: View {
                 )
                 .ignoresSafeArea()
             )
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    CapsulePeriodSelector(
-                        selectedPeriod: $selectedPeriod,
-                        isPeriodUnlocked: isPeriodUnlocked
-                    )
-                }
-            }
+            .navigationBarHidden(true)
             .task(id: selectedPeriod) {
                 if isPeriodUnlocked(selectedPeriod) {
                     await loadStatistics()
@@ -545,9 +546,9 @@ private struct NutrientRDARow: View {
     }
 }
 
-// MARK: - Premium Capsule Period Selector
+// MARK: - Period Tab Selector (Underline Style)
 
-private struct CapsulePeriodSelector: View {
+private struct PeriodTabSelector: View {
     @Binding var selectedPeriod: StatsPeriod
     let isPeriodUnlocked: (StatsPeriod) -> Bool
     @Namespace private var animation
@@ -555,7 +556,7 @@ private struct CapsulePeriodSelector: View {
     private let periods: [(StatsPeriod, String)] = [
         (.week, "Week"),
         (.month, "Month"),
-        (.quarter, "3M"),
+        (.quarter, "3 Months"),
         (.year, "Year")
     ]
 
@@ -566,117 +567,228 @@ private struct CapsulePeriodSelector: View {
                 let isSelected = selectedPeriod == period
 
                 Button {
-                    withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
+                    guard isUnlocked else { return }
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                         selectedPeriod = period
                     }
                     HapticManager.light()
                 } label: {
-                    HStack(spacing: 4) {
-                        Text(label)
-                            .font(.system(size: 13, weight: isSelected ? .semibold : .medium, design: .rounded))
+                    VStack(spacing: 8) {
+                        HStack(spacing: 4) {
+                            Text(label)
+                                .font(.system(size: 14, weight: isSelected ? .semibold : .medium))
 
-                        if !isUnlocked {
-                            Image(systemName: "lock.fill")
-                                .font(.system(size: 8))
-                                .opacity(0.7)
-                        }
-                    }
-                    .foregroundColor(isSelected ? .white : (isUnlocked ? .secondary : .secondary.opacity(0.5)))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(
-                        ZStack {
-                            if isSelected {
-                                Capsule()
-                                    .fill(
-                                        LinearGradient(
-                                            colors: isUnlocked
-                                                ? [Color.blue, Color.blue.opacity(0.85)]
-                                                : [Color.gray.opacity(0.6), Color.gray.opacity(0.4)],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
-                                    )
-                                    .matchedGeometryEffect(id: "selector", in: animation)
+                            if !isUnlocked {
+                                Image(systemName: "lock.fill")
+                                    .font(.system(size: 9))
                             }
                         }
-                    )
+                        .foregroundColor(
+                            isSelected ? .primary :
+                            (isUnlocked ? .secondary : .secondary.opacity(0.4))
+                        )
+
+                        // Animated underline indicator
+                        ZStack {
+                            // Invisible spacer for consistent height
+                            Rectangle()
+                                .fill(Color.clear)
+                                .frame(height: 3)
+
+                            if isSelected {
+                                RoundedRectangle(cornerRadius: 1.5)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [ColorPalette.macroProtein, ColorPalette.macroCarbs],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .frame(height: 3)
+                                    .matchedGeometryEffect(id: "underline", in: animation)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 4)
                 }
                 .buttonStyle(.plain)
+                .disabled(!isUnlocked)
             }
         }
-        .padding(3)
-        .background(
-            Capsule()
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    Capsule()
-                        .strokeBorder(Color.white.opacity(0.1), lineWidth: 0.5)
-                )
-        )
+        .padding(.horizontal, 16)
     }
 }
 
-// MARK: - Locked Period View
+// MARK: - Blurred Preview State (has data but not enough for chart)
 
-private struct LockedPeriodView: View {
+private struct BlurredTrendPreview: View {
     let period: StatsPeriod
+    @Environment(\.colorScheme) private var colorScheme
+
+    // Static sample data points - deterministic to avoid re-rendering jitter
+    // Values create dynamic, interesting trend lines that show what real data looks like
+    private static let sampleMacros: [(protein: Double, carbs: Double, fat: Double)] = [
+        (72, 145, 52),   // Lower start
+        (95, 220, 78),   // Big jump up
+        (68, 160, 48),   // Drop down
+        (110, 195, 85),  // Spike protein
+        (85, 250, 65),   // Spike carbs
+        (98, 175, 72),   // Recovery
+        (88, 200, 68)    // End moderate
+    ]
+
+    private var samplePoints: [SampleChartPoint] {
+        let calendar = Calendar.current
+        let today = Date()
+
+        return Self.sampleMacros.enumerated().map { index, macros in
+            let daysAgo = Self.sampleMacros.count - 1 - index
+            let date = calendar.date(byAdding: .day, value: -daysAgo, to: today)!
+            let calories = macros.protein * 4 + macros.carbs * 4 + macros.fat * 9
+
+            return SampleChartPoint(
+                date: date,
+                protein: macros.protein,
+                carbs: macros.carbs,
+                fat: macros.fat,
+                calories: calories
+            )
+        }
+    }
 
     var body: some View {
-        VStack(spacing: 20) {
-            Spacer()
+        ZStack {
+            // Blurred sample chart
+            VStack(spacing: 0) {
+                // Fake header (blurred with chart)
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Jan 1 – Jan 7")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.secondary)
+                        HStack(spacing: 16) {
+                            sampleLegendItem(color: ColorPalette.macroProtein, label: "~85g")
+                            sampleLegendItem(color: ColorPalette.macroFat, label: "~65g")
+                            sampleLegendItem(color: ColorPalette.macroCarbs, label: "~180g")
+                        }
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
 
-            Image(systemName: "lock")
-                .font(.system(size: 48, weight: .light))
-                .foregroundColor(.secondary.opacity(0.6))
+                // Sample chart
+                Chart {
+                    // Calories gradient area
+                    ForEach(samplePoints) { point in
+                        AreaMark(
+                            x: .value("Date", point.date),
+                            y: .value("Calories", point.calories / 10)
+                        )
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [ColorPalette.calories.opacity(0.15), ColorPalette.calories.opacity(0)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .interpolationMethod(.catmullRom)
+                    }
 
-            VStack(spacing: 8) {
-                Text("Not enough data yet")
-                    .font(.system(size: 18, weight: .semibold))
+                    // Macro lines
+                    ForEach(samplePoints) { point in
+                        LineMark(
+                            x: .value("Date", point.date),
+                            y: .value("Protein", point.protein),
+                            series: .value("Macro", "Protein")
+                        )
+                        .foregroundStyle(ColorPalette.macroProtein)
+                        .lineStyle(StrokeStyle(lineWidth: 2.5))
+                        .interpolationMethod(.catmullRom)
+
+                        LineMark(
+                            x: .value("Date", point.date),
+                            y: .value("Fat", point.fat),
+                            series: .value("Macro", "Fat")
+                        )
+                        .foregroundStyle(ColorPalette.macroFat)
+                        .lineStyle(StrokeStyle(lineWidth: 2.5))
+                        .interpolationMethod(.catmullRom)
+
+                        LineMark(
+                            x: .value("Date", point.date),
+                            y: .value("Carbs", point.carbs),
+                            series: .value("Macro", "Carbs")
+                        )
+                        .foregroundStyle(ColorPalette.macroCarbs)
+                        .lineStyle(StrokeStyle(lineWidth: 2.5))
+                        .interpolationMethod(.catmullRom)
+                    }
+                }
+                .chartXAxis(.hidden)
+                .chartYAxis(.hidden)
+                .chartLegend(.hidden)
+                .frame(height: 280)
+            }
+            .padding(.vertical, 20)
+            .background(
+                RoundedRectangle(cornerRadius: 0)
+                    .fill(.ultraThinMaterial)
+            )
+            .blur(radius: 6)
+            .opacity(0.7)
+
+            // Overlay message
+            VStack(spacing: 12) {
+                Image(systemName: "chart.line.uptrend.xyaxis")
+                    .font(.system(size: 36, weight: .light))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [ColorPalette.macroProtein, ColorPalette.macroCarbs],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+
+                Text("Trends unlock with more data")
+                    .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(.primary)
 
-                Text("Keep logging meals to unlock this view")
+                Text("Log another day to see your patterns")
                     .font(.system(size: 14))
                     .foregroundColor(.secondary)
             }
-
-            Spacer()
+            .padding(.horizontal, 32)
+            .padding(.vertical, 24)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(.ultraThinMaterial)
+                    .shadow(color: .black.opacity(0.1), radius: 20, y: 10)
+            )
         }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, 40)
+    }
+
+    private func sampleLegendItem(color: Color, label: String) -> some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+            Text(label)
+                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .foregroundColor(color.opacity(0.7))
+        }
     }
 }
 
-// MARK: - Empty State
-
-private struct EmptyTrendsView: View {
-    var body: some View {
-        VStack(spacing: 16) {
-            Spacer()
-
-            Image(systemName: "chart.line.uptrend.xyaxis.circle")
-                .font(.system(size: 64))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [ColorPalette.macroProtein, ColorPalette.macroCarbs],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .symbolRenderingMode(.hierarchical)
-
-            Text("No data yet")
-                .font(.system(size: 20, weight: .semibold))
-
-            Text("Start logging meals to see your macro trends")
-                .font(.system(size: 14))
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-
-            Spacer()
-        }
-        .padding(.horizontal, 40)
-    }
+/// Sample data point for preview chart
+private struct SampleChartPoint: Identifiable {
+    let id = UUID()
+    let date: Date
+    let protein: Double
+    let carbs: Double
+    let fat: Double
+    let calories: Double
 }
 
 #Preview {
