@@ -46,18 +46,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Critical Blockers (Must Fix Before App Store):**
 
-1. **Legal Pages Missing:**
+1. **⚠️ TEMPORARY SUBSCRIPTION BYPASS ACTIVE:**
+   - File: `SubscriptionService.swift` line ~44
+   - Flag: `TEMP_BYPASS_SUBSCRIPTION_CHECK = true`
+   - **MUST set to `false` before App Store release!**
+   - Added: 2025-01-04 while waiting for App Store Connect Paid Apps Agreement setup
+   - All users currently get free premium access
+
+2. **Legal Pages Missing:**
    - `prismae.net/terms` - Needs actual Terms of Use
    - `prismae.net/privacy` - Needs actual Privacy Policy
    - Referenced in: `PaywallView.swift:198-200`
 
-2. **Account Deletion:** ✅ IMPLEMENTED
+3. **Account Deletion:** ✅ IMPLEMENTED
    - Two-step confirmation in `AccountView.swift`
    - Deletes all user data from Supabase + local storage
 
-3. **StoreKit Product Verification:**
+4. **StoreKit Product Verification:**
    - Verify `com.prismae.food1.premium.monthly` exists in App Store Connect
-   - Test sandbox purchase flow
+   - Test sandbox purchase flow (blocked until Paid Apps Agreement complete)
 
 **What's Ready:**
 - ✅ All 38 tests passing (34 active, 4 skipped)

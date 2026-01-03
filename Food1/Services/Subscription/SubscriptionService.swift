@@ -37,6 +37,13 @@ final class SubscriptionService: ObservableObject {
 
     static let shared = SubscriptionService()
 
+    // MARK: - ⚠️ TEMPORARY HACK - REMOVE BEFORE APP STORE RELEASE ⚠️
+    // Bypasses subscription check while App Store Connect payment setup is pending
+    // Added: 2025-01-04 | TODO: Remove once Paid Apps Agreement is complete
+    // See CLAUDE.md for context
+    private let TEMP_BYPASS_SUBSCRIPTION_CHECK = true
+    // MARK: - END TEMPORARY HACK
+
     // MARK: - Published State
 
     /// Available products fetched from App Store
@@ -133,11 +140,22 @@ final class SubscriptionService: ObservableObject {
 
         do {
             let productIds = SubscriptionProduct.allCases.map { $0.rawValue }
+            logger.info("🔍 Requesting products: \(productIds)")
+
             products = try await Product.products(for: productIds)
 
-            logger.debug("Loaded \(self.products.count) products")
+            logger.info("✅ Loaded \(self.products.count) products")
+
+            if products.isEmpty {
+                logger.warning("⚠️ No products returned - check App Store Connect configuration")
+            } else {
+                for product in products {
+                    logger.info("  📦 Product: \(product.id) - \(product.displayName) - \(product.displayPrice)")
+                }
+            }
         } catch {
-            logger.error("Failed to load products: \(error.localizedDescription)")
+            logger.error("❌ Failed to load products: \(error)")
+            logger.error("❌ Error details: \(String(describing: error))")
             errorMessage = "Failed to load subscription options"
         }
     }
@@ -217,6 +235,13 @@ final class SubscriptionService: ObservableObject {
 
     /// Check current subscription status
     func updateSubscriptionStatus() async {
+        // ⚠️ TEMPORARY BYPASS - grants all users premium access
+        if TEMP_BYPASS_SUBSCRIPTION_CHECK {
+            logger.warning("⚠️ TEMP_BYPASS_SUBSCRIPTION_CHECK is ON - all users have premium")
+            isPremium = true
+            return
+        }
+
         // Check for active subscription entitlement
         var hasActiveSubscription = false
 
