@@ -79,7 +79,11 @@
           "familyShareable" : false,
           "groupNumber" : 1,
           "internalID" : "6738432910",
-          "introductoryOffer" : null,
+          "introductoryOffer" : {
+            "internalID" : "FREE_TRIAL_7_DAYS",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P1W"
+          },
           "localizations" : [
             {
               "description" : "Unlimited meal logging with AI recognition",

@@ -70,77 +70,41 @@ struct AccountView: View {
                 }
 
                 // Subscription Section
+                // Simplified: StoreKit is the only source of truth
                 Section {
-                    if let subscription = authViewModel.subscription {
-                        // Premium active (paid subscription)
-                        if authViewModel.hasPaidSubscription {
-                            HStack {
-                                Image(systemName: "crown.fill")
-                                    .foregroundColor(.yellow)
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("Premium Active")
-                                        .font(.system(size: 16, weight: .semibold))
-                                    if let expiresAt = subscription.subscriptionExpiresAt {
-                                        Text("Renews \(expiresAt.formatted(date: .abbreviated, time: .omitted))")
-                                            .font(.system(size: 14))
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
+                    if authViewModel.storeKitIsPremium {
+                        // Premium active (includes App Store free trial period)
+                        HStack {
+                            Image(systemName: "crown.fill")
+                                .foregroundColor(.yellow)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Premium Active")
+                                    .font(.system(size: 16, weight: .semibold))
+                                Text("Manage in Settings → Subscriptions")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.secondary)
                             }
                         }
-                        // Trial status
-                        else if subscription.isInTrial {
-                            HStack {
-                                Image(systemName: "gift.fill")
-                                    .foregroundColor(.green)
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("Free Trial Active")
-                                        .font(.system(size: 16, weight: .semibold))
-                                    Text("\(subscription.trialDaysRemaining) days remaining")
-                                        .font(.system(size: 14))
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-
-                            // Trial expiration warning
-                            if authViewModel.shouldShowTrialWarning {
-                                Text("Your trial expires soon. Subscribe to keep access.")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(.orange)
-                                    .padding(.top, 4)
-                            }
-
-                            // Upgrade button during trial
-                            Button(action: { showingPaywall = true }) {
-                                HStack {
-                                    Image(systemName: "sparkles")
-                                    Text("Upgrade to Premium")
-                                }
+                    } else {
+                        // No active subscription
+                        HStack {
+                            Image(systemName: "sparkles")
                                 .foregroundColor(.blue)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Get Premium")
+                                    .font(.system(size: 16, weight: .semibold))
+                                Text("Unlock unlimited meal logging")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.secondary)
                             }
                         }
-                        // Expired/cancelled - no access
-                        else {
-                            HStack {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.red)
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("Subscription Expired")
-                                        .font(.system(size: 16, weight: .semibold))
-                                    Text("Subscribe to continue logging meals")
-                                        .font(.system(size: 14))
-                                        .foregroundColor(.secondary)
-                                }
-                            }
 
-                            // Resubscribe button
-                            Button(action: { showingPaywall = true }) {
-                                HStack {
-                                    Image(systemName: "sparkles")
-                                    Text("Subscribe to Premium")
-                                }
-                                .foregroundColor(.blue)
+                        Button(action: { showingPaywall = true }) {
+                            HStack {
+                                Image(systemName: "star.fill")
+                                Text("Start Free Trial")
                             }
+                            .foregroundColor(.blue)
                         }
                     }
                 } header: {

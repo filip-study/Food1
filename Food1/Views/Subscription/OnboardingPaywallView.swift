@@ -1,21 +1,20 @@
 //
-//  PaywallView.swift
+//  OnboardingPaywallView.swift
 //  Food1
 //
-//  Subscription paywall presented when trial expires or user taps upgrade.
+//  Full-screen paywall shown during onboarding (after sign-in, before app access).
+//  Unlike PaywallView, this has NO close button - user must subscribe to continue.
 //
-//  DESIGN PRINCIPLES:
-//  - Clean, focused design emphasizing value
-//  - Single CTA (no choice paralysis with multiple plans)
-//  - Trust indicators (cancel anytime, secure payment)
-//  - Restore purchases link for returning subscribers
+//  WHY SEPARATE FROM PAYWALLVIEW:
+//  - PaywallView: Dismissible sheet for expired/cancelled users (they can still browse)
+//  - OnboardingPaywallView: Mandatory gate for new users (must subscribe to access app)
+//  - Different UX: No close button, different messaging ("Start your journey" vs "Upgrade")
 //
 
 import SwiftUI
 import StoreKit
 
-struct PaywallView: View {
-    @Environment(\.dismiss) var dismiss
+struct OnboardingPaywallView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @StateObject private var subscriptionService = SubscriptionService.shared
 
@@ -24,41 +23,30 @@ struct PaywallView: View {
     @State private var errorMessage = ""
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 32) {
-                    // Header
-                    headerSection
+        ScrollView {
+            VStack(spacing: 32) {
+                // Header
+                headerSection
 
-                    // Features
-                    featuresSection
+                // Features
+                featuresSection
 
-                    // Pricing
-                    pricingSection
+                // Pricing
+                pricingSection
 
-                    // CTA
-                    purchaseButton
+                // CTA
+                purchaseButton
 
-                    // Footer
-                    footerSection
-                }
-                .padding()
+                // Footer
+                footerSection
             }
-            .background(Color(.systemGroupedBackground))
-            .navigationTitle("Upgrade to Premium")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") {
-                        dismiss()
-                    }
-                }
-            }
-            .alert("Error", isPresented: $showError) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(errorMessage)
-            }
+            .padding()
+        }
+        .background(Color(.systemGroupedBackground))
+        .alert("Error", isPresented: $showError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorMessage)
         }
     }
 
@@ -76,32 +64,32 @@ struct PaywallView: View {
                             endPoint: .bottomTrailing
                         )
                     )
-                    .frame(width: 80, height: 80)
+                    .frame(width: 100, height: 100)
 
                 Image(systemName: "sparkles")
-                    .font(.system(size: 36))
+                    .font(.system(size: 44))
                     .foregroundColor(.white)
             }
 
             VStack(spacing: 8) {
-                Text("Unlock Premium")
-                    .font(.system(size: 28, weight: .bold))
+                Text("Start Your Journey")
+                    .font(.system(size: 32, weight: .bold))
 
-                Text("Get unlimited AI-powered nutrition tracking")
-                    .font(.system(size: 16))
+                Text("AI-powered nutrition tracking\nto help you reach your goals")
+                    .font(.system(size: 17))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
             }
         }
-        .padding(.top, 20)
+        .padding(.top, 60)
     }
 
     private var featuresSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            FeatureRow(icon: "camera.fill", title: "Unlimited Photo Logging", description: "Snap any meal, get instant nutrition")
-            FeatureRow(icon: "text.cursor", title: "Text Entry", description: "Type or speak meal descriptions")
-            FeatureRow(icon: "chart.bar.fill", title: "Detailed Analytics", description: "Track trends and micronutrients")
-            FeatureRow(icon: "icloud.fill", title: "Cloud Sync", description: "Access your data on all devices")
+            OnboardingFeatureRow(icon: "camera.fill", title: "Photo Recognition", description: "Snap your meal, get instant nutrition data")
+            OnboardingFeatureRow(icon: "text.cursor", title: "Text Entry", description: "Type or speak what you ate")
+            OnboardingFeatureRow(icon: "chart.bar.fill", title: "Track Progress", description: "See trends and hit your targets")
+            OnboardingFeatureRow(icon: "icloud.fill", title: "Sync Everywhere", description: "Your data on all your devices")
         }
         .padding(20)
         .background(Color(.secondarySystemGroupedBackground))
@@ -111,8 +99,8 @@ struct PaywallView: View {
     private var pricingSection: some View {
         VStack(spacing: 12) {
             // Free trial callout
-            Text("7-Day Free Trial")
-                .font(.system(size: 24, weight: .bold))
+            Text("Try Free for 7 Days")
+                .font(.system(size: 28, weight: .bold))
                 .foregroundStyle(
                     LinearGradient(
                         colors: [.blue, .cyan],
@@ -123,19 +111,19 @@ struct PaywallView: View {
 
             if let product = subscriptionService.products.first {
                 Text("then \(product.pricePerPeriod)")
-                    .font(.system(size: 16))
+                    .font(.system(size: 17))
                     .foregroundColor(.secondary)
             } else if subscriptionService.isLoading {
                 ProgressView()
                     .padding()
             } else {
                 Text("then $5.99/month")
-                    .font(.system(size: 16))
+                    .font(.system(size: 17))
                     .foregroundColor(.secondary)
             }
 
             Text("Cancel anytime. No charge during trial.")
-                .font(.system(size: 14))
+                .font(.system(size: 15))
                 .foregroundColor(.secondary)
         }
         .padding(.vertical, 8)
@@ -154,10 +142,10 @@ struct PaywallView: View {
                             .tint(.white)
                     } else if subscriptionService.products.isEmpty {
                         Text("Loading...")
-                            .font(.system(size: 17, weight: .semibold))
+                            .font(.system(size: 18, weight: .semibold))
                     } else {
                         Text("Start Free Trial")
-                            .font(.system(size: 17, weight: .semibold))
+                            .font(.system(size: 18, weight: .semibold))
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -196,16 +184,16 @@ struct PaywallView: View {
         VStack(spacing: 16) {
             // Trust indicators
             HStack(spacing: 24) {
-                TrustBadge(icon: "lock.fill", text: "Secure")
-                TrustBadge(icon: "xmark.circle", text: "Cancel Anytime")
-                TrustBadge(icon: "questionmark.circle", text: "Support")
+                OnboardingTrustBadge(icon: "lock.fill", text: "Secure")
+                OnboardingTrustBadge(icon: "xmark.circle", text: "Cancel Anytime")
+                OnboardingTrustBadge(icon: "questionmark.circle", text: "Support")
             }
             .foregroundColor(.secondary)
 
             // Legal links
             HStack(spacing: 16) {
                 Link("Terms of Use", destination: URL(string: "https://prismae.net/terms")!)
-                Text("•").foregroundColor(.secondary)
+                Text("|").foregroundColor(.secondary)
                 Link("Privacy Policy", destination: URL(string: "https://prismae.net/privacy")!)
             }
             .font(.system(size: 12))
@@ -218,6 +206,7 @@ struct PaywallView: View {
                 .padding(.horizontal)
         }
         .padding(.top, 16)
+        .padding(.bottom, 40)
     }
 
     // MARK: - Actions
@@ -237,11 +226,10 @@ struct PaywallView: View {
 
                 if success {
                     // StoreKit updates isPremium immediately via Combine subscription
-                    // No need to refresh from Supabase - hasAccess updates automatically
+                    // hasAccess will become true, and app will navigate to MainTabView
                     await MainActor.run {
                         isPurchasing = false
                         HapticManager.success()
-                        dismiss()
                     }
                 } else {
                     await MainActor.run {
@@ -261,7 +249,7 @@ struct PaywallView: View {
 
 // MARK: - Supporting Views
 
-private struct FeatureRow: View {
+private struct OnboardingFeatureRow: View {
     let icon: String
     let title: String
     let description: String
@@ -269,7 +257,7 @@ private struct FeatureRow: View {
     var body: some View {
         HStack(spacing: 16) {
             Image(systemName: icon)
-                .font(.system(size: 20))
+                .font(.system(size: 22))
                 .foregroundStyle(
                     LinearGradient(
                         colors: [.blue, .cyan],
@@ -277,14 +265,14 @@ private struct FeatureRow: View {
                         endPoint: .bottomTrailing
                     )
                 )
-                .frame(width: 32)
+                .frame(width: 36)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 16, weight: .semibold))
 
                 Text(description)
-                    .font(.system(size: 13))
+                    .font(.system(size: 14))
                     .foregroundColor(.secondary)
             }
 
@@ -293,21 +281,22 @@ private struct FeatureRow: View {
     }
 }
 
-private struct TrustBadge: View {
+private struct OnboardingTrustBadge: View {
     let icon: String
     let text: String
 
     var body: some View {
         VStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.system(size: 16))
+                .font(.system(size: 18))
 
             Text(text)
-                .font(.system(size: 10))
+                .font(.system(size: 11))
         }
     }
 }
 
 #Preview {
-    PaywallView()
+    OnboardingPaywallView()
+        .environmentObject(AuthViewModel())
 }

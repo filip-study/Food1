@@ -2,14 +2,20 @@
 //  AuthViewModel.swift
 //  Food1
 //
-//  Centralized authentication state management.
-//  Coordinates between SupabaseService and AuthenticationService.
+//  Centralized authentication and subscription state management.
+//  Coordinates between SupabaseService, AuthenticationService, and SubscriptionService.
 //
 //  WHY THIS ARCHITECTURE:
 //  - Single source of truth for auth state across app
 //  - @Published properties drive UI updates automatically
-//  - Handles both auth state AND user profile/subscription data
+//  - Handles auth state AND user profile data
 //  - Simplifies view code (views just observe this ViewModel)
+//
+//  SUBSCRIPTION STATE (Simplified):
+//  - StoreKit is the ONLY source of truth for subscription status on iOS
+//  - App Store handles free trial (7 days) via Introductory Offers
+//  - hasAccess = storeKitIsPremium (that's it!)
+//  - Supabase sync still happens for backend validation, but iOS doesn't read it back
 //
 
 import Foundation
@@ -40,6 +46,10 @@ class AuthViewModel: ObservableObject {
     /// User's subscription status (trial, active, expired)
     @Published var subscription: SubscriptionStatus?
 
+    /// StoreKit premium status (observed from SubscriptionService)
+    /// This updates IMMEDIATELY after purchase, before Supabase sync completes
+    @Published private(set) var storeKitIsPremium = false
+
     /// Is email confirmation pending? (signed up but not confirmed)
     @Published var emailPendingConfirmation: String? = nil
 
@@ -54,9 +64,23 @@ class AuthViewModel: ObservableObject {
     private let supabase = SupabaseService.shared
     private let authService = AuthenticationService()
 
+    /// Combine subscription for observing SubscriptionService
+    private var subscriptionCancellable: AnyCancellable?
+
     // MARK: - Initialization
 
     init() {
+        // Observe StoreKit subscription status (fixes race condition with Supabase sync)
+        // StoreKit updates isPremium IMMEDIATELY after purchase verification
+        subscriptionCancellable = SubscriptionService.shared.$isPremium
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isPremium in
+                self?.storeKitIsPremium = isPremium
+                if isPremium {
+                    logger.debug("StoreKit premium status: active")
+                }
+            }
+
         // Listen to Supabase auth state changes
         Task {
             await observeAuthState()
@@ -294,6 +318,10 @@ class AuthViewModel: ObservableObject {
         logger.error("🔓 [DEBUG] isAuthenticated is now: \(self.isAuthenticated)")
 
         await loadUserData()
+
+        // Ensure subscription_status exists (handles returning users after account deletion)
+        await SubscriptionService.shared.ensureSubscriptionStatusExists()
+
         logger.error("✅ [DEBUG] Sign-in flow complete, isAuthenticated=\(self.isAuthenticated)")
     }
 
@@ -318,6 +346,9 @@ class AuthViewModel: ObservableObject {
 
         // Load profile data
         await loadUserData()
+
+        // Ensure subscription_status exists (handles returning users after account deletion)
+        await SubscriptionService.shared.ensureSubscriptionStatusExists()
 
         // Trigger initial sync after successful sign-in
         logger.info("Triggering initial sync after Apple Sign In")
@@ -414,65 +445,15 @@ class AuthViewModel: ObservableObject {
 
     // MARK: - Computed Properties
 
-    /// Is trial still active?
-    var isTrialActive: Bool {
-        subscription?.isInTrial ?? false
-    }
-
-    /// Days remaining in trial
-    var trialDaysRemaining: Int {
-        subscription?.trialDaysRemaining ?? 0
-    }
-
-    /// Should show trial expiration warning?
-    var shouldShowTrialWarning: Bool {
-        isTrialActive && trialDaysRemaining <= 3
-    }
-
-    /// Has user paid for subscription (not just trial)?
-    /// Also verifies the subscription hasn't expired based on Supabase data
-    var hasPaidSubscription: Bool {
-        guard subscription?.subscriptionType == .active else { return false }
-
-        // If we have an expiration date, verify it hasn't passed
-        if let expiresAt = subscription?.subscriptionExpiresAt {
-            return expiresAt > Date()
-        }
-
-        // No expiration date means indefinite (shouldn't happen for subscriptions, but safe fallback)
-        return true
-    }
-
-    /// Does user have access to premium features? (trial OR paid subscription)
-    /// This is the main gate for premium features
+    /// Does user have access to premium features?
+    ///
+    /// SIMPLIFIED: StoreKit is the ONLY source of truth.
+    /// - App Store handles free trial via Introductory Offers
+    /// - StoreKit reports isPremium = true even during trial period
+    /// - No need to check Supabase for subscription status
+    /// - Supabase sync still happens for backend validation (write-only)
     var hasAccess: Bool {
-        isTrialActive || hasPaidSubscription
-    }
-
-    // MARK: - Refresh Subscription
-
-    /// Reload subscription status from Supabase (call after purchase)
-    func refreshSubscription() async {
-        do {
-            let userId = try await supabase.requireUserId()
-
-            let subscriptionResponse: SubscriptionStatus = try await supabase.client
-                .from("subscription_status")
-                .select()
-                .eq("user_id", value: userId.uuidString)
-                .single()
-                .execute()
-                .value
-
-            await MainActor.run {
-                self.subscription = subscriptionResponse
-            }
-
-            logger.info("Refreshed subscription: \(subscriptionResponse.subscriptionType.rawValue)")
-
-        } catch {
-            logger.warning("Failed to refresh subscription: \(error.localizedDescription)")
-        }
+        storeKitIsPremium
     }
 
     // MARK: - Email Confirmation

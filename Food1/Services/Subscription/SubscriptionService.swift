@@ -77,6 +77,55 @@ final class SubscriptionService: ObservableObject {
 
     // MARK: - Public Methods
 
+    /// Ensure subscription_status record exists in Supabase for this user
+    /// Called after sign-in to handle returning users who deleted their account
+    /// If user has no subscription, creates a record with type "expired" so backend doesn't block them entirely
+    func ensureSubscriptionStatusExists() async {
+        guard let userId = await getCurrentUserId() else {
+            logger.warning("No user ID available for ensureSubscriptionStatusExists")
+            return
+        }
+
+        // If user has StoreKit subscription, sync it (which does upsert)
+        // This handles returning subscribers correctly
+        for await result in Transaction.currentEntitlements {
+            do {
+                let transaction = try checkVerified(result)
+                if transaction.productType == .autoRenewable {
+                    await syncPurchaseToSupabase(transaction: transaction)
+                    return  // synced active subscription, done
+                }
+            } catch {
+                logger.error("Failed to verify transaction: \(error.localizedDescription)")
+            }
+        }
+
+        // No active subscription - ensure a basic record exists with "free" tier
+        // Free tier gives limited access (3 meals/day) until user subscribes
+        do {
+            let supabase = SupabaseService.shared
+            let now = ISO8601DateFormatter().string(from: Date())
+
+            // Insert with ON CONFLICT DO NOTHING - only creates if missing
+            let data: [String: AnyEncodable] = [
+                "user_id": AnyEncodable(userId.uuidString),
+                "subscription_type": AnyEncodable("free"),
+                "created_at": AnyEncodable(now),
+                "updated_at": AnyEncodable(now)
+            ]
+
+            try await supabase.client
+                .from("subscription_status")
+                .upsert(data, onConflict: "user_id", ignoreDuplicates: true)
+                .execute()
+
+            logger.debug("Ensured subscription_status exists for user (free tier)")
+
+        } catch {
+            logger.error("Failed to ensure subscription_status: \(error.localizedDescription)")
+        }
+    }
+
     /// Fetch available subscription products from App Store
     func loadProducts() async {
         isLoading = true
@@ -223,6 +272,7 @@ final class SubscriptionService: ObservableObject {
     }
 
     /// Sync purchase to Supabase for cross-device validation
+    /// Uses UPSERT to handle cases where subscription_status row doesn't exist (e.g., after account deletion + re-sign-in)
     private func syncPurchaseToSupabase(transaction: Transaction) async {
         guard let userId = await getCurrentUserId() else {
             logger.warning("No user ID available for sync")
@@ -244,21 +294,24 @@ final class SubscriptionService: ObservableObject {
                 expiresAt = transaction.expirationDate
             }
 
-            // Update subscription_status in Supabase
-            let updateData: [String: AnyEncodable] = [
+            // UPSERT subscription_status in Supabase
+            // This handles the case where user deleted their account and re-signed in
+            let now = ISO8601DateFormatter().string(from: Date())
+            let upsertData: [String: AnyEncodable] = [
+                "user_id": AnyEncodable(userId.uuidString),
                 "subscription_type": AnyEncodable(subscriptionType),
                 "subscription_expires_at": AnyEncodable(expiresAt.map { ISO8601DateFormatter().string(from: $0) }),
                 "last_payment_date": AnyEncodable(ISO8601DateFormatter().string(from: transaction.purchaseDate)),
-                "updated_at": AnyEncodable(ISO8601DateFormatter().string(from: Date()))
+                "updated_at": AnyEncodable(now),
+                "created_at": AnyEncodable(now)
             ]
 
             try await supabase.client
                 .from("subscription_status")
-                .update(updateData)
-                .eq("user_id", value: userId.uuidString)
+                .upsert(upsertData, onConflict: "user_id")
                 .execute()
 
-            logger.debug("Synced subscription to Supabase")
+            logger.debug("Synced subscription to Supabase (upsert)")
 
         } catch {
             logger.error("Failed to sync to Supabase: \(error.localizedDescription)")

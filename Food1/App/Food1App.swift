@@ -68,8 +68,13 @@ struct Food1App: App {
                     // Email confirmation pending
                     EmailConfirmationPendingView(email: pendingEmail)
                         .environmentObject(authViewModel)
+                } else if authViewModel.isAuthenticated && !authViewModel.hasAccess {
+                    // Authenticated but no subscription: Show onboarding paywall
+                    // User must subscribe (with free trial) to access the app
+                    OnboardingPaywallView()
+                        .environmentObject(authViewModel)
                 } else if authViewModel.isAuthenticated {
-                    // Authenticated: Show main app
+                    // Authenticated AND subscribed: Show main app
                     MainTabView()
                         .environmentObject(authViewModel)
                         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
@@ -100,8 +105,13 @@ struct Food1App: App {
                     // Email confirmation pending
                     EmailConfirmationPendingView(email: pendingEmail)
                         .environmentObject(authViewModel)
+                } else if authViewModel.isAuthenticated && !authViewModel.hasAccess {
+                    // Authenticated but no subscription: Show onboarding paywall
+                    // User must subscribe (with free trial) to access the app
+                    OnboardingPaywallView()
+                        .environmentObject(authViewModel)
                 } else if authViewModel.isAuthenticated {
-                    // Authenticated: Show main app
+                    // Authenticated AND subscribed: Show main app
                     MainTabView()
                         .environmentObject(authViewModel)
                         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
