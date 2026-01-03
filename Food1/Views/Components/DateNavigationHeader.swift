@@ -51,8 +51,8 @@ struct DateNavigationHeader: View {
                 }
             }) {
                 Image(systemName: "chevron.left")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(.blue)
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(.secondary)
                     .frame(width: 44, height: 44)
                     .contentShape(Rectangle())
             }
@@ -77,7 +77,7 @@ struct DateNavigationHeader: View {
                 showCalendar.toggle()
             }) {
                 Text(formattedDate)
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.custom("PlusJakartaSans-Bold", size: 24))
                     .foregroundColor(.primary)
             }
             .sheet(isPresented: $showCalendar) {
@@ -107,38 +107,39 @@ struct DateNavigationHeader: View {
                 .presentationDetents([.medium, .large])
             }
 
-            // Next day button - minimal with large hit area
-            Button(action: {
-                if canGoForward {
+            // Next day button - only shown when viewing past dates
+            if canGoForward {
+                Button(action: {
+                    // Double-check to prevent race condition when tapping rapidly
+                    let nextDay = Calendar.current.date(byAdding: .day, value: 1, to: selectedDate)!
+                    guard nextDay <= Date() else { return }
+
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                        selectedDate = Calendar.current.date(byAdding: .day, value: 1, to: selectedDate)!
+                        selectedDate = nextDay
                     }
+                }) {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
                 }
-            }) {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(canGoForward ? .blue : .gray.opacity(0.3))
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
-            }
-            .disabled(!canGoForward)
-            .buttonStyle(PlainButtonStyle())
-            .scaleEffect(isNextPressed && canGoForward ? 0.85 : 1.0)
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { _ in
-                        if canGoForward {
+                .buttonStyle(PlainButtonStyle())
+                .scaleEffect(isNextPressed ? 0.85 : 1.0)
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { _ in
                             withAnimation(.easeInOut(duration: 0.08)) {
                                 isNextPressed = true
                             }
                         }
-                    }
-                    .onEnded { _ in
-                        withAnimation(.easeInOut(duration: 0.08)) {
-                            isNextPressed = false
+                        .onEnded { _ in
+                            withAnimation(.easeInOut(duration: 0.08)) {
+                                isNextPressed = false
+                            }
                         }
-                    }
-            )
+                )
+            }
         }
     }
 }

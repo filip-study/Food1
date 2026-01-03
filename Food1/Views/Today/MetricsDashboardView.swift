@@ -58,7 +58,7 @@ struct MetricsDashboardView: View {
                 // Line 1: Current calories
                 HStack(spacing: 4) {
                     Text("\(Int(currentCalories))")
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .font(.custom("PlusJakartaSans-Bold", size: 24))
                         .foregroundColor(.primary)
 
                     Text("calories")
@@ -166,7 +166,7 @@ struct MacroHeroBar: View {
                 // Large current value
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text("\(Int(current))")
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .font(.custom("PlusJakartaSans-Bold", size: 24))
                         .foregroundColor(progress >= 0.7 ? color : .primary)
 
                     Text("/ \(Int(goal))g")
