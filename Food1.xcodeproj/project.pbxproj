@@ -18,7 +18,6 @@
 		DCD841FD2EE038F800563D18 /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = DCD841FC2EE038F800563D18 /* Realtime */; };
 		DCD841FF2EE038F800563D18 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = DCD841FE2EE038F800563D18 /* Storage */; };
 		DCD842112EE03D6600563D18 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = DCD842102EE03D6600563D18 /* Supabase */; };
-		USDA00000000000000000001 /* usda_nutrients.db in Resources */ = {isa = PBXBuildFile; fileRef = USDA00000000000000000002 /* usda_nutrients.db */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -69,7 +68,6 @@
 		DC9FFC622ED4831E00FE62FB /* food1.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = food1.icon; sourceTree = "<group>"; };
 		DCE02B032EE2D80300E695FB /* Food1Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Food1Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DCE02B102EE2D8A700E695FB /* Food1.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = Food1.xctestplan; sourceTree = "<group>"; };
-		USDA00000000000000000002 /* usda_nutrients.db */ = {isa = PBXFileReference; lastKnownFileType = file; name = usda_nutrients.db; path = Food1/Data/usda_nutrients.db; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -197,7 +195,6 @@
 		DCBD08E72EBFA23400F8867C /* Recovered References */ = {
 			isa = PBXGroup;
 			children = (
-				USDA00000000000000000002 /* usda_nutrients.db */,
 			);
 			name = "Recovered References";
 			sourceTree = "<group>";
@@ -375,7 +372,6 @@
 			files = (
 				DC4C17092EF18211007E07F9 /* Products.storekit in Resources */,
 				DC9FFC632ED4831E00FE62FB /* food1.icon in Resources */,
-				USDA00000000000000000001 /* usda_nutrients.db in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

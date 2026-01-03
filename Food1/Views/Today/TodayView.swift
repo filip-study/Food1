@@ -43,6 +43,7 @@ struct TodayView: View {
     @State private var showingSettings = false
     @Binding var selectedDate: Date  // Shared with MainTabView for FAB date sync
     @State private var dragOffset: CGFloat = 0
+    @State private var shimmerPhase: CGFloat = 0  // For greeting shimmer animation
 
     /// Daily goals - either auto-calculated from profile or manual override
     private var personalizedGoals: DailyGoals {
@@ -73,26 +74,19 @@ struct TodayView: View {
         return fullName.components(separatedBy: " ").first
     }
 
-    /// Time-based greeting with optional personalization
-    private var greetingText: String {
+    /// Time-based greeting (subtitle below name)
+    private var timeGreeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
-        let timeGreeting: String
 
         switch hour {
         case 5..<12:
-            timeGreeting = "Good morning"
+            return "Good morning"
         case 12..<17:
-            timeGreeting = "Good afternoon"
+            return "Good afternoon"
         case 17..<22:
-            timeGreeting = "Good evening"
+            return "Good evening"
         default:
-            timeGreeting = "Hello"
-        }
-
-        if let name = userFirstName {
-            return "\(timeGreeting), \(name)"
-        } else {
-            return timeGreeting
+            return "Good night"
         }
     }
 
@@ -140,19 +134,6 @@ struct TodayView: View {
     //     return nil
     // }
 
-    private var emptyStateContent: (emoji: String, title: String, subtitle: String) {
-        let hour = Calendar.current.component(.hour, from: selectedDate)
-        switch hour {
-        case 5..<11:
-            return ("☕", "Good morning!", "Start your day by logging breakfast")
-        case 11..<16:
-            return ("🥗", "Lunchtime fuel", "Keep your nutrition streak going")
-        case 16..<21:
-            return ("🍽️", "Dinner awaits", "Log your evening meal")
-        default:
-            return ("🌙", "Late night snack?", "Every meal counts")
-        }
-    }
 
 
     var body: some View {
@@ -170,15 +151,55 @@ struct TodayView: View {
 
                 ScrollView {
                     VStack(spacing: 32) {
-                        // Personalized greeting
+                        // Personalized greeting: Fancy time greeting + bold name with shimmer
                         HStack {
-                            Text(greetingText)
-                                .font(.system(size: 28, weight: .bold))
-                                .foregroundColor(.primary)
+                            VStack(alignment: .leading, spacing: 4) {
+                                // Time greeting in elegant Instrument Serif
+                                Text(timeGreeting)
+                                    .font(.custom("InstrumentSerif-Regular", size: 26))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: [
+                                                .secondary,
+                                                .secondary.opacity(0.6),
+                                                .white,
+                                                .secondary.opacity(0.6),
+                                                .secondary
+                                            ],
+                                            startPoint: UnitPoint(x: shimmerPhase - 0.5, y: 0.5),
+                                            endPoint: UnitPoint(x: shimmerPhase + 0.5, y: 0.5)
+                                        )
+                                    )
+
+                                if let name = userFirstName {
+                                    // Name in Plus Jakarta Sans (matches prismae.net branding)
+                                    Text(name)
+                                        .font(.custom("PlusJakartaSans-Bold", size: 26))
+                                        .foregroundStyle(
+                                            LinearGradient(
+                                                colors: [
+                                                    .primary,
+                                                    .primary.opacity(0.7),
+                                                    .white,
+                                                    .primary.opacity(0.7),
+                                                    .primary
+                                                ],
+                                                startPoint: UnitPoint(x: shimmerPhase - 0.5, y: 0.5),
+                                                endPoint: UnitPoint(x: shimmerPhase + 0.5, y: 0.5)
+                                            )
+                                        )
+                                }
+                            }
                             Spacer()
                         }
                         .padding(.horizontal)
                         .padding(.top, 16)
+                        .onAppear {
+                            // Trigger shimmer animation on appear
+                            withAnimation(.easeInOut(duration: 1.2).delay(0.3)) {
+                                shimmerPhase = 2.0
+                            }
+                        }
 
                         // Macro-focused dashboard with personalized goals
                         MetricsDashboardView(
@@ -220,8 +241,8 @@ struct TodayView: View {
                             .padding(.horizontal)
 
                             if mealsForSelectedDate.isEmpty {
-                                // Empty state with time-based content
-                                EmptyStateView(content: emptyStateContent)
+                                // Minimal empty state
+                                EmptyMealsView()
                             } else {
                                 // Meal cards
                                 LazyVStack(spacing: 12) {
@@ -294,42 +315,21 @@ struct TodayView: View {
         }
     }
 
-// MARK: - Empty State Component
-struct EmptyStateView: View {
-    let content: (emoji: String, title: String, subtitle: String)
+// MARK: - Empty Meals View
 
+struct EmptyMealsView: View {
     var body: some View {
-        VStack(spacing: 24) {
-            // Emoji with blue circle background
-            ZStack {
-                Circle()
-                    .fill(Color.blue.opacity(0.12))
-                    .frame(width: 120, height: 120)
+        VStack(spacing: 8) {
+            Image(systemName: "fork.knife")
+                .font(.system(size: 28, weight: .ultraLight))
+                .foregroundStyle(.quaternary)
 
-                Text(content.emoji)
-                    .font(.system(size: 64))
-            }
-
-            VStack(spacing: 10) {
-                Text(content.title)
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundColor(.primary)
-
-                Text(content.subtitle)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-
-                // CTA text
-                Text("Tap + to add your first meal")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.blue)
-                    .padding(.top, 4)
-            }
+            Text("No meals yet")
+                .font(.footnote)
+                .foregroundStyle(.tertiary)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 60)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.top, 80)
     }
 }
 

@@ -234,22 +234,30 @@ class AuthenticationService: ObservableObject {
     }
 
     /// Save the user's name to their Supabase profile
+    /// Uses UPSERT to handle race condition with database trigger (profile may not exist yet)
     private func saveNameToProfile(userId: UUID, fullName: String) async {
         do {
-            struct NameUpdate: Encodable {
+            // Use UPSERT to handle race condition where profile may not exist yet
+            // Database trigger creates profile, but there can be a timing gap
+            let now = ISO8601DateFormatter().string(from: Date())
+
+            struct ProfileUpsert: Encodable {
+                let id: String
                 let full_name: String
                 let updated_at: String
+                let created_at: String
             }
 
-            let update = NameUpdate(
+            let upsertData = ProfileUpsert(
+                id: userId.uuidString,
                 full_name: fullName,
-                updated_at: ISO8601DateFormatter().string(from: Date())
+                updated_at: now,
+                created_at: now  // Will be ignored on conflict (existing row)
             )
 
             try await supabase.client
                 .from("profiles")
-                .update(update)
-                .eq("id", value: userId.uuidString)
+                .upsert(upsertData, onConflict: "id")
                 .execute()
 
             print("✅ Saved Apple name to profile: \(fullName)")

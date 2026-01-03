@@ -48,5 +48,10 @@
 			</array>
 		</dict>
 	</array>
+	<key>UIAppFonts</key>
+	<array>
+		<string>InstrumentSerif-Regular.ttf</string>
+		<string>PlusJakartaSans-Bold.ttf</string>
+	</array>
 </dict>
 </plist>
