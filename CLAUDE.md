@@ -46,12 +46,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Critical Blockers (Must Fix Before App Store):**
 
-1. **⚠️ TEMPORARY SUBSCRIPTION BYPASS ACTIVE:**
-   - File: `SubscriptionService.swift` line ~44
-   - Flag: `TEMP_BYPASS_SUBSCRIPTION_CHECK = true`
-   - **MUST set to `false` before App Store release!**
+1. **⚠️ TEMPORARY SUBSCRIPTION BYPASS ACTIVE (iOS + Backend):**
+   - **iOS:** `SubscriptionService.swift` line ~44 → `TEMP_BYPASS_SUBSCRIPTION_CHECK = true`
+   - **Backend:** `food-vision-api/worker.js` line ~426 + Cloudflare secret `TEMP_BYPASS_SUBSCRIPTION_CHECK=true`
+   - **MUST disable BOTH before App Store release:**
+     - iOS: Set flag to `false`
+     - Backend: Run `npx wrangler secret delete TEMP_BYPASS_SUBSCRIPTION_CHECK` in food-vision-api repo
    - Added: 2025-01-04 while waiting for App Store Connect Paid Apps Agreement setup
-   - All users currently get free premium access
+   - All users currently get free premium access (both client-side AND server-side bypass)
 
 2. **Legal Pages Missing:**
    - `prismae.net/terms` - Needs actual Terms of Use
