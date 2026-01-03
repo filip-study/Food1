@@ -47,10 +47,16 @@ jobs:
       - name: Setup API Config
         run: |
           cp Food1/Config/APIConfig.swift.template Food1/Config/APIConfig.swift
+
+          # IMPORTANT: xcconfig treats // as a comment, so URLs must be escaped
+          # Replace :// with :/$(/) to prevent comment parsing
+          ESCAPED_SUPABASE_URL=$(echo "${{ secrets.SUPABASE_URL }}" | sed 's|://|:/$()/|g')
+          ESCAPED_PROXY_ENDPOINT=$(echo "${{ secrets.PROXY_ENDPOINT }}" | sed 's|://|:/$()/|g')
+
           cat > Food1/Config/Secrets.xcconfig << EOF
-          SUPABASE_URL = ${{ secrets.SUPABASE_URL }}
+          SUPABASE_URL = ${ESCAPED_SUPABASE_URL}
           SUPABASE_ANON_KEY = ${{ secrets.SUPABASE_ANON_KEY }}
-          PROXY_ENDPOINT = ${{ secrets.PROXY_ENDPOINT }}
+          PROXY_ENDPOINT = ${ESCAPED_PROXY_ENDPOINT}
           AUTH_TOKEN = ${{ secrets.PROXY_AUTH_TOKEN }}
           EOF
 
