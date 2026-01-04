@@ -2,16 +2,22 @@
 //  OnboardingView.swift
 //  Prismae (Food1)
 //
-//  Authentication screen with Apple Sign In and email options.
+//  Authentication screen with Apple, Google, and email sign-in options.
 //  Users arrive here after tapping "Get Started" on WelcomeView.
 //  Features glassmorphic design, animated logo, and production-ready UX.
 //
 //  WHY THIS ARCHITECTURE:
 //  - Apple Sign In as primary (App Store requirement + best UX)
-//  - Email as secondary option (progressive disclosure)
+//  - Google Sign In as secondary OAuth option (popular, familiar)
+//  - Email as tertiary option (progressive disclosure)
 //  - Animated brand logo for premium first impression
 //  - Glassmorphic cards for modern iOS aesthetic
 //  - Proper keyboard handling with scroll dismiss
+//
+//  AUTH FLOW:
+//  - Apple: Native AuthenticationServices → Supabase ID token
+//  - Google: Supabase OAuth → ASWebAuthenticationSession → callback
+//  - Email: Supabase native email/password auth
 //
 
 import SwiftUI
@@ -23,12 +29,14 @@ private let logger = Logger(subsystem: "com.prismae.food1", category: "Onboardin
 
 struct OnboardingView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
+    @Environment(\.webAuthenticationSession) private var webAuthenticationSession
     @FocusState private var focusedField: Field?
 
     @State private var email = ""
     @State private var password = ""
     @State private var showEmailAuth = false
     @State private var isSignUpMode = false
+    @State private var isGoogleLoading = false
 
     enum Field {
         case email, password
@@ -69,7 +77,7 @@ struct OnboardingView: View {
 
                     // Auth card
                     GlassmorphicCard {
-                        VStack(spacing: 20) {
+                        VStack(spacing: 16) {
                             if !showEmailAuth {
                                 // Apple Sign In (Primary)
                                 SignInWithAppleButton(
@@ -85,21 +93,29 @@ struct OnboardingView: View {
                                 .cornerRadius(16)
                                 .signInWithAppleButtonStyle(.black)
 
+                                // Google Sign In (Secondary OAuth)
+                                // Follows Google Branding Guidelines:
+                                // https://developers.google.com/identity/branding-guidelines
+                                GoogleSignInButton(isLoading: isGoogleLoading) {
+                                    handleGoogleSignIn()
+                                }
+                                .disabled(isGoogleLoading || authViewModel.isLoading)
+
                                 // Divider
                                 HStack {
                                     Rectangle()
                                         .fill(Color.secondary.opacity(0.3))
                                         .frame(height: 1)
                                     Text("or")
-                                        .font(.system(size: 15))
+                                        .font(.system(size: 14))
                                         .foregroundColor(.secondary)
                                     Rectangle()
                                         .fill(Color.secondary.opacity(0.3))
                                         .frame(height: 1)
                                 }
-                                .padding(.vertical, 8)
+                                .padding(.vertical, 4)
 
-                                // Email option (Secondary)
+                                // Email option (Tertiary)
                                 Button {
                                     withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                                         showEmailAuth = true
@@ -107,7 +123,7 @@ struct OnboardingView: View {
                                 } label: {
                                     HStack(spacing: 12) {
                                         Image(systemName: "envelope.fill")
-                                            .font(.system(size: 18))
+                                            .font(.system(size: 17))
                                         Text("Continue with Email")
                                     }
                                 }
@@ -128,14 +144,14 @@ struct OnboardingView: View {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundColor(.green)
                                 Text("7-day free trial")
-                                    .font(.system(size: 15, weight: .medium))
+                                    .font(.system(size: 14, weight: .medium))
                             }
 
                             HStack(spacing: 8) {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundColor(.blue)
                                 Text("No credit card required")
-                                    .font(.system(size: 15, weight: .medium))
+                                    .font(.system(size: 14, weight: .medium))
                             }
                         }
                         .foregroundColor(.secondary)
@@ -169,7 +185,7 @@ struct OnboardingView: View {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 14, weight: .semibold))
                         Text("Back")
-                            .font(.system(size: 16))
+                            .font(.system(size: 14, weight: .medium))
                     }
                 }
                 Spacer()
@@ -279,7 +295,7 @@ struct OnboardingView: View {
             // Help text
             if isSignUpMode {
                 Text("By creating an account, you agree to our Terms of Service and Privacy Policy")
-                    .font(.system(size: 12))
+                    .font(.system(size: 13))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.top, 4)
@@ -324,6 +340,44 @@ struct OnboardingView: View {
         }
     }
 
+    private func handleGoogleSignIn() {
+        isGoogleLoading = true
+
+        Task {
+            do {
+                // Get the OAuth URL from Supabase
+                let url = try await authViewModel.signInWithGoogle()
+
+                // Use ASWebAuthenticationSession for in-app browser OAuth
+                // The callback URL scheme matches our app's URL scheme
+                let callbackURLScheme = "com.filipolszak.food1"
+
+                let callbackURL = try await webAuthenticationSession.authenticate(
+                    using: url,
+                    callbackURLScheme: callbackURLScheme
+                )
+
+                // Complete the sign-in with the callback URL
+                try await authViewModel.completeGoogleSignIn(from: callbackURL)
+
+                logger.info("Google Sign In completed successfully")
+
+            } catch {
+                // Check if user cancelled the OAuth flow
+                if (error as NSError).domain == ASWebAuthenticationSessionError.errorDomain,
+                   (error as NSError).code == ASWebAuthenticationSessionError.canceledLogin.rawValue {
+                    // User cancelled - no error message needed
+                    logger.debug("Google Sign In cancelled by user")
+                } else {
+                    logger.error("Google Sign In error: \(error.localizedDescription)")
+                    authViewModel.errorMessage = "Google Sign In failed. Please try again."
+                }
+            }
+
+            isGoogleLoading = false
+        }
+    }
+
     private func handleEmailAuth() {
         // Debug: Use error level for CI log capture (info level not captured by default)
         logger.error("📍 [DEBUG] handleEmailAuth() called, password.count=\(self.password.count)")
@@ -343,6 +397,40 @@ struct OnboardingView: View {
                 logger.error("❌ Email auth error: \(error.localizedDescription)")
             }
         }
+    }
+}
+
+// MARK: - Google Sign In Button
+
+/// Google Sign-In button styled to match secondary auth buttons
+/// Uses outlined style like "Continue with Email" for visual hierarchy
+struct GoogleSignInButton: View {
+    let isLoading: Bool
+    let action: () -> Void
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                HStack(spacing: 12) {
+                    // Official Google "G" logo
+                    Image("GoogleLogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 18, height: 18)
+
+                    Text("Sign in with Google")
+                }
+                .opacity(isLoading ? 0.4 : 1)
+
+                if isLoading {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle())
+                }
+            }
+        }
+        .secondaryAuthStyle()
     }
 }
 

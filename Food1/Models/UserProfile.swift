@@ -9,6 +9,43 @@
 import SwiftUI
 import Foundation
 
+// MARK: - Authentication Provider
+
+/// Represents the authentication providers supported by the app.
+/// Used for detecting how a user signed in and displaying provider info in UI.
+enum AuthProvider: String, CaseIterable, Identifiable {
+    case email = "email"
+    case apple = "apple"
+    case google = "google"
+
+    var id: String { rawValue }
+
+    /// Display name for UI
+    var displayName: String {
+        switch self {
+        case .email: return "Email"
+        case .apple: return "Apple"
+        case .google: return "Google"
+        }
+    }
+
+    /// SF Symbol icon for the provider
+    var icon: String {
+        switch self {
+        case .email: return "envelope.fill"
+        case .apple: return "apple.logo"
+        case .google: return "g.circle.fill"
+        }
+    }
+
+    /// Whether this is an OAuth provider (vs email/password)
+    var isOAuth: Bool {
+        self != .email
+    }
+}
+
+// MARK: - Gender
+
 enum Gender: String, CaseIterable, Identifiable {
     case male = "Male"
     case female = "Female"

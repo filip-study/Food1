@@ -3,12 +3,17 @@
 //  Food1
 //
 //  Account management screen shown in Settings.
-//  Displays sign-in method, subscription status, sign out, and account deletion.
+//  Displays sign-in methods, subscription status, sign out, and account deletion.
 //
 //  WHY TWO-STEP DELETE CONFIRMATION:
 //  - Apple requires account deletion for apps with account creation
 //  - Destructive actions should have friction to prevent accidents
 //  - User must type "DELETE" to confirm (industry best practice)
+//
+//  MULTI-PROVIDER SUPPORT:
+//  - Shows all linked authentication providers (Apple, Google, Email)
+//  - Uses AuthProvider enum from UserProfile.swift
+//  - linkedProviders computed property from AuthViewModel
 //
 
 import SwiftUI
@@ -32,17 +37,7 @@ struct AccountView: View {
     @State private var showDeleteError = false
     @State private var deleteErrorMessage = ""
 
-    /// Detect if user signed in with Apple (check identities array)
-    private var isAppleUser: Bool {
-        guard let user = authViewModel.currentUser else { return false }
-        // Check identities array for apple provider
-        if let identities = user.identities {
-            return identities.contains(where: { $0.provider == "apple" })
-        }
-        return false
-    }
-
-    /// User's email - may be hidden for Apple users
+    /// User's email - may be hidden for Apple users with private relay
     private var userEmail: String? {
         // Try profile email first
         if let email = authViewModel.profile?.email, !email.isEmpty {
@@ -55,30 +50,44 @@ struct AccountView: View {
         return nil
     }
 
+    /// Check if user is using Apple's private relay email
+    private var isPrivateRelayEmail: Bool {
+        guard let email = userEmail else { return false }
+        return email.contains("privaterelay.appleid.com")
+    }
+
     var body: some View {
         NavigationStack {
             List {
                 // Account Info Section
                 Section {
-                    // Sign-in method
+                    // Sign-in methods (show all linked providers)
                     HStack {
                         Text("Signed in with")
                             .foregroundColor(.secondary)
                         Spacer()
-                        if isAppleUser {
+                        if authViewModel.linkedProviders.isEmpty {
+                            // Fallback if no providers detected
+                            Text("Unknown")
+                                .foregroundColor(.secondary)
+                        } else if authViewModel.linkedProviders.count == 1 {
+                            // Single provider - show name and icon
+                            let provider = authViewModel.primaryProvider
                             HStack(spacing: 6) {
-                                Image(systemName: "apple.logo")
-                                    .font(.system(size: 14))
-                                Text("Apple")
+                                Image(systemName: provider.icon)
+                                    .font(.system(size: provider == .apple ? 14 : 12))
+                                Text(provider.displayName)
                             }
                             .foregroundColor(.primary)
                         } else {
-                            HStack(spacing: 6) {
-                                Image(systemName: "envelope.fill")
-                                    .font(.system(size: 12))
-                                Text("Email")
+                            // Multiple providers - show icons only
+                            HStack(spacing: 8) {
+                                ForEach(authViewModel.linkedProviders) { provider in
+                                    Image(systemName: provider.icon)
+                                        .font(.system(size: provider == .apple ? 14 : 12))
+                                        .foregroundColor(.primary)
+                                }
                             }
-                            .foregroundColor(.primary)
                         }
                     }
 
@@ -88,11 +97,18 @@ struct AccountView: View {
                             Text("Email")
                                 .foregroundColor(.secondary)
                             Spacer()
-                            Text(email)
-                                .foregroundColor(.primary)
-                                .font(.system(size: 15))
-                                .lineLimit(1)
-                                .truncationMode(.middle)
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text(email)
+                                    .foregroundColor(.primary)
+                                    .font(.system(size: 15))
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                                if isPrivateRelayEmail {
+                                    Text("Private Relay")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.secondary)
+                                }
+                            }
                         }
                     }
 

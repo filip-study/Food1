@@ -3,13 +3,18 @@
 //  Food1
 //
 //  Handles user authentication (sign up, sign in, sign out).
-//  Email/password authentication with automatic profile creation.
+//  Supports Apple Sign In, Google Sign In, and email/password auth.
 //
 //  WHY THIS ARCHITECTURE:
 //  - Single service for all auth operations (consistency)
 //  - Published properties for UI state (loading, errors)
 //  - Automatic profile + subscription creation on signup (database trigger)
 //  - Error messages user-friendly (not raw API errors)
+//
+//  SUPPORTED AUTH METHODS:
+//  - Apple Sign In: Native iOS via AuthenticationServices + Supabase ID token
+//  - Google Sign In: Supabase OAuth (browser-based, no native SDK needed)
+//  - Email/Password: Supabase native email auth
 //
 //  FLOW:
 //  1. User signs up → Supabase creates auth.users entry
@@ -260,10 +265,71 @@ class AuthenticationService: ObservableObject {
                 .upsert(upsertData, onConflict: "id")
                 .execute()
 
-            print("✅ Saved Apple name to profile: \(fullName)")
+            print("✅ Saved name to profile: \(fullName)")
         } catch {
             // Don't fail sign-in if name save fails - it's not critical
             print("⚠️ Failed to save name to profile: \(error)")
+        }
+    }
+
+    // MARK: - Google Sign In
+
+    /// Sign in with Google using Supabase OAuth
+    /// Opens a browser for Google authentication, then redirects back to the app
+    ///
+    /// NOTE: Google OAuth credentials are configured in Supabase Dashboard,
+    /// NOT in the iOS app. This method triggers the OAuth flow.
+    @MainActor
+    func signInWithGoogle() async throws -> URL {
+        isLoading = true
+        errorMessage = nil
+
+        defer { isLoading = false }
+
+        do {
+            // Supabase handles the OAuth flow - opens browser for Google auth
+            // Returns the URL to open (ASWebAuthenticationSession or Safari)
+            let url = try await supabase.client.auth.getOAuthSignInURL(
+                provider: .google,
+                redirectTo: URL(string: "com.filipolszak.food1://auth/callback")
+            )
+
+            print("🔗 Google OAuth URL generated")
+            return url
+
+        } catch let error as AuthError {
+            errorMessage = error.userMessage
+            throw error
+        } catch {
+            let authError = AuthError.from(error)
+            errorMessage = authError.userMessage
+            throw authError
+        }
+    }
+
+    /// Complete Google Sign In after OAuth callback
+    /// Called from deep link handler after user returns from browser
+    @MainActor
+    func handleGoogleCallback(url: URL) async throws {
+        isLoading = true
+        errorMessage = nil
+
+        defer { isLoading = false }
+
+        do {
+            // Supabase SDK handles session restoration from the callback URL
+            try await supabase.client.auth.session(from: url)
+            print("✅ Google Sign In completed via callback")
+
+            // Profile and subscription_status are auto-created by database trigger
+
+        } catch let error as AuthError {
+            errorMessage = error.userMessage
+            throw error
+        } catch {
+            let authError = AuthError.from(error)
+            errorMessage = authError.userMessage
+            throw authError
         }
     }
 
@@ -285,6 +351,8 @@ enum AuthError: LocalizedError {
     case emailAlreadyInUse
     case invalidCredentials
     case networkError
+    case oauthCancelled
+    case oauthFailed(String)
     case unknown(String)
 
     var userMessage: String {
@@ -299,6 +367,10 @@ enum AuthError: LocalizedError {
             return "Incorrect email or password. Please try again."
         case .networkError:
             return "Network error. Please check your internet connection."
+        case .oauthCancelled:
+            return "Sign in was cancelled."
+        case .oauthFailed(let provider):
+            return "Failed to sign in with \(provider). Please try again."
         case .unknown(let message):
             return "An error occurred: \(message)"
         }
@@ -318,6 +390,14 @@ enum AuthError: LocalizedError {
 
         if errorString.contains("network") || errorString.contains("connection") {
             return .networkError
+        }
+
+        if errorString.contains("cancel") {
+            return .oauthCancelled
+        }
+
+        if errorString.contains("oauth") || errorString.contains("provider") {
+            return .oauthFailed("OAuth")
         }
 
         return .unknown(error.localizedDescription)

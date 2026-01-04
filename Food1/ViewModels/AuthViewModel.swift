@@ -355,6 +355,46 @@ class AuthViewModel: ObservableObject {
         SyncCoordinator.shared.triggerInitialSync()
     }
 
+    // MARK: - Google Sign In
+
+    /// Sign in with Google using Supabase OAuth
+    /// Returns a URL that must be opened in a browser for OAuth flow
+    func signInWithGoogle() async throws -> URL {
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        return try await authService.signInWithGoogle()
+    }
+
+    /// Complete Google Sign In after OAuth callback
+    /// Called from deep link handler after user returns from browser
+    func completeGoogleSignIn(from url: URL) async throws {
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        try await authService.handleGoogleCallback(url: url)
+
+        // Sign-in succeeded - set authenticated immediately
+        isAuthenticated = true
+
+        // Fetch current user from session directly
+        if let session = try? await supabase.client.auth.session {
+            currentUser = session.user
+        }
+
+        // Load profile data
+        await loadUserData()
+
+        // Ensure subscription_status exists (handles returning users after account deletion)
+        await SubscriptionService.shared.ensureSubscriptionStatusExists()
+
+        // Trigger initial sync after successful sign-in
+        logger.info("Triggering initial sync after Google Sign In")
+        SyncCoordinator.shared.triggerInitialSync()
+    }
+
     // MARK: - Sign Out
 
     func signOut() async throws {
@@ -456,6 +496,25 @@ class AuthViewModel: ObservableObject {
         storeKitIsPremium
     }
 
+    /// All authentication providers linked to the current user
+    /// Used to display which sign-in methods are available
+    var linkedProviders: [AuthProvider] {
+        guard let identities = currentUser?.identities else { return [] }
+        return identities.compactMap { AuthProvider(rawValue: $0.provider) }
+    }
+
+    /// Primary authentication provider (the first OAuth provider, or email if none)
+    /// Used to show the main sign-in method in AccountView
+    var primaryProvider: AuthProvider {
+        // Prefer OAuth providers over email for display
+        linkedProviders.first { $0.isOAuth } ?? linkedProviders.first ?? .email
+    }
+
+    /// Check if user signed in with a specific provider
+    func hasProvider(_ provider: AuthProvider) -> Bool {
+        linkedProviders.contains(provider)
+    }
+
     // MARK: - Email Confirmation
 
     /// Resend confirmation email
@@ -482,7 +541,7 @@ class AuthViewModel: ObservableObject {
     // MARK: - Account Deletion
 
     /// Permanently delete user account and all associated data
-    /// This is irreversible - deletes profile, subscription, and all meals
+    /// This is irreversible - deletes profile, subscription, meals, onboarding, reminders, and photos
     func deleteAccount() async throws {
         isLoading = true
         errorMessage = nil
@@ -500,7 +559,12 @@ class AuthViewModel: ObservableObject {
         logger.info("Starting account deletion for user: \(userId.uuidString, privacy: .private)")
 
         do {
-            // 1. Delete user's meals from Supabase (if synced)
+            // 1. Delete meal photos from Storage bucket
+            // Storage path format: {userId}/{mealId}/thumbnail.jpg
+            // We delete the entire user folder to clean up all photos
+            await deleteUserPhotosFromStorage(userId: userId)
+
+            // 2. Delete user's meals from Supabase (meal_ingredients CASCADE-deletes with meals)
             try await supabase.client
                 .from("meals")
                 .delete()
@@ -508,7 +572,31 @@ class AuthViewModel: ObservableObject {
                 .execute()
             logger.debug("Deleted meals from cloud")
 
-            // 2. Delete subscription status
+            // 3. Delete meal reminder windows
+            try await supabase.client
+                .from("meal_windows")
+                .delete()
+                .eq("user_id", value: userId.uuidString)
+                .execute()
+            logger.debug("Deleted meal windows")
+
+            // 4. Delete meal reminder settings
+            try await supabase.client
+                .from("meal_reminder_settings")
+                .delete()
+                .eq("user_id", value: userId.uuidString)
+                .execute()
+            logger.debug("Deleted meal reminder settings")
+
+            // 5. Delete onboarding progress
+            try await supabase.client
+                .from("user_onboarding")
+                .delete()
+                .eq("user_id", value: userId.uuidString)
+                .execute()
+            logger.debug("Deleted user onboarding")
+
+            // 6. Delete subscription status
             try await supabase.client
                 .from("subscription_status")
                 .delete()
@@ -516,7 +604,7 @@ class AuthViewModel: ObservableObject {
                 .execute()
             logger.debug("Deleted subscription status")
 
-            // 3. Delete user profile
+            // 7. Delete user profile (do this last since other tables may reference it)
             try await supabase.client
                 .from("profiles")
                 .delete()
@@ -524,13 +612,11 @@ class AuthViewModel: ObservableObject {
                 .execute()
             logger.debug("Deleted user profile")
 
-            // 4. Delete auth user (this signs them out too)
-            // Note: This requires the user to be authenticated
-            // The Supabase auth.admin.deleteUser requires service role key
-            // For client-side, we sign out and the backend trigger handles cleanup
+            // 8. Sign out (note: we can't delete auth.users from client-side)
+            // The auth user record remains but all associated data is gone
             try await supabase.client.auth.signOut()
 
-            // 5. Clear local state
+            // 9. Clear local state
             await MainActor.run {
                 isAuthenticated = false
                 currentUser = nil
@@ -538,10 +624,10 @@ class AuthViewModel: ObservableObject {
                 subscription = nil
             }
 
-            // 6. Clear local SwiftData (meals stored locally)
+            // 10. Clear local SwiftData and UserDefaults
             clearLocalData()
 
-            logger.info("Account deletion completed successfully")
+            logger.info("Account deletion completed successfully - all user data removed")
 
         } catch {
             logger.error("Account deletion failed: \(error.localizedDescription)")
@@ -553,6 +639,52 @@ class AuthViewModel: ObservableObject {
             errorMessage = "Failed to delete account. Please try again or contact support."
             #endif
             throw error
+        }
+    }
+
+    /// Delete all user photos from Supabase Storage bucket
+    /// Attempts to list and delete all files in the user's folder
+    private func deleteUserPhotosFromStorage(userId: UUID) async {
+        let bucketName = "meal-photos"
+        let userFolder = "\(userId.uuidString)/"
+
+        do {
+            // List all files in user's folder
+            let files = try await supabase.client.storage
+                .from(bucketName)
+                .list(path: userFolder)
+
+            if files.isEmpty {
+                logger.debug("No photos to delete for user")
+                return
+            }
+
+            // Collect all file paths (need to include subdirectories for meal photos)
+            var allPaths: [String] = []
+            for file in files {
+                // Each file might be a meal folder containing thumbnail.jpg
+                let mealFolder = "\(userFolder)\(file.name)"
+                let mealFiles = try await supabase.client.storage
+                    .from(bucketName)
+                    .list(path: mealFolder)
+
+                for mealFile in mealFiles {
+                    allPaths.append("\(mealFolder)/\(mealFile.name)")
+                }
+            }
+
+            if !allPaths.isEmpty {
+                // Delete all files
+                _ = try await supabase.client.storage
+                    .from(bucketName)
+                    .remove(paths: allPaths)
+                logger.debug("Deleted \(allPaths.count) photos from storage")
+            }
+
+        } catch {
+            // Log but don't fail account deletion for photo cleanup issues
+            // Photos will be orphaned but user data is still deleted
+            logger.warning("Failed to delete photos from storage: \(error.localizedDescription)")
         }
     }
 
