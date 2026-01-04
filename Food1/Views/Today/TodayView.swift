@@ -44,7 +44,7 @@ struct TodayView: View {
     @Binding var selectedDate: Date  // Shared with MainTabView for FAB date sync
     @Binding var showStreakTooltip: Bool  // Controlled by MainTabView for blur coordination
     @State private var dragOffset: CGFloat = 0
-    @State private var shimmerPhase: CGFloat = 0  // For greeting shimmer animation
+    @State private var shimmerPhase: CGFloat = -100  // For greeting shimmer (starts off-screen left)
     @State private var celebrateStreak = false  // Triggers streak flame animation
     @State private var lastKnownMealCount = 0   // For detecting new meals
 
@@ -215,40 +215,49 @@ struct TodayView: View {
                         // Personalized greeting header
                         HStack(alignment: .top) {
                             VStack(alignment: .leading, spacing: 4) {
-                                // Time greeting in elegant Instrument Serif
+                                // Time greeting with sweeping shimmer effect
                                 Text(timeGreeting)
                                     .font(.custom("InstrumentSerif-Regular", size: 26))
-                                    .foregroundStyle(
-                                        LinearGradient(
-                                            colors: [
-                                                .secondary,
-                                                .secondary.opacity(0.6),
-                                                .white,
-                                                .secondary.opacity(0.6),
-                                                .secondary
-                                            ],
-                                            startPoint: UnitPoint(x: shimmerPhase - 0.5, y: 0.5),
-                                            endPoint: UnitPoint(x: shimmerPhase + 0.5, y: 0.5)
+                                    .foregroundStyle(.secondary)
+                                    .overlay {
+                                        // Shimmer highlight that sweeps left to right
+                                        GeometryReader { geo in
+                                            Rectangle()
+                                                .fill(
+                                                    LinearGradient(
+                                                        colors: [
+                                                            .clear,
+                                                            .white.opacity(0.5),
+                                                            .clear
+                                                        ],
+                                                        startPoint: .leading,
+                                                        endPoint: .trailing
+                                                    )
+                                                )
+                                                .frame(width: 60)
+                                                .offset(x: shimmerPhase)
+                                                .blur(radius: 4)
+                                        }
+                                        .mask(
+                                            Text(timeGreeting)
+                                                .font(.custom("InstrumentSerif-Regular", size: 26))
                                         )
-                                    )
+                                    }
+                                    .task {
+                                        // Wait for user's eyes to settle on the interface
+                                        try? await Task.sleep(for: .milliseconds(3200))
+                                        // Gentle sweep from left to right (zen pace)
+                                        shimmerPhase = -60
+                                        withAnimation(.easeInOut(duration: 4.2)) {
+                                            shimmerPhase = 200
+                                        }
+                                    }
 
                                 if let name = userFirstName {
                                     // Name in Plus Jakarta Sans (matches prismae.net branding)
                                     Text(name)
                                         .font(.custom("PlusJakartaSans-Bold", size: 26))
-                                        .foregroundStyle(
-                                            LinearGradient(
-                                                colors: [
-                                                    .primary,
-                                                    .primary.opacity(0.7),
-                                                    .white,
-                                                    .primary.opacity(0.7),
-                                                    .primary
-                                                ],
-                                                startPoint: UnitPoint(x: shimmerPhase - 0.5, y: 0.5),
-                                                endPoint: UnitPoint(x: shimmerPhase + 0.5, y: 0.5)
-                                            )
-                                        )
+                                        .foregroundStyle(.primary)
                                 }
                             }
 
@@ -268,10 +277,6 @@ struct TodayView: View {
                         .padding(.horizontal)
                         .padding(.top, 16)
                         .onAppear {
-                            // Trigger shimmer animation on appear
-                            withAnimation(.easeInOut(duration: 1.2).delay(0.3)) {
-                                shimmerPhase = 2.0
-                            }
                             // Initialize meal count tracking
                             lastKnownMealCount = mealsForSelectedDate.count
                         }
