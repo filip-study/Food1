@@ -37,6 +37,11 @@ struct AccountView: View {
     @State private var showDeleteError = false
     @State private var deleteErrorMessage = ""
 
+    // Name editing
+    @State private var showingNameEditor = false
+    @State private var editedName = ""
+    @State private var isSavingName = false
+
     /// User's email - may be hidden for Apple users with private relay
     private var userEmail: String? {
         // Try profile email first
@@ -61,6 +66,24 @@ struct AccountView: View {
             List {
                 // Account Info Section
                 Section {
+                    // Name (editable)
+                    Button(action: {
+                        editedName = authViewModel.profile?.fullName ?? ""
+                        showingNameEditor = true
+                    }) {
+                        HStack {
+                            Text("Name")
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text(authViewModel.profile?.fullName ?? "Not set")
+                                .foregroundColor(authViewModel.profile?.fullName != nil ? .primary : .secondary)
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.secondary.opacity(0.5))
+                        }
+                    }
+                    .buttonStyle(.plain)
+
                     // Sign-in methods (show all linked providers)
                     HStack {
                         Text("Signed in with")
@@ -261,6 +284,44 @@ struct AccountView: View {
             .sheet(isPresented: $showingPaywall) {
                 PaywallView()
             }
+            .alert("Edit Name", isPresented: $showingNameEditor) {
+                TextField("Your name", text: $editedName)
+                    .autocapitalization(.words)
+                Button("Cancel", role: .cancel) {
+                    editedName = ""
+                }
+                Button("Save") {
+                    handleSaveName()
+                }
+                .disabled(isSavingName)
+            } message: {
+                Text("Enter the name to display in the app.")
+            }
+        }
+    }
+
+    private func handleSaveName() {
+        let nameToSave = editedName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !nameToSave.isEmpty else { return }
+
+        isSavingName = true
+
+        Task {
+            do {
+                try await authViewModel.updateProfile(
+                    fullName: nameToSave,
+                    age: nil,
+                    weightKg: nil,
+                    heightCm: nil,
+                    gender: nil,
+                    activityLevel: nil
+                )
+                HapticManager.success()
+            } catch {
+                // Error handled in AuthViewModel
+            }
+            isSavingName = false
+            editedName = ""
         }
     }
 

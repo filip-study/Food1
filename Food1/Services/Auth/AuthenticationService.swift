@@ -318,10 +318,20 @@ class AuthenticationService: ObservableObject {
 
         do {
             // Supabase SDK handles session restoration from the callback URL
-            try await supabase.client.auth.session(from: url)
+            let session = try await supabase.client.auth.session(from: url)
             print("✅ Google Sign In completed via callback")
 
             // Profile and subscription_status are auto-created by database trigger
+
+            // Extract and save name from Google's user metadata
+            // Google provides: full_name, name, given_name, family_name
+            let metadata = session.user.userMetadata
+            if !metadata.isEmpty {
+                let fullName = extractGoogleName(from: metadata)
+                if let name = fullName, !name.isEmpty {
+                    await saveNameToProfile(userId: session.user.id, fullName: name)
+                }
+            }
 
         } catch let error as AuthError {
             errorMessage = error.userMessage
@@ -331,6 +341,30 @@ class AuthenticationService: ObservableObject {
             errorMessage = authError.userMessage
             throw authError
         }
+    }
+
+    /// Extract full name from Google OAuth user metadata
+    /// Google provides name in various fields depending on account settings
+    private func extractGoogleName(from metadata: [String: AnyJSON]) -> String? {
+        // Try full_name first (most common)
+        if let fullName = metadata["full_name"]?.stringValue, !fullName.isEmpty {
+            return fullName
+        }
+
+        // Try name field
+        if let name = metadata["name"]?.stringValue, !name.isEmpty {
+            return name
+        }
+
+        // Fall back to combining given_name + family_name
+        let givenName = metadata["given_name"]?.stringValue ?? ""
+        let familyName = metadata["family_name"]?.stringValue ?? ""
+
+        let combined = [givenName, familyName]
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+
+        return combined.isEmpty ? nil : combined
     }
 
     // MARK: - Validation
