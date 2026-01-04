@@ -69,12 +69,21 @@ struct TodayView: View {
     }
 
     /// User's first name extracted from profile (for personalized greeting)
+    /// Falls back to demo name when in demo mode (for marketing screenshots)
     private var userFirstName: String? {
-        guard let fullName = authViewModel.profile?.fullName, !fullName.isEmpty else {
-            return nil
+        // First try real profile name
+        if let fullName = authViewModel.profile?.fullName, !fullName.isEmpty {
+            // Extract first name (first word before space)
+            return fullName.components(separatedBy: " ").first
         }
-        // Extract first name (first word before space)
-        return fullName.components(separatedBy: " ").first
+
+        // Fallback to demo name (stored in UserDefaults when demo mode is active)
+        // This allows marketing screenshots to show a personalized greeting
+        if let demoName = UserDefaults.standard.string(forKey: "demoUserName"), !demoName.isEmpty {
+            return demoName
+        }
+
+        return nil
     }
 
     /// Time-based greeting (subtitle below name)

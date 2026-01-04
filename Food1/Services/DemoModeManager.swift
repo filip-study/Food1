@@ -135,12 +135,21 @@ final class DemoModeManager: ObservableObject {
 
     // MARK: - Demo User Defaults
 
+    // MARK: - Demo Profile Configuration
+
+    /// Demo user's display name (shown in greeting on TodayView)
+    /// Generic name suitable for marketing screenshots
+    static let demoUserName = "Sarah"
+
     /// Set up demo user profile for realistic goals display
     private func setupDemoUserDefaults() {
         let defaults = UserDefaults.standard
 
         // Store original values to restore later
         defaults.set(true, forKey: "demoModeWasActive")
+
+        // Set demo user name for personalized greeting
+        defaults.set(Self.demoUserName, forKey: "demoUserName")
 
         // Set demo profile (moderately active adult)
         defaults.set(Gender.female.rawValue, forKey: "userGender")
@@ -158,6 +167,7 @@ final class DemoModeManager: ObservableObject {
     private func clearDemoUserDefaults() {
         let defaults = UserDefaults.standard
         defaults.removeObject(forKey: "demoModeWasActive")
+        defaults.removeObject(forKey: "demoUserName")
         // Note: We don't reset all user defaults as that would affect real user settings
     }
 
