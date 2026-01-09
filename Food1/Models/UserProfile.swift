@@ -137,6 +137,8 @@ struct CloudUserProfile: Codable, Identifiable {
     var weightUnit: String
     var heightUnit: String
     var nutritionUnit: String
+    var primaryGoal: String?      // weight_loss, health_optimization, muscle_building
+    var dietType: String?         // balanced, low_carb, vegan_vegetarian
     let createdAt: Date
     var updatedAt: Date
 
@@ -152,6 +154,8 @@ struct CloudUserProfile: Codable, Identifiable {
         case weightUnit = "weight_unit"
         case heightUnit = "height_unit"
         case nutritionUnit = "nutrition_unit"
+        case primaryGoal = "primary_goal"
+        case dietType = "diet_type"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
@@ -182,6 +186,18 @@ struct CloudUserProfile: Codable, Identifiable {
         case "extremely_active": return .extremelyActive
         default: return nil
         }
+    }
+
+    /// Convert database goal string to enum
+    var primaryGoalEnum: NutritionGoal? {
+        guard let goal = primaryGoal else { return nil }
+        return NutritionGoal(rawValue: goal)
+    }
+
+    /// Convert database diet type string to enum
+    var dietTypeEnum: DietType? {
+        guard let diet = dietType else { return nil }
+        return DietType(rawValue: diet)
     }
 }
 

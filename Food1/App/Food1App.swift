@@ -7,7 +7,8 @@
 //  WHY THIS ARCHITECTURE:
 //  - Uses AppSchemaManager for ModelContainer creation (extracted for testability)
 //  - Uses BackgroundEnrichmentManager for background task handling (extracted for clarity)
-//  - Auth routing: WelcomeView → OnboardingView → MainTabView
+//  - Auth routing: WelcomeView → OnboardingView (auth) → PersonalizationFlow → PaywallView → MainTabView
+//  - PersonalizationFlow: Full-screen onboarding for goals, diet, profile, activity level, and notifications
 //  - LaunchScreenView overlay for animated splash screen
 //  - Deep link handling for auth callbacks and meal reminders
 //
@@ -68,6 +69,14 @@ struct Food1App: App {
                     // Email confirmation pending
                     EmailConfirmationPendingView(email: pendingEmail)
                         .environmentObject(authViewModel)
+                } else if authViewModel.isAuthenticated && !authViewModel.hasCompletedPersonalization {
+                    // Authenticated but hasn't completed personalization: Show full-screen onboarding
+                    OnboardingFlowContainer(onComplete: {
+                        Task {
+                            await authViewModel.markPersonalizationComplete()
+                        }
+                    })
+                    .environmentObject(authViewModel)
                 } else if authViewModel.isAuthenticated && !authViewModel.hasAccess {
                     // Authenticated but no subscription: Show onboarding paywall
                     // User must subscribe (with free trial) to access the app
@@ -105,6 +114,14 @@ struct Food1App: App {
                     // Email confirmation pending
                     EmailConfirmationPendingView(email: pendingEmail)
                         .environmentObject(authViewModel)
+                } else if authViewModel.isAuthenticated && !authViewModel.hasCompletedPersonalization {
+                    // Authenticated but hasn't completed personalization: Show full-screen onboarding
+                    OnboardingFlowContainer(onComplete: {
+                        Task {
+                            await authViewModel.markPersonalizationComplete()
+                        }
+                    })
+                    .environmentObject(authViewModel)
                 } else if authViewModel.isAuthenticated && !authViewModel.hasAccess {
                     // Authenticated but no subscription: Show onboarding paywall
                     // User must subscribe (with free trial) to access the app
@@ -211,13 +228,6 @@ struct Food1App: App {
                     await handleDeepLink(url)
                 }
             }
-            .sheet(item: Binding(
-                get: { onboardingService.pendingStep },
-                set: { _ in }
-            )) { step in
-                // Show the appropriate onboarding view based on pending step
-                onboardingViewForStep(step)
-            }
             .sheet(isPresented: $deepLinkHandler.shouldShowQuickAdd) {
                 QuickAddMealView(
                     selectedDate: Date(),
@@ -266,46 +276,6 @@ struct Food1App: App {
             if !newValue && oldValue {
                 AnalyticsService.shared.track(.signOut)
                 AnalyticsService.shared.reset()
-            }
-        }
-    }
-
-    // MARK: - Onboarding View Router
-
-    /// Returns the appropriate onboarding view for a given step
-    @ViewBuilder
-    private func onboardingViewForStep(_ step: OnboardingStep) -> some View {
-        switch step {
-        case .welcome:
-            // Welcome onboarding (placeholder - can be customized)
-            WelcomeOnboardingView {
-                Task {
-                    await onboardingService.completeStep(.welcome)
-                }
-            }
-
-        case .mealReminders:
-            MealRemindersOnboardingView(
-                onComplete: {
-                    Task {
-                        await onboardingService.completeStep(.mealReminders)
-                    }
-                },
-                onSkip: {
-                    Task {
-                        await onboardingService.skipStep(.mealReminders)
-                        // Mark as skipped in MealActivityScheduler too
-                        await markMealReminderOnboardingComplete()
-                    }
-                }
-            )
-
-        case .profileSetup:
-            // Profile setup onboarding (placeholder - can be customized)
-            ProfileSetupOnboardingView {
-                Task {
-                    await onboardingService.completeStep(.profileSetup)
-                }
             }
         }
     }
@@ -374,31 +344,6 @@ struct Food1App: App {
             print("❌ Auth error in deep link: \(error) - \(errorDescription)")
             #endif
             authViewModel.errorMessage = errorDescription
-        }
-    }
-
-    // MARK: - Meal Reminder Helpers
-
-    /// Mark meal reminder onboarding as complete (for skipped users)
-    @MainActor
-    private func markMealReminderOnboardingComplete() async {
-        do {
-            let userId = try await SupabaseService.shared.requireUserId()
-            let settings = MealReminderSettings(
-                userId: userId,
-                isEnabled: false,  // Disabled since they skipped
-                leadTimeMinutes: 45,
-                autoDismissMinutes: 120,
-                useLearning: true,
-                onboardingCompleted: true,  // Mark as completed
-                createdAt: Date(),
-                updatedAt: Date()
-            )
-            try await MealActivityScheduler.shared.saveSettings(settings)
-        } catch {
-            #if DEBUG
-            print("⚠️  Failed to mark meal reminder onboarding complete: \(error)")
-            #endif
         }
     }
 

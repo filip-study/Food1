@@ -34,6 +34,8 @@ struct SettingsView: View {
     @State private var showingAccount = false
     @State private var showingNutritionGoals = false
     @State private var showingReminders = false
+    @State private var showingGoalPicker = false
+    @State private var showingDietPicker = false
 
     // Nutrition goals for display
     @AppStorage("useAutoGoals") private var useAutoGoals: Bool = true
@@ -112,6 +114,28 @@ struct SettingsView: View {
                     MealRemindersSettingsView()
                 }
             }
+            .sheet(isPresented: $showingGoalPicker) {
+                GoalPickerSheet(
+                    selectedGoal: authViewModel.cloudProfile?.primaryGoalEnum,
+                    onSelect: { goal in
+                        Task {
+                            await authViewModel.updateGoal(goal)
+                        }
+                    }
+                )
+                .presentationDetents([.medium])
+            }
+            .sheet(isPresented: $showingDietPicker) {
+                DietPickerSheet(
+                    selectedDiet: authViewModel.cloudProfile?.dietTypeEnum ?? .balanced,
+                    onSelect: { diet in
+                        Task {
+                            await authViewModel.updateDietType(diet)
+                        }
+                    }
+                )
+                .presentationDetents([.medium])
+            }
         }
     }
 
@@ -164,6 +188,36 @@ struct SettingsView: View {
                     .padding(.leading, 52)
                     .padding(.vertical, 6)
 
+                // Goal row
+                SettingsRow(
+                    icon: "flag.fill",
+                    iconColor: .green,
+                    title: "Your Goal",
+                    subtitle: currentGoalSubtitle
+                ) {
+                    showingGoalPicker = true
+                    HapticManager.light()
+                }
+
+                Divider()
+                    .padding(.leading, 52)
+                    .padding(.vertical, 6)
+
+                // Diet type row
+                SettingsRow(
+                    icon: "leaf.fill",
+                    iconColor: .mint,
+                    title: "Diet Type",
+                    subtitle: currentDietSubtitle
+                ) {
+                    showingDietPicker = true
+                    HapticManager.light()
+                }
+
+                Divider()
+                    .padding(.leading, 52)
+                    .padding(.vertical, 6)
+
                 // Nutrition targets row
                 SettingsRow(
                     icon: "target",
@@ -177,6 +231,20 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+
+    private var currentGoalSubtitle: String {
+        if let goal = authViewModel.cloudProfile?.primaryGoalEnum {
+            return goal.title
+        }
+        return "Not set"
+    }
+
+    private var currentDietSubtitle: String {
+        if let diet = authViewModel.cloudProfile?.dietTypeEnum {
+            return diet.title
+        }
+        return "Balanced"
     }
 
     private var profileSubtitle: String {
@@ -386,6 +454,166 @@ private struct SettingsSectionHeader: View {
             Text(title)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.secondary)
+        }
+    }
+}
+
+// MARK: - Goal Picker Sheet
+
+private struct GoalPickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let selectedGoal: NutritionGoal?
+    let onSelect: (NutritionGoal) -> Void
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 16) {
+                Text("What's your main goal?")
+                    .font(.title2.bold())
+                    .padding(.top)
+
+                VStack(spacing: 12) {
+                    ForEach(NutritionGoal.allCases) { goal in
+                        Button {
+                            onSelect(goal)
+                            dismiss()
+                        } label: {
+                            HStack(spacing: 14) {
+                                Image(systemName: goal.icon)
+                                    .font(.title2)
+                                    .foregroundColor(goal == selectedGoal ? .white : .primary)
+                                    .frame(width: 40, height: 40)
+                                    .background(
+                                        Circle()
+                                            .fill(goal == selectedGoal ? Color.green : Color.secondary.opacity(0.15))
+                                    )
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(goal.title)
+                                        .font(.headline)
+                                        .foregroundColor(.primary)
+
+                                    Text(goal.description)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+
+                                Spacer()
+
+                                if goal == selectedGoal {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(.green)
+                                        .font(.title2)
+                                }
+                            }
+                            .padding(14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(goal == selectedGoal
+                                          ? Color.green.opacity(0.1)
+                                          : Color(UIColor.secondarySystemBackground))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(goal == selectedGoal ? Color.green : Color.clear, lineWidth: 2)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal)
+
+                Spacer()
+            }
+            .navigationTitle("Your Goal")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Diet Picker Sheet
+
+private struct DietPickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let selectedDiet: DietType
+    let onSelect: (DietType) -> Void
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 16) {
+                Text("What diet do you follow?")
+                    .font(.title2.bold())
+                    .padding(.top)
+
+                VStack(spacing: 12) {
+                    ForEach(DietType.allCases) { diet in
+                        Button {
+                            onSelect(diet)
+                            dismiss()
+                        } label: {
+                            HStack(spacing: 14) {
+                                Image(systemName: diet.icon)
+                                    .font(.title2)
+                                    .foregroundColor(diet == selectedDiet ? .white : .primary)
+                                    .frame(width: 40, height: 40)
+                                    .background(
+                                        Circle()
+                                            .fill(diet == selectedDiet ? Color.mint : Color.secondary.opacity(0.15))
+                                    )
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(diet.title)
+                                        .font(.headline)
+                                        .foregroundColor(.primary)
+
+                                    Text(diet.description)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+
+                                Spacer()
+
+                                if diet == selectedDiet {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(.mint)
+                                        .font(.title2)
+                                }
+                            }
+                            .padding(14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(diet == selectedDiet
+                                          ? Color.mint.opacity(0.1)
+                                          : Color(UIColor.secondarySystemBackground))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(diet == selectedDiet ? Color.mint : Color.clear, lineWidth: 2)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal)
+
+                Spacer()
+            }
+            .navigationTitle("Diet Type")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
         }
     }
 }

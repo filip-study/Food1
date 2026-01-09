@@ -496,6 +496,85 @@ class AuthViewModel: ObservableObject {
         storeKitIsPremium
     }
 
+    /// Alias for profile for clearer naming in onboarding context
+    var cloudProfile: CloudUserProfile? {
+        profile
+    }
+
+    /// Has user completed the personalization onboarding flow?
+    /// Reads from OnboardingService which tracks this in Supabase
+    var hasCompletedPersonalization: Bool {
+        OnboardingService.shared.hasCompletedPersonalization
+    }
+
+    // MARK: - Personalization
+
+    /// Mark personalization flow as complete and reload profile with new values
+    func markPersonalizationComplete() async {
+        await OnboardingService.shared.completePersonalization()
+        await loadUserData()  // Reload profile with goal/diet values saved during onboarding
+    }
+
+    /// Update user's nutrition goal
+    func updateGoal(_ goal: NutritionGoal) async {
+        do {
+            let userId = try await supabase.requireUserId()
+
+            struct GoalUpdate: Encodable {
+                let primary_goal: String
+                let updated_at: String
+            }
+
+            let update = GoalUpdate(
+                primary_goal: goal.rawValue,
+                updated_at: ISO8601DateFormatter().string(from: Date())
+            )
+
+            try await supabase.client
+                .from("profiles")
+                .update(update)
+                .eq("id", value: userId.uuidString)
+                .execute()
+
+            // Reload profile to update UI
+            await loadUserData()
+
+            logger.info("Updated goal to: \(goal.rawValue)")
+        } catch {
+            logger.warning("Failed to update goal: \(error.localizedDescription)")
+        }
+    }
+
+    /// Update user's diet type preference
+    func updateDietType(_ diet: DietType) async {
+        do {
+            let userId = try await supabase.requireUserId()
+
+            struct DietUpdate: Encodable {
+                let diet_type: String
+                let updated_at: String
+            }
+
+            let update = DietUpdate(
+                diet_type: diet.rawValue,
+                updated_at: ISO8601DateFormatter().string(from: Date())
+            )
+
+            try await supabase.client
+                .from("profiles")
+                .update(update)
+                .eq("id", value: userId.uuidString)
+                .execute()
+
+            // Reload profile to update UI
+            await loadUserData()
+
+            logger.info("Updated diet type to: \(diet.rawValue)")
+        } catch {
+            logger.warning("Failed to update diet type: \(error.localizedDescription)")
+        }
+    }
+
     /// All authentication providers linked to the current user
     /// Used to display which sign-in methods are available
     var linkedProviders: [AuthProvider] {

@@ -20,6 +20,8 @@
 	<string>Food1 uses the microphone for voice input when describing meals. You can type text instead if you prefer not to grant microphone access.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Food1 uses speech recognition to convert your voice into text when describing meals. This makes logging meals faster and easier.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Prismae can read your weight, height, and activity data from Apple Health to personalize your nutrition targets. This data stays on your device.</string>
 	<key>PROXY_ENDPOINT</key>
 	<string>$(PROXY_ENDPOINT)</string>
 	<key>DEV_PROXY_ENDPOINT</key>

@@ -26,7 +26,8 @@ import os.log
 
 private let logger = Logger(subsystem: "com.prismae.food1", category: "Onboarding")
 
-/// Represents the onboarding steps available in the app
+/// Represents the post-login onboarding steps (shown AFTER personalization flow)
+/// Note: The main personalization flow is handled by OnboardingFlowContainer
 enum OnboardingStep: String, CaseIterable, Identifiable {
     case welcome = "welcome"
     case mealReminders = "meal_reminders"
@@ -58,6 +59,7 @@ struct UserOnboarding: Codable {
     var welcomeCompletedAt: Date?
     var mealRemindersCompletedAt: Date?
     var profileSetupCompletedAt: Date?
+    var personalizationCompletedAt: Date?  // New: tracks if user completed the personalization flow
     var appVersionFirstSeen: String?
     let createdAt: Date
     var updatedAt: Date
@@ -67,9 +69,15 @@ struct UserOnboarding: Codable {
         case welcomeCompletedAt = "welcome_completed_at"
         case mealRemindersCompletedAt = "meal_reminders_completed_at"
         case profileSetupCompletedAt = "profile_setup_completed_at"
+        case personalizationCompletedAt = "personalization_completed_at"
         case appVersionFirstSeen = "app_version_first_seen"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+    }
+
+    /// Check if personalization flow is complete
+    var hasCompletedPersonalization: Bool {
+        personalizationCompletedAt != nil
     }
 
     /// Check if a specific step is completed
@@ -259,6 +267,53 @@ class OnboardingService: ObservableObject {
         await completeStep(step)
     }
 
+    // MARK: - Personalization Flow
+
+    /// Check if user has completed the personalization flow
+    var hasCompletedPersonalization: Bool {
+        onboarding?.hasCompletedPersonalization ?? false
+    }
+
+    /// Mark the personalization flow as complete
+    func completePersonalization() async {
+        guard var currentOnboarding = onboarding else {
+            logger.warning("Cannot complete personalization - no onboarding record")
+            return
+        }
+
+        let now = Date()
+        currentOnboarding.personalizationCompletedAt = now
+
+        struct UpdatePayload: Encodable {
+            let personalizationCompletedAt: Date
+            let updatedAt: Date
+
+            enum CodingKeys: String, CodingKey {
+                case personalizationCompletedAt = "personalization_completed_at"
+                case updatedAt = "updated_at"
+            }
+        }
+
+        let payload = UpdatePayload(
+            personalizationCompletedAt: now,
+            updatedAt: now
+        )
+
+        do {
+            try await supabase.client
+                .from("user_onboarding")
+                .update(payload)
+                .eq("user_id", value: currentOnboarding.userId.uuidString)
+                .execute()
+
+            self.onboarding = currentOnboarding
+            logger.info("Completed personalization flow")
+
+        } catch {
+            logger.error("Failed to save personalization completion: \(error.localizedDescription)")
+        }
+    }
+
     // MARK: - Helpers
 
     /// Update the pending step based on current state
@@ -298,12 +353,14 @@ class OnboardingService: ObservableObject {
             let welcomeCompletedAt: Date? = nil
             let mealRemindersCompletedAt: Date? = nil
             let profileSetupCompletedAt: Date? = nil
+            let personalizationCompletedAt: Date? = nil
             let updatedAt = Date()
 
             enum CodingKeys: String, CodingKey {
                 case welcomeCompletedAt = "welcome_completed_at"
                 case mealRemindersCompletedAt = "meal_reminders_completed_at"
                 case profileSetupCompletedAt = "profile_setup_completed_at"
+                case personalizationCompletedAt = "personalization_completed_at"
                 case updatedAt = "updated_at"
             }
         }
