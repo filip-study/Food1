@@ -22,6 +22,8 @@
 	<string>Food1 uses speech recognition to convert your voice into text when describing meals. This makes logging meals faster and easier.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>Prismae can read your weight, height, and activity data from Apple Health to personalize your nutrition targets. This data stays on your device.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Prismae does not write any data to Apple Health. This permission is not actively used.</string>
 	<key>PROXY_ENDPOINT</key>
 	<string>$(PROXY_ENDPOINT)</string>
 	<key>DEV_PROXY_ENDPOINT</key>
