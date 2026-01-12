@@ -14,6 +14,7 @@
 
 import SwiftUI
 import SwiftData
+import Combine
 
 struct TodayView: View {
     @Environment(\.modelContext) private var modelContext
@@ -128,6 +129,11 @@ struct TodayView: View {
 
     private var isViewingToday: Bool {
         Calendar.current.isDateInToday(selectedDate)
+    }
+
+    /// Most recent meal across all days (for fasting timer)
+    private var mostRecentMealDate: Date? {
+        allMeals.first?.timestamp  // Already sorted by timestamp descending
     }
 
     // MARK: - Streak Calculation
@@ -357,8 +363,15 @@ struct TodayView: View {
                             .padding(.horizontal)
 
                             if mealsForSelectedDate.isEmpty {
-                                // Minimal empty state
-                                EmptyMealsView()
+                                // Fasting prompt with time since last meal
+                                FastingPromptView(
+                                    lastMealDate: mostRecentMealDate,
+                                    onConfirmFast: {
+                                        // TODO: Implement fast confirmation logic
+                                        // For now, just haptic feedback
+                                        print("Fast confirmed at \(Date())")
+                                    }
+                                )
                             } else {
                                 // Meal cards
                                 LazyVStack(spacing: 12) {
@@ -434,7 +447,146 @@ struct TodayView: View {
     }
 }
 
-// MARK: - Empty Meals View
+// MARK: - Fasting Prompt View
+
+/// Prompt shown in the meal timeline when no meals logged today.
+/// Shows time since last meal and option to confirm a fast.
+struct FastingPromptView: View {
+    let lastMealDate: Date?
+    let onConfirmFast: () -> Void
+
+    @State private var currentTime = Date()
+    @Environment(\.colorScheme) var colorScheme
+
+    // Update timer every minute
+    private let timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
+
+    /// Hours since last meal (for display)
+    private var hoursSinceLastMeal: Int? {
+        guard let lastMeal = lastMealDate else { return nil }
+        return Int(currentTime.timeIntervalSince(lastMeal)) / 3600
+    }
+
+    /// Minutes component
+    private var minutesSinceLastMeal: Int? {
+        guard let lastMeal = lastMealDate else { return nil }
+        return (Int(currentTime.timeIntervalSince(lastMeal)) % 3600) / 60
+    }
+
+    /// Only show fasting UI after 12 hours
+    private var shouldShowFastingPrompt: Bool {
+        guard let hours = hoursSinceLastMeal else { return false }
+        return hours >= 12
+    }
+
+    var body: some View {
+        if let hours = hoursSinceLastMeal, let minutes = minutesSinceLastMeal, shouldShowFastingPrompt {
+            HStack(spacing: 16) {
+                // Timer display - left side
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Image(systemName: "timer")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(ColorPalette.macroProtein.opacity(0.7))
+
+                    if hours >= 24 {
+                        let days = hours / 24
+                        let remainingHours = hours % 24
+                        Text("\(days)")
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .foregroundStyle(.primary)
+                        Text("d")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.secondary)
+                        Text("\(remainingHours)")
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .foregroundStyle(.primary)
+                        Text("h")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("\(hours)")
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .foregroundStyle(.primary)
+                        Text("h")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.secondary)
+                        Text("\(minutes)")
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .foregroundStyle(.primary)
+                        Text("m")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Text("fasting")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.tertiary)
+
+                Spacer()
+
+                // Confirm button - right aligned
+                Button(action: {
+                    HapticManager.light()
+                    onConfirmFast()
+                }) {
+                    Text("Log fast")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(ColorPalette.macroProtein)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(
+                            Capsule()
+                                .fill(ColorPalette.macroProtein.opacity(0.12))
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .strokeBorder(ColorPalette.macroProtein.opacity(0.15), lineWidth: 0.5)
+                    )
+            )
+            .padding(.horizontal)
+            .onReceive(timer) { _ in
+                currentTime = Date()
+            }
+            .onAppear {
+                currentTime = Date()
+            }
+        } else if lastMealDate == nil {
+            // No previous meals at all - simple empty state
+            HStack(spacing: 10) {
+                Image(systemName: "fork.knife")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.tertiary)
+
+                Text("No meals logged yet")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.6)
+            )
+            .padding(.horizontal)
+        }
+        // else: Last meal exists but < 12 hours ago - show nothing
+    }
+}
+
+// MARK: - Empty Meals View (Legacy - kept for reference)
 
 struct EmptyMealsView: View {
     var body: some View {
