@@ -2,7 +2,7 @@
 //  MealRemindersOnboardingView.swift
 //  Food1
 //
-//  Quick setup screen for meal reminder Live Activities.
+//  Quick setup screen for Lock Screen Activities.
 //  Shown after login to let users configure their meal windows.
 //
 //  DESIGN PHILOSOPHY:
@@ -49,9 +49,6 @@ struct MealRemindersOnboardingView: View {
                     if mealWindows.count < 6 {
                         addWindowButton
                     }
-
-                    // Info text
-                    infoText
 
                     // Spacer for button
                     Spacer(minLength: 100)
@@ -103,7 +100,7 @@ struct MealRemindersOnboardingView: View {
             }
 
             VStack(spacing: 8) {
-                Text("Smart Meal Reminders")
+                Text("Lock Screen Activities")
                     .font(.title2.weight(.bold))
 
                 Text("Get a gentle nudge on your lock screen when it's time to log meals")
@@ -151,25 +148,6 @@ struct MealRemindersOnboardingView: View {
             .foregroundStyle(.teal)
         }
         .buttonStyle(.plain)
-    }
-
-    // MARK: - Info Text
-
-    private var infoText: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "sparkles")
-                .foregroundStyle(.orange)
-
-            Text("Times adjust automatically as I learn your habits")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.orange.opacity(0.1))
-        )
     }
 
     // MARK: - Bottom Buttons
@@ -239,7 +217,6 @@ struct MealRemindersOnboardingView: View {
                 isEnabled: true,
                 leadTimeMinutes: 45,
                 autoDismissMinutes: 120,
-                useLearning: true,
                 onboardingCompleted: true,
                 createdAt: Date(),
                 updatedAt: Date()
@@ -253,7 +230,6 @@ struct MealRemindersOnboardingView: View {
                     userId: userId,
                     name: editable.name,
                     targetTime: TimeComponents(from: editable.time),
-                    learnedTime: nil,
                     isEnabled: true,
                     sortOrder: index,
                     createdAt: Date(),

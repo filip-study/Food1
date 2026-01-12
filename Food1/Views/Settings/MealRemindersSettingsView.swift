@@ -2,14 +2,13 @@
 //  MealRemindersSettingsView.swift
 //  Food1
 //
-//  Settings screen for managing meal reminder Live Activities.
+//  Settings screen for managing Lock Screen Activities.
 //  Accessed from the main Settings view.
 //
 //  FEATURES:
 //  - Master toggle for feature
 //  - Manage meal windows (add/edit/remove)
 //  - Configure lead time and auto-dismiss
-//  - Toggle smart learning
 //
 
 import SwiftUI
@@ -29,7 +28,6 @@ struct MealRemindersSettingsView: View {
     @State private var windows: [EditableMealWindow] = []
     @State private var leadTimeMinutes = 45
     @State private var autoDismissMinutes = 120
-    @State private var useLearning = true
     @State private var isLoading = true
     @State private var isSaving = false
     @State private var hasChanges = false
@@ -50,9 +48,6 @@ struct MealRemindersSettingsView: View {
 
                 // Timing section
                 timingSection
-
-                // Learning section
-                learningSection
             }
 
             // Info section
@@ -63,7 +58,7 @@ struct MealRemindersSettingsView: View {
             debugSection
             #endif
         }
-        .navigationTitle("Meal Reminders")
+        .navigationTitle("Lock Screen Activities")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if hasChanges {
@@ -87,7 +82,6 @@ struct MealRemindersSettingsView: View {
         .onChange(of: isEnabled) { markChanged() }
         .onChange(of: leadTimeMinutes) { markChanged() }
         .onChange(of: autoDismissMinutes) { markChanged() }
-        .onChange(of: useLearning) { markChanged() }
         .onChange(of: scenePhase) { oldPhase, newPhase in
             // Refresh when returning from Settings app
             if newPhase == .active && oldPhase == .inactive {
@@ -127,10 +121,10 @@ struct MealRemindersSettingsView: View {
                         .foregroundStyle(liveActivitiesEnabled ? .teal : .secondary)
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Meal Reminders")
+                        Text("Lock Screen Activities")
                             .font(.body.weight(.medium))
 
-                        Text("Show on Lock Screen & Dynamic Island")
+                        Text("Show meal prompts on Lock Screen")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -156,7 +150,7 @@ struct MealRemindersSettingsView: View {
             }
         } footer: {
             if !liveActivitiesEnabled {
-                Text("Live Activities must be enabled to show meal reminders on your Lock Screen and Dynamic Island.")
+                Text("Live Activities must be enabled to show prompts on your Lock Screen.")
                     .font(.caption)
             }
         }
@@ -232,28 +226,6 @@ struct MealRemindersSettingsView: View {
         }
     }
 
-    // MARK: - Learning Section
-
-    private var learningSection: some View {
-        Section {
-            Toggle(isOn: $useLearning) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Smart Learning")
-                        .font(.body)
-
-                    Text("Adjust times based on when you actually eat")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .tint(.teal)
-        } footer: {
-            if useLearning {
-                Text("Reminder times will gradually shift to match your patterns while staying within 1 hour of your set times.")
-            }
-        }
-    }
-
     // MARK: - Info Section
 
     private var infoSection: some View {
@@ -262,7 +234,7 @@ struct MealRemindersSettingsView: View {
                 Image(systemName: "info.circle.fill")
                     .foregroundStyle(.blue)
 
-                Text("Reminders appear on your Lock Screen and Dynamic Island when it's time for a meal.")
+                Text("Activities appear on your Lock Screen when it's time for a meal.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -396,7 +368,6 @@ struct MealRemindersSettingsView: View {
                 isEnabled = settings.isEnabled
                 leadTimeMinutes = settings.leadTimeMinutes
                 autoDismissMinutes = settings.autoDismissMinutes
-                useLearning = settings.useLearning
             }
 
             // Convert MealWindows to EditableMealWindows (preserving original IDs!)
@@ -422,7 +393,6 @@ struct MealRemindersSettingsView: View {
                 isEnabled: isEnabled,
                 leadTimeMinutes: leadTimeMinutes,
                 autoDismissMinutes: autoDismissMinutes,
-                useLearning: useLearning,
                 onboardingCompleted: true,
                 createdAt: scheduler.settings?.createdAt ?? Date(),
                 updatedAt: Date()
@@ -437,7 +407,6 @@ struct MealRemindersSettingsView: View {
                     userId: userId,
                     name: editable.name,
                     targetTime: TimeComponents(from: editable.time),
-                    learnedTime: nil,
                     isEnabled: editable.isEnabled,
                     sortOrder: index,
                     createdAt: Date(),
@@ -446,19 +415,6 @@ struct MealRemindersSettingsView: View {
             }
 
             try await scheduler.saveMealWindows(mealWindows)
-
-            // Run pattern analysis if learning is enabled
-            if useLearning {
-                let analyzer = MealPatternAnalyzer()
-                let updatedWindows = analyzer.analyzeAndUpdateWindows(
-                    modelContext: modelContext,
-                    windows: mealWindows
-                )
-
-                if updatedWindows != mealWindows {
-                    try await scheduler.saveMealWindows(updatedWindows)
-                }
-            }
 
             hasChanges = false
 

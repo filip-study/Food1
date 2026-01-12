@@ -13,13 +13,12 @@
 
 import Foundation
 
-/// Global settings for meal reminder Live Activities
+/// Global settings for Lock Screen Activities (meal reminders)
 struct MealReminderSettings: Codable, Equatable {
     let userId: UUID
     var isEnabled: Bool                 // Master toggle for the feature
     var leadTimeMinutes: Int            // Show activity X minutes before meal
     var autoDismissMinutes: Int         // Auto-dismiss X minutes after meal time
-    var useLearning: Bool               // Whether to adjust times based on patterns
     var onboardingCompleted: Bool       // Whether user completed initial setup
     let createdAt: Date
     var updatedAt: Date
@@ -29,7 +28,6 @@ struct MealReminderSettings: Codable, Equatable {
         case isEnabled = "is_enabled"
         case leadTimeMinutes = "lead_time_minutes"
         case autoDismissMinutes = "auto_dismiss_minutes"
-        case useLearning = "use_learning"
         case onboardingCompleted = "onboarding_completed"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
@@ -43,7 +41,6 @@ struct MealReminderSettings: Codable, Equatable {
             isEnabled: true,
             leadTimeMinutes: 45,
             autoDismissMinutes: 120,
-            useLearning: true,
             onboardingCompleted: false,
             createdAt: now,
             updatedAt: now
@@ -70,7 +67,6 @@ extension MealReminderSettings {
         let isEnabled: Bool
         let leadTimeMinutes: Int
         let autoDismissMinutes: Int
-        let useLearning: Bool
         let onboardingCompleted: Bool
 
         enum CodingKeys: String, CodingKey {
@@ -78,7 +74,6 @@ extension MealReminderSettings {
             case isEnabled = "is_enabled"
             case leadTimeMinutes = "lead_time_minutes"
             case autoDismissMinutes = "auto_dismiss_minutes"
-            case useLearning = "use_learning"
             case onboardingCompleted = "onboarding_completed"
         }
     }
@@ -90,7 +85,6 @@ extension MealReminderSettings {
             isEnabled: isEnabled,
             leadTimeMinutes: leadTimeMinutes,
             autoDismissMinutes: autoDismissMinutes,
-            useLearning: useLearning,
             onboardingCompleted: onboardingCompleted
         )
     }

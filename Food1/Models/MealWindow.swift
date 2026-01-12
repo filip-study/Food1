@@ -3,11 +3,10 @@
 //  Food1
 //
 //  Model for user's meal time windows (cloud-synced via Supabase).
-//  Each user can have 1-6 customizable meal windows with optional AI learning.
+//  Each user can have 1-6 customizable meal windows.
 //
 //  WHY THIS ARCHITECTURE:
 //  - Codable struct (not SwiftData) since this is cloud-first configuration
-//  - Separate target_time (user-set) vs learned_time (AI-adjusted) for transparency
 //  - sort_order enables drag-to-reorder in UI
 //  - TimeComponents helper for TIME column handling (Supabase stores as "HH:MM:SS")
 //
@@ -20,7 +19,6 @@ struct MealWindow: Codable, Identifiable, Equatable {
     let userId: UUID
     var name: String                    // "Breakfast", "Lunch", "Dinner", or custom
     var targetTime: TimeComponents      // User's set time (e.g., 08:00)
-    var learnedTime: TimeComponents?    // AI-adjusted based on actual meal patterns
     var isEnabled: Bool
     var sortOrder: Int
     let createdAt: Date
@@ -31,31 +29,25 @@ struct MealWindow: Codable, Identifiable, Equatable {
         case userId = "user_id"
         case name
         case targetTime = "target_time"
-        case learnedTime = "learned_time"
         case isEnabled = "is_enabled"
         case sortOrder = "sort_order"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
 
-    /// Effective time to use (learned if available, otherwise target)
-    var effectiveTime: TimeComponents {
-        learnedTime ?? targetTime
-    }
-
-    /// Create a Date for today at this meal's effective time
+    /// Create a Date for today at this meal's target time
     func dateForToday() -> Date {
-        effectiveTime.dateForToday()
+        targetTime.dateForToday()
     }
 
-    /// Create a Date for a specific day at this meal's effective time
+    /// Create a Date for a specific day at this meal's target time
     func dateFor(date: Date) -> Date {
-        effectiveTime.dateFor(date: date)
+        targetTime.dateFor(date: date)
     }
 
     /// Icon for this meal based on time of day
     var icon: String {
-        let hour = effectiveTime.hour
+        let hour = targetTime.hour
         if hour < 10 {
             return "sun.horizon.fill"       // Breakfast (before 10am)
         } else if hour < 14 {
@@ -76,7 +68,6 @@ struct MealWindow: Codable, Identifiable, Equatable {
                 userId: UUID(), // Will be replaced with actual user ID
                 name: "Breakfast",
                 targetTime: TimeComponents(hour: 8, minute: 0),
-                learnedTime: nil,
                 isEnabled: true,
                 sortOrder: 0,
                 createdAt: now,
@@ -87,7 +78,6 @@ struct MealWindow: Codable, Identifiable, Equatable {
                 userId: UUID(),
                 name: "Lunch",
                 targetTime: TimeComponents(hour: 12, minute: 30),
-                learnedTime: nil,
                 isEnabled: true,
                 sortOrder: 1,
                 createdAt: now,
@@ -98,7 +88,6 @@ struct MealWindow: Codable, Identifiable, Equatable {
                 userId: UUID(),
                 name: "Dinner",
                 targetTime: TimeComponents(hour: 18, minute: 30),
-                learnedTime: nil,
                 isEnabled: true,
                 sortOrder: 2,
                 createdAt: now,
@@ -190,7 +179,6 @@ extension MealWindow {
         let userId: UUID
         let name: String
         let targetTime: TimeComponents
-        let learnedTime: TimeComponents?
         let isEnabled: Bool
         let sortOrder: Int
 
@@ -199,7 +187,6 @@ extension MealWindow {
             case userId = "user_id"
             case name
             case targetTime = "target_time"
-            case learnedTime = "learned_time"
             case isEnabled = "is_enabled"
             case sortOrder = "sort_order"
         }
@@ -212,7 +199,6 @@ extension MealWindow {
             userId: userId,
             name: name,
             targetTime: targetTime,
-            learnedTime: learnedTime,
             isEnabled: isEnabled,
             sortOrder: sortOrder
         )
@@ -225,7 +211,6 @@ extension MealWindow {
             userId: userId,
             name: self.name,
             targetTime: self.targetTime,
-            learnedTime: self.learnedTime,
             isEnabled: self.isEnabled,
             sortOrder: self.sortOrder,
             createdAt: Date(),

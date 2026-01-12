@@ -2,8 +2,8 @@
 //  MealActivityScheduler.swift
 //  Food1
 //
-//  Core service for managing meal reminder Live Activities.
-//  Handles activity lifecycle, scheduling, and coordination with pattern learning.
+//  Core service for managing Lock Screen Activities (meal reminders).
+//  Handles activity lifecycle and scheduling.
 //
 //  WHY THIS ARCHITECTURE:
 //  - Singleton for centralized activity management
@@ -139,7 +139,6 @@ class MealActivityScheduler: ObservableObject {
                 userId: userId,
                 name: window.name,
                 targetTime: window.targetTime,
-                learnedTime: window.learnedTime,
                 isEnabled: window.isEnabled,
                 sortOrder: window.sortOrder
             )

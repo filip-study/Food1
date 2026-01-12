@@ -316,13 +316,12 @@ struct NotificationsSetupView: View {
         do {
             let userId = try await SupabaseService.shared.requireUserId()
 
-            // Create settings (simplified - no learning)
+            // Create settings
             let settings = MealReminderSettings(
                 userId: userId,
                 isEnabled: true,
                 leadTimeMinutes: 45,
                 autoDismissMinutes: 120,
-                useLearning: false,  // Disabled as per requirements
                 onboardingCompleted: true,
                 createdAt: Date(),
                 updatedAt: Date()
@@ -336,7 +335,6 @@ struct NotificationsSetupView: View {
                     userId: userId,
                     name: editable.name,
                     targetTime: TimeComponents(from: editable.time),
-                    learnedTime: nil,
                     isEnabled: true,
                     sortOrder: index,
                     createdAt: Date(),
