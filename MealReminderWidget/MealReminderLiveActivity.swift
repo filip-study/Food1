@@ -6,9 +6,10 @@
 //  Provides lock screen widget and Dynamic Island presentations.
 //
 //  DESIGN PHILOSOPHY:
-//  - Warm, encouraging tone: "Time for lunch" with motivational subtitle
-//  - Premium gradient button that stands out
-//  - Clear visual hierarchy with brand consistency
+//  - Clean, minimal black & white design
+//  - Two-tier layout: Meal info + Action buttons
+//  - Bold white "Log Meal" button for maximum visibility
+//  - No data dependencies - always looks good
 //  - Dynamic Island: Compact shows meal + time, expanded shows full CTA
 //
 
@@ -20,7 +21,6 @@ import SwiftUI
 
 private let brandTeal = Color(red: 0.08, green: 0.72, blue: 0.65)
 private let brandTealLight = Color(red: 0.20, green: 0.78, blue: 0.72)
-private let brandBlue = Color(red: 0.15, green: 0.39, blue: 0.92)
 
 // MARK: - Widget Configuration
 
@@ -131,65 +131,65 @@ struct LockScreenView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 16) {
+            // Top: Icon + Meal Info
             HStack(spacing: 14) {
-                // Left: Icon with subtle glow
-                ZStack {
-                    Circle()
-                        .fill(brandTeal.opacity(0.2))
-                        .frame(width: 44, height: 44)
+                // Icon
+                Image(systemName: context.attributes.iconName)
+                    .font(.system(size: 28, weight: .medium))
+                    .foregroundStyle(.white)
 
-                    Image(systemName: context.attributes.iconName)
-                        .font(.title3)
-                        .foregroundStyle(brandTeal)
-                }
-
-                // Center: Text content
-                VStack(alignment: .leading, spacing: 3) {
-                    // Main message
-                    Text("\(context.attributes.mealName) time")
-                        .font(.system(size: 17, weight: .semibold))
+                // Meal name and subtitle
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(context.attributes.mealName)
+                        .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(.white)
 
-                    // Subtitle - contextual and encouraging
                     if isExpiring {
                         Text("Dismissing soon...")
                             .font(.system(size: 13))
-                            .foregroundStyle(.white.opacity(0.5))
+                            .foregroundStyle(.white.opacity(0.4))
                     } else {
                         Text(subtitleForMeal(context.attributes.mealName))
                             .font(.system(size: 13))
-                            .foregroundStyle(.white.opacity(0.6))
+                            .foregroundStyle(.white.opacity(0.5))
                     }
                 }
 
                 Spacer()
+            }
 
-                // Right: Action button
+            // Bottom: Action Buttons
+            HStack(spacing: 10) {
+                // Primary: Log Meal button
                 Link(destination: URL(string: "prismae://log-meal?window=\(context.attributes.windowId)")!) {
-                    HStack(spacing: 5) {
+                    HStack(spacing: 6) {
                         Image(systemName: "camera.fill")
-                            .font(.system(size: 12, weight: .semibold))
-                        Text("Log")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("Log Meal")
+                            .font(.system(size: 16, weight: .bold))
                     }
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
-                    .background(
-                        LinearGradient(
-                            colors: [brandTeal, brandTealLight],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .clipShape(Capsule())
-                    .shadow(color: brandTeal.opacity(0.4), radius: 8, y: 2)
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+
+                // Secondary: Skip button
+                Link(destination: URL(string: "prismae://dismiss-reminder?window=\(context.attributes.windowId)")!) {
+                    Text("Skip")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.6))
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 14)
+                        .background(.white.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
         }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 18)
     }
 }
 

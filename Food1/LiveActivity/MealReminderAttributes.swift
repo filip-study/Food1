@@ -33,6 +33,11 @@ struct MealReminderAttributes: ActivityAttributes {
 
         /// User's calorie goal (optional)
         var calorieGoal: Int?
+
+        /// Today's macro totals (optional, for macro ring display)
+        var todayProtein: Int?
+        var todayCarbs: Int?
+        var todayFat: Int?
     }
 
     // MARK: - Static Attributes

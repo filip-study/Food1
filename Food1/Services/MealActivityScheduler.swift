@@ -334,6 +334,31 @@ class MealActivityScheduler: ObservableObject {
         logger.info("Updated activity state to: \(status.rawValue)")
     }
 
+    /// Update nutrition progress for all active activities
+    /// Call this when meals are logged/modified to keep the Lock Screen display current
+    func updateNutritionProgress(
+        todayCalories: Int,
+        calorieGoal: Int,
+        todayProtein: Int,
+        todayCarbs: Int,
+        todayFat: Int
+    ) async {
+        for (windowId, activity) in activeActivities {
+            let newState = MealReminderAttributes.ContentState(
+                status: activity.content.state.status,
+                dismissAt: activity.content.state.dismissAt,
+                todayCalories: todayCalories,
+                calorieGoal: calorieGoal,
+                todayProtein: todayProtein,
+                todayCarbs: todayCarbs,
+                todayFat: todayFat
+            )
+
+            await activity.update(.init(state: newState, staleDate: nil))
+            logger.debug("Updated nutrition for \(windowId): \(todayCalories) cal, P:\(todayProtein) C:\(todayCarbs) F:\(todayFat)")
+        }
+    }
+
     /// End a specific activity
     func endActivity(for windowId: UUID, reason: EndReason) async {
         guard let activity = activeActivities[windowId] else {
