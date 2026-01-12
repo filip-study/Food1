@@ -315,12 +315,15 @@ struct TodayView: View {
                         }
 
                         // Macro-focused dashboard with personalized goals
+                        // Shows compact "Today's Goals" view when no meals logged today,
+                        // otherwise shows full progress dashboard
                         MetricsDashboardView(
                             currentCalories: totals.calories,
                             currentProtein: totals.protein,
                             currentCarbs: totals.carbs,
                             currentFat: totals.fat,
-                            goals: personalizedGoals
+                            goals: personalizedGoals,
+                            showCompactGoals: mealsForSelectedDate.isEmpty && isViewingToday
                         )
 
                         // Daily insight - disabled pending redesign

@@ -11,18 +11,26 @@
 //  - Mood emoji (😢→😐→😊→🎉) adds personality and emotional feedback
 //  - Macro order standard: Protein → Fat → Carbs (teal, blue, pink)
 //
+//  EMPTY STATE DESIGN (2025):
+//  - When showCompactGoals=true, displays compact "Today's Goals" card instead of zeros
+//  - Forward-looking motivation: shows targets, not empty progress
+//  - Smooth spring animation on first meal logged expands to full dashboard
+//  - Only for "today" - historical empty days show full dashboard with zeros
+//
 
 import SwiftUI
 
 struct MetricsDashboardView: View {
     @AppStorage("nutritionUnit") private var nutritionUnit: NutritionUnit = .metric
     @Environment(\.colorScheme) var colorScheme
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
 
     let currentCalories: Double
     let currentProtein: Double
     let currentCarbs: Double
     let currentFat: Double
     let goals: DailyGoals
+    var showCompactGoals: Bool = false  // When true, shows compact goals card instead of progress
 
     @State private var animateIn = false
 
@@ -52,6 +60,36 @@ struct MetricsDashboardView: View {
     }
 
     var body: some View {
+        Group {
+            if showCompactGoals {
+                CompactGoalsView(goals: goals)
+                    .transition(reduceMotion ? .opacity : .asymmetric(
+                        insertion: .scale(scale: 0.95).combined(with: .opacity),
+                        removal: .scale(scale: 1.02).combined(with: .opacity)
+                    ))
+            } else {
+                fullDashboard
+                    .transition(reduceMotion ? .opacity : .asymmetric(
+                        insertion: .scale(scale: 1.02).combined(with: .opacity),
+                        removal: .scale(scale: 0.95).combined(with: .opacity)
+                    ))
+            }
+        }
+        .animation(
+            reduceMotion ? .easeInOut(duration: 0.3) : .spring(response: 0.5, dampingFraction: 0.8),
+            value: showCompactGoals
+        )
+        .onChange(of: showCompactGoals) { wasCompact, isCompact in
+            // Haptic feedback when expanding from compact to full (first meal logged)
+            if wasCompact && !isCompact {
+                HapticManager.success()
+            }
+        }
+    }
+
+    // MARK: - Full Dashboard (existing design)
+
+    private var fullDashboard: some View {
         VStack(spacing: 24) {
             // Stacked minimalism calorie summary
             VStack(alignment: .leading, spacing: 4) {
@@ -232,7 +270,135 @@ struct MacroHeroBar: View {
     }
 }
 
-#Preview {
+// MARK: - Compact Goals View (Empty State for Today)
+
+/// Aspirational empty state shown when no meals logged today.
+/// Uses the same indicator icons as the Stats chart for visual consistency.
+/// Designed to inspire action rather than show empty progress.
+struct CompactGoalsView: View {
+    let goals: DailyGoals
+
+    @Environment(\.colorScheme) var colorScheme
+    @State private var animateIn = false
+
+    /// Time-appropriate aspirational message
+    private var aspirationalMessage: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 5..<12:
+            return "Your day begins"
+        case 12..<17:
+            return "Fuel your afternoon"
+        case 17..<21:
+            return "Evening awaits"
+        default:
+            return "A fresh start"
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 16) {
+            // Aspirational headline in Instrument Serif
+            Text(aspirationalMessage)
+                .font(.custom("InstrumentSerif-Regular", size: 22))
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .opacity(animateIn ? 1 : 0)
+                .offset(y: animateIn ? 0 : 10)
+
+            // Hero calorie target with gradient indicator (matches Stats chart)
+            HStack(alignment: .center, spacing: 8) {
+                // Gradient calorie indicator (same as Stats chart)
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(
+                        LinearGradient(
+                            colors: [ColorPalette.calories.opacity(0.7), ColorPalette.calories.opacity(0.2)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(width: 10, height: 28)
+
+                Text("\(Int(goals.calories))")
+                    .font(.custom("PlusJakartaSans-Bold", size: 38))
+                    .foregroundColor(.primary)
+
+                Text("cal")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(.tertiary)
+                    .padding(.top, 8)
+
+                Spacer()
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .opacity(animateIn ? 1 : 0)
+            .offset(y: animateIn ? 0 : 8)
+
+            // Macro targets with dot indicators (matches Stats chart legend)
+            HStack(spacing: 20) {
+                GoalIndicator(value: goals.protein, label: "Protein", color: ColorPalette.macroProtein)
+                GoalIndicator(value: goals.fat, label: "Fat", color: ColorPalette.macroFat)
+                GoalIndicator(value: goals.carbs, label: "Carbs", color: ColorPalette.macroCarbs)
+                Spacer()
+            }
+            .opacity(animateIn ? 1 : 0)
+            .offset(y: animateIn ? 0 : 6)
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 24)
+                .fill(.thinMaterial)
+                .opacity(0.97)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24)
+                        .strokeBorder(Color.white.opacity(0.05), lineWidth: 1)
+                )
+        )
+        .shadow(
+            color: Color.black.opacity(colorScheme == .dark ? 0.15 : 0.08),
+            radius: 16, x: 0, y: 4
+        )
+        .padding(.horizontal)
+        .onAppear {
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.8).delay(0.15)) {
+                animateIn = true
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(aspirationalMessage). Today's goals: \(Int(goals.calories)) calories, \(Int(goals.protein)) grams protein, \(Int(goals.fat)) grams fat, \(Int(goals.carbs)) grams carbs")
+    }
+}
+
+// MARK: - Goal Indicator (Matches Stats chart legend style)
+
+/// Compact goal indicator with colored dot, value, and label.
+/// Mirrors the MacroLegendValue style from the Stats chart.
+private struct GoalIndicator: View {
+    let value: Double
+    let label: String
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 6) {
+            // Colored dot (same as Stats chart)
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(label)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+
+                Text("\(Int(value))g")
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .foregroundStyle(color.opacity(0.85))
+            }
+        }
+    }
+}
+
+#Preview("Full Dashboard") {
     ScrollView {
         VStack(spacing: 20) {
             // Good progress
@@ -261,6 +427,45 @@ struct MacroHeroBar: View {
                 currentFat: 85,
                 goals: .standard
             )
+        }
+        .padding(.vertical)
+    }
+    .background(Color(.systemGroupedBackground))
+}
+
+#Preview("Compact Goals (Empty State)") {
+    ScrollView {
+        VStack(spacing: 20) {
+            // Compact goals view - shown when no meals today
+            MetricsDashboardView(
+                currentCalories: 0,
+                currentProtein: 0,
+                currentCarbs: 0,
+                currentFat: 0,
+                goals: .standard,
+                showCompactGoals: true
+            )
+
+            Text("↑ Compact view (no meals)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Divider()
+                .padding(.horizontal)
+
+            // Full dashboard for comparison
+            MetricsDashboardView(
+                currentCalories: 0,
+                currentProtein: 0,
+                currentCarbs: 0,
+                currentFat: 0,
+                goals: .standard,
+                showCompactGoals: false
+            )
+
+            Text("↑ Full dashboard (same data)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
         .padding(.vertical)
     }
