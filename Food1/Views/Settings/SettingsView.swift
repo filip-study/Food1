@@ -268,22 +268,8 @@ struct SettingsView: View {
 
     private var preferencesCard: some View {
         SettingsCard {
-            VStack(spacing: 0) {
-                // Section header
-                HStack(spacing: 10) {
-                    Image(systemName: "paintbrush.fill")
-                        .font(.system(size: 18))
-                        .foregroundColor(.secondary)
-
-                    Text("Display")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.primary)
-
-                    Spacer()
-                }
-                .padding(.bottom, 16)
-
-                // Appearance
+            VStack(spacing: 16) {
+                // Theme
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Theme")
                         .font(.system(size: 13, weight: .medium))
@@ -296,9 +282,6 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.segmented)
                 }
-
-                Divider()
-                    .padding(.vertical, 14)
 
                 // Units
                 VStack(alignment: .leading, spacing: 8) {
