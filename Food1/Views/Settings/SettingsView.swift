@@ -179,57 +179,60 @@ struct SettingsView: View {
     private var profileGoalsCard: some View {
         SettingsCard {
             VStack(spacing: 0) {
+                // Section header
+                HStack(spacing: 10) {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 18))
+                        .foregroundColor(.blue)
+
+                    Text("Goals & Targets")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.primary)
+
+                    Spacer()
+                }
+                .padding(.bottom, 14)
+
                 // Profile row
-                SettingsRow(
-                    icon: "person.circle.fill",
-                    iconColor: ColorPalette.accentPrimary,
-                    title: "Your Profile",
-                    subtitle: profileSubtitle
+                SettingsTextRow(
+                    title: "Profile",
+                    value: profileSubtitle
                 ) {
                     showingProfileEditor = true
                     HapticManager.light()
                 }
 
                 Divider()
-                    .padding(.leading, 52)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 10)
 
                 // Goal row
-                SettingsRow(
-                    icon: "flag.fill",
-                    iconColor: .green,
-                    title: "Your Goal",
-                    subtitle: currentGoalSubtitle
+                SettingsTextRow(
+                    title: "Goal",
+                    value: currentGoalSubtitle
                 ) {
                     showingGoalPicker = true
                     HapticManager.light()
                 }
 
                 Divider()
-                    .padding(.leading, 52)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 10)
 
                 // Diet type row
-                SettingsRow(
-                    icon: "leaf.fill",
-                    iconColor: .mint,
-                    title: "Diet Type",
-                    subtitle: currentDietSubtitle
+                SettingsTextRow(
+                    title: "Diet",
+                    value: currentDietSubtitle
                 ) {
                     showingDietPicker = true
                     HapticManager.light()
                 }
 
                 Divider()
-                    .padding(.leading, 52)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 10)
 
                 // Nutrition targets row
-                SettingsRow(
-                    icon: "target",
-                    iconColor: .orange,
-                    title: "Nutrition Targets",
-                    subtitle: goalsSubtitle,
+                SettingsTextRow(
+                    title: "Targets",
+                    value: goalsSubtitle,
                     badge: useAutoGoals ? "Auto" : "Custom"
                 ) {
                     showingNutritionGoals = true
@@ -445,6 +448,64 @@ private struct SettingsRow: View {
     }
 }
 
+// MARK: - Settings Text Row (no icon, simpler)
+
+private struct SettingsTextRow: View {
+    let title: String
+    let value: String
+    var badge: String? = nil
+    var action: (() -> Void)? = nil
+
+    var body: some View {
+        Button(action: {
+            action?()
+        }) {
+            HStack(spacing: 10) {
+                Text(title)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(.secondary)
+
+                Spacer()
+
+                Text(value)
+                    .font(.system(size: 15))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+
+                // Badge pill
+                if let badge = badge {
+                    Text(badge)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(badgeColor(for: badge))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(badgeColor(for: badge).opacity(0.12))
+                        .clipShape(Capsule())
+                }
+
+                // Chevron
+                if action != nil {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.secondary.opacity(0.4))
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(action == nil)
+    }
+
+    private func badgeColor(for badge: String) -> Color {
+        if badge == "Auto" {
+            return .green
+        } else if badge == "Custom" {
+            return ColorPalette.accentPrimary
+        }
+        return .secondary
+    }
+}
+
 // MARK: - Settings Section Header
 
 private struct SettingsSectionHeader: View {
@@ -491,7 +552,7 @@ private struct GoalPickerSheet: View {
                                     .frame(width: 40, height: 40)
                                     .background(
                                         Circle()
-                                            .fill(goal == selectedGoal ? Color.green : Color.secondary.opacity(0.15))
+                                            .fill(goal == selectedGoal ? Color.blue : Color.secondary.opacity(0.15))
                                     )
 
                                 VStack(alignment: .leading, spacing: 2) {
@@ -508,7 +569,7 @@ private struct GoalPickerSheet: View {
 
                                 if goal == selectedGoal {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.green)
+                                        .foregroundColor(.blue)
                                         .font(.title2)
                                 }
                             }
@@ -516,12 +577,12 @@ private struct GoalPickerSheet: View {
                             .background(
                                 RoundedRectangle(cornerRadius: 14)
                                     .fill(goal == selectedGoal
-                                          ? Color.green.opacity(0.1)
+                                          ? Color.blue.opacity(0.1)
                                           : Color(UIColor.secondarySystemBackground))
                             )
                             .overlay(
                                 RoundedRectangle(cornerRadius: 14)
-                                    .stroke(goal == selectedGoal ? Color.green : Color.clear, lineWidth: 2)
+                                    .stroke(goal == selectedGoal ? Color.blue : Color.clear, lineWidth: 2)
                             )
                         }
                         .buttonStyle(.plain)
@@ -571,7 +632,7 @@ private struct DietPickerSheet: View {
                                     .frame(width: 40, height: 40)
                                     .background(
                                         Circle()
-                                            .fill(diet == selectedDiet ? Color.mint : Color.secondary.opacity(0.15))
+                                            .fill(diet == selectedDiet ? Color.blue : Color.secondary.opacity(0.15))
                                     )
 
                                 VStack(alignment: .leading, spacing: 2) {
@@ -588,7 +649,7 @@ private struct DietPickerSheet: View {
 
                                 if diet == selectedDiet {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.mint)
+                                        .foregroundColor(.blue)
                                         .font(.title2)
                                 }
                             }
@@ -596,12 +657,12 @@ private struct DietPickerSheet: View {
                             .background(
                                 RoundedRectangle(cornerRadius: 14)
                                     .fill(diet == selectedDiet
-                                          ? Color.mint.opacity(0.1)
+                                          ? Color.blue.opacity(0.1)
                                           : Color(UIColor.secondarySystemBackground))
                             )
                             .overlay(
                                 RoundedRectangle(cornerRadius: 14)
-                                    .stroke(diet == selectedDiet ? Color.mint : Color.clear, lineWidth: 2)
+                                    .stroke(diet == selectedDiet ? Color.blue : Color.clear, lineWidth: 2)
                             )
                         }
                         .buttonStyle(.plain)

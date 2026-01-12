@@ -87,7 +87,7 @@ struct MealRemindersOnboardingView: View {
                 Circle()
                     .fill(
                         LinearGradient(
-                            colors: [.teal.opacity(0.2), .teal.opacity(0.1)],
+                            colors: [ColorPalette.accentPrimary.opacity(0.2), ColorPalette.accentPrimary.opacity(0.1)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -96,7 +96,7 @@ struct MealRemindersOnboardingView: View {
 
                 Image(systemName: "bell.badge.fill")
                     .font(.system(size: 36))
-                    .foregroundStyle(.teal)
+                    .foregroundStyle(ColorPalette.accentPrimary)
             }
 
             VStack(spacing: 8) {
@@ -145,7 +145,7 @@ struct MealRemindersOnboardingView: View {
                 Text("Add meal window")
             }
             .font(.subheadline.weight(.medium))
-            .foregroundStyle(.teal)
+            .foregroundStyle(ColorPalette.accentPrimary)
         }
         .buttonStyle(.plain)
     }
@@ -173,7 +173,7 @@ struct MealRemindersOnboardingView: View {
                 .frame(height: 50)
                 .background(
                     LinearGradient(
-                        colors: [.teal, .teal.opacity(0.8)],
+                        colors: [ColorPalette.accentPrimary, ColorPalette.accentPrimary.opacity(0.8)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -334,7 +334,7 @@ struct MealWindowRow: View {
             } label: {
                 Image(systemName: window.isEnabled ? "checkmark.circle.fill" : "circle")
                     .font(.title2)
-                    .foregroundStyle(window.isEnabled ? .teal : .secondary.opacity(0.5))
+                    .foregroundStyle(window.isEnabled ? ColorPalette.accentPrimary : .secondary.opacity(0.5))
             }
             .buttonStyle(.plain)
 

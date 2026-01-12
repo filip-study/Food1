@@ -71,7 +71,7 @@ struct NotificationsSetupView: View {
                 Circle()
                     .fill(
                         RadialGradient(
-                            colors: [Color.teal.opacity(0.3), Color.clear],
+                            colors: [ColorPalette.accentPrimary.opacity(0.3), Color.clear],
                             center: .center,
                             startRadius: 30,
                             endRadius: 80
@@ -82,7 +82,7 @@ struct NotificationsSetupView: View {
                 Circle()
                     .fill(
                         LinearGradient(
-                            colors: [.teal, .cyan],
+                            colors: [ColorPalette.accentPrimary, ColorPalette.accentPrimary.opacity(0.7)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -128,7 +128,7 @@ struct NotificationsSetupView: View {
             } label: {
                 Image(systemName: window.wrappedValue.isEnabled ? "checkmark.circle.fill" : "circle")
                     .font(.title2)
-                    .foregroundStyle(window.wrappedValue.isEnabled ? .teal : .white.opacity(0.3))
+                    .foregroundStyle(window.wrappedValue.isEnabled ? ColorPalette.accentPrimary : .white.opacity(0.3))
             }
             .buttonStyle(.plain)
 
@@ -193,7 +193,7 @@ struct NotificationsSetupView: View {
                 Text("Add meal window")
             }
             .font(.subheadline.weight(.medium))
-            .foregroundStyle(.teal)
+            .foregroundStyle(ColorPalette.accentPrimary)
         }
         .buttonStyle(.plain)
     }
@@ -232,7 +232,7 @@ struct NotificationsSetupView: View {
                     .frame(height: 56)
                     .background(
                         LinearGradient(
-                            colors: [.teal, .cyan],
+                            colors: [ColorPalette.accentPrimary, ColorPalette.accentPrimary.opacity(0.8)],
                             startPoint: .leading,
                             endPoint: .trailing
                         )

@@ -8,7 +8,7 @@
 //  - Toggle between auto-calculated (Mifflin-St Jeor) and manual goals
 //  - Shows calculated suggestion even in manual mode for reference
 //  - Validates inputs to prevent unrealistic goals
-//  - Macro split visualization helps users understand their targets
+//  - Macro ring visualization for intuitive understanding of calorie distribution
 //
 
 import SwiftUI
@@ -60,231 +60,36 @@ struct NutritionGoalsEditorView: View {
         }
     }
 
+    // Macro calories
+    private var proteinCals: Int { Int(effectiveGoals.protein * 4) }
+    private var carbsCals: Int { Int(effectiveGoals.carbs * 4) }
+    private var fatCals: Int { Int(effectiveGoals.fat * 9) }
+
     // Macro percentages for visualization
     private var proteinPercent: Int {
-        let proteinCals = effectiveGoals.protein * 4
         guard effectiveGoals.calories > 0 else { return 0 }
-        return Int((proteinCals / effectiveGoals.calories) * 100)
+        return Int((Double(proteinCals) / effectiveGoals.calories) * 100)
     }
 
     private var carbsPercent: Int {
-        let carbsCals = effectiveGoals.carbs * 4
         guard effectiveGoals.calories > 0 else { return 0 }
-        return Int((carbsCals / effectiveGoals.calories) * 100)
+        return Int((Double(carbsCals) / effectiveGoals.calories) * 100)
     }
 
     private var fatPercent: Int {
-        let fatCals = effectiveGoals.fat * 9
         guard effectiveGoals.calories > 0 else { return 0 }
-        return Int((fatCals / effectiveGoals.calories) * 100)
+        return Int((Double(fatCals) / effectiveGoals.calories) * 100)
     }
 
     var body: some View {
         NavigationStack {
             Form {
-                // Mode toggle section
-                Section {
-                    Toggle(isOn: $useAutoGoals) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Auto-calculate")
-                                .font(.system(size: 16, weight: .medium))
-                            Text("Based on your profile & activity level")
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .tint(.green)
-                } header: {
-                    Text("Calculation Mode")
-                } footer: {
-                    if useAutoGoals {
-                        Text("Using Mifflin-St Jeor equation with your profile data. Update your profile to change these values.")
-                    } else {
-                        Text("Manually set your daily targets. Suggested values shown for reference.")
-                    }
-                }
-
-                // Current targets display
-                Section {
-                    // Calories
-                    HStack {
-                        Label("Calories", systemImage: "flame.fill")
-                            .foregroundColor(.orange)
-                        Spacer()
-                        if useAutoGoals {
-                            Text("\(Int(effectiveGoals.calories))")
-                                .font(.system(size: 17, weight: .semibold, design: .rounded))
-                                .foregroundColor(.primary)
-                            Text("kcal")
-                                .font(.system(size: 14))
-                                .foregroundColor(.secondary)
-                        } else {
-                            TextField("2000", text: $caloriesText)
-                                .keyboardType(.numberPad)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 80)
-                                .font(.system(size: 17, weight: .semibold, design: .rounded))
-                            Text("kcal")
-                                .font(.system(size: 14))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-
-                    // Protein
-                    HStack {
-                        Label("Protein", systemImage: "fish.fill")
-                            .foregroundColor(ColorPalette.macroProtein)
-                        Spacer()
-                        if useAutoGoals {
-                            Text("\(Int(effectiveGoals.protein))")
-                                .font(.system(size: 17, weight: .semibold, design: .rounded))
-                                .foregroundColor(.primary)
-                            Text("g")
-                                .font(.system(size: 14))
-                                .foregroundColor(.secondary)
-                        } else {
-                            TextField("150", text: $proteinText)
-                                .keyboardType(.numberPad)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 60)
-                                .font(.system(size: 17, weight: .semibold, design: .rounded))
-                            Text("g")
-                                .font(.system(size: 14))
-                                .foregroundColor(.secondary)
-                        }
-                        Text("(\(proteinPercent)%)")
-                            .font(.system(size: 12))
-                            .foregroundColor(.secondary)
-                            .frame(width: 40)
-                    }
-
-                    // Carbs
-                    HStack {
-                        Label("Carbs", systemImage: "leaf.fill")
-                            .foregroundColor(ColorPalette.macroCarbs)
-                        Spacer()
-                        if useAutoGoals {
-                            Text("\(Int(effectiveGoals.carbs))")
-                                .font(.system(size: 17, weight: .semibold, design: .rounded))
-                                .foregroundColor(.primary)
-                            Text("g")
-                                .font(.system(size: 14))
-                                .foregroundColor(.secondary)
-                        } else {
-                            TextField("225", text: $carbsText)
-                                .keyboardType(.numberPad)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 60)
-                                .font(.system(size: 17, weight: .semibold, design: .rounded))
-                            Text("g")
-                                .font(.system(size: 14))
-                                .foregroundColor(.secondary)
-                        }
-                        Text("(\(carbsPercent)%)")
-                            .font(.system(size: 12))
-                            .foregroundColor(.secondary)
-                            .frame(width: 40)
-                    }
-
-                    // Fat
-                    HStack {
-                        Label("Fat", systemImage: "drop.fill")
-                            .foregroundColor(ColorPalette.macroFat)
-                        Spacer()
-                        if useAutoGoals {
-                            Text("\(Int(effectiveGoals.fat))")
-                                .font(.system(size: 17, weight: .semibold, design: .rounded))
-                                .foregroundColor(.primary)
-                            Text("g")
-                                .font(.system(size: 14))
-                                .foregroundColor(.secondary)
-                        } else {
-                            TextField("65", text: $fatText)
-                                .keyboardType(.numberPad)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 60)
-                                .font(.system(size: 17, weight: .semibold, design: .rounded))
-                            Text("g")
-                                .font(.system(size: 14))
-                                .foregroundColor(.secondary)
-                        }
-                        Text("(\(fatPercent)%)")
-                            .font(.system(size: 12))
-                            .foregroundColor(.secondary)
-                            .frame(width: 40)
-                    }
-
-                    // Fiber (not a macro, no percentage)
-                    HStack {
-                        Label("Fiber", systemImage: "leaf.arrow.triangle.circlepath")
-                            .foregroundColor(.green)
-                        Spacer()
-                        if useAutoGoals {
-                            Text("\(Int(effectiveGoals.fiber))")
-                                .font(.system(size: 17, weight: .semibold, design: .rounded))
-                                .foregroundColor(.primary)
-                            Text("g")
-                                .font(.system(size: 14))
-                                .foregroundColor(.secondary)
-                        } else {
-                            TextField("28", text: $fiberText)
-                                .keyboardType(.numberPad)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 60)
-                                .font(.system(size: 17, weight: .semibold, design: .rounded))
-                            Text("g")
-                                .font(.system(size: 14))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                } header: {
-                    Text("Daily Targets")
-                }
-
-                // Suggested values (only shown in manual mode)
+                ringChartSection
+                modeToggleSection
+                macrosSection
+                fiberSection
                 if !useAutoGoals {
-                    Section {
-                        Button {
-                            // Apply suggested values
-                            caloriesText = "\(Int(autoGoals.calories))"
-                            proteinText = "\(Int(autoGoals.protein))"
-                            carbsText = "\(Int(autoGoals.carbs))"
-                            fatText = "\(Int(autoGoals.fat))"
-                            fiberText = "\(Int(autoGoals.fiber))"
-                            saveManualGoals()
-                            HapticManager.light()
-                        } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("Use Suggested Values")
-                                        .font(.system(size: 15, weight: .medium))
-                                    Text("\(Int(autoGoals.calories)) kcal • \(Int(autoGoals.protein))g P • \(Int(autoGoals.carbs))g C • \(Int(autoGoals.fat))g F • \(Int(autoGoals.fiber))g fiber")
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.secondary)
-                                }
-                                Spacer()
-                                Image(systemName: "arrow.down.circle.fill")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(.blue)
-                            }
-                        }
-                        .buttonStyle(.plain)
-                    } header: {
-                        Text("Suggested (Based on Profile)")
-                    }
-                }
-
-                // Macro split visualization
-                Section {
-                    MacroSplitBar(
-                        proteinPercent: proteinPercent,
-                        carbsPercent: carbsPercent,
-                        fatPercent: fatPercent
-                    )
-                } header: {
-                    Text("Macro Split")
-                } footer: {
-                    Text("Recommended: 25-35% protein, 30-40% carbs, 25-35% fat")
+                    quickFillSection
                 }
             }
             .navigationTitle("Nutrition Targets")
@@ -301,7 +106,6 @@ struct NutritionGoalsEditorView: View {
                 }
             }
             .onAppear {
-                // Initialize text fields with current manual values
                 caloriesText = "\(Int(manualCalories))"
                 proteinText = "\(Int(manualProtein))"
                 carbsText = "\(Int(manualCarbs))"
@@ -316,6 +120,226 @@ struct NutritionGoalsEditorView: View {
         }
     }
 
+    // MARK: - Sections
+
+    private var ringChartSection: some View {
+        Section {
+            MacroRingChart(
+                calories: Int(effectiveGoals.calories),
+                proteinGrams: Int(effectiveGoals.protein),
+                carbsGrams: Int(effectiveGoals.carbs),
+                fatGrams: Int(effectiveGoals.fat),
+                proteinPercent: proteinPercent,
+                carbsPercent: carbsPercent,
+                fatPercent: fatPercent
+            )
+        }
+    }
+
+    private var modeToggleSection: some View {
+        Section {
+            Toggle(isOn: $useAutoGoals) {
+                HStack(spacing: 12) {
+                    Image(systemName: useAutoGoals ? "wand.and.stars" : "slider.horizontal.3")
+                        .font(.system(size: 18))
+                        .foregroundColor(useAutoGoals ? .green : .blue)
+                        .frame(width: 24)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(useAutoGoals ? "Smart Targets" : "Custom Targets")
+                            .font(.system(size: 16, weight: .medium))
+                        Text(useAutoGoals ? "Calculated from your profile" : "Set your own values")
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .tint(.green)
+        } footer: {
+            if useAutoGoals {
+                Text("Based on your age, weight, height, activity level, and goal. Uses Mifflin-St Jeor equation.")
+            }
+        }
+    }
+
+    private var macrosSection: some View {
+        Section {
+            caloriesRow
+            proteinRow
+            carbsRow
+            fatRow
+        } header: {
+            Text("Macronutrients")
+        } footer: {
+            Text("Protein & carbs = 4 kcal/g, fat = 9 kcal/g")
+        }
+    }
+
+    @ViewBuilder
+    private var caloriesRow: some View {
+        if useAutoGoals {
+            MacroInputRow(
+                icon: "flame.fill",
+                iconColor: .orange,
+                label: "Daily Calories",
+                value: "\(Int(effectiveGoals.calories))",
+                unit: "kcal",
+                isEditable: false
+            )
+        } else {
+            MacroInputRow(
+                icon: "flame.fill",
+                iconColor: .orange,
+                label: "Daily Calories",
+                value: $caloriesText,
+                unit: "kcal",
+                isEditable: true
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var proteinRow: some View {
+        if useAutoGoals {
+            MacroInputRow(
+                icon: "fish.fill",
+                iconColor: ColorPalette.macroProtein,
+                label: "Protein",
+                value: "\(Int(effectiveGoals.protein))",
+                unit: "g",
+                subtext: "\(proteinCals) kcal • \(proteinPercent)%",
+                isEditable: false
+            )
+        } else {
+            MacroInputRow(
+                icon: "fish.fill",
+                iconColor: ColorPalette.macroProtein,
+                label: "Protein",
+                value: $proteinText,
+                unit: "g",
+                subtext: "\(proteinCals) kcal • \(proteinPercent)%",
+                isEditable: true
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var carbsRow: some View {
+        if useAutoGoals {
+            MacroInputRow(
+                icon: "leaf.fill",
+                iconColor: ColorPalette.macroCarbs,
+                label: "Carbs",
+                value: "\(Int(effectiveGoals.carbs))",
+                unit: "g",
+                subtext: "\(carbsCals) kcal • \(carbsPercent)%",
+                isEditable: false
+            )
+        } else {
+            MacroInputRow(
+                icon: "leaf.fill",
+                iconColor: ColorPalette.macroCarbs,
+                label: "Carbs",
+                value: $carbsText,
+                unit: "g",
+                subtext: "\(carbsCals) kcal • \(carbsPercent)%",
+                isEditable: true
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var fatRow: some View {
+        if useAutoGoals {
+            MacroInputRow(
+                icon: "drop.fill",
+                iconColor: ColorPalette.macroFat,
+                label: "Fat",
+                value: "\(Int(effectiveGoals.fat))",
+                unit: "g",
+                subtext: "\(fatCals) kcal • \(fatPercent)%",
+                isEditable: false
+            )
+        } else {
+            MacroInputRow(
+                icon: "drop.fill",
+                iconColor: ColorPalette.macroFat,
+                label: "Fat",
+                value: $fatText,
+                unit: "g",
+                subtext: "\(fatCals) kcal • \(fatPercent)%",
+                isEditable: true
+            )
+        }
+    }
+
+    private var fiberSection: some View {
+        Section {
+            if useAutoGoals {
+                MacroInputRow(
+                    icon: "circle.hexagongrid.fill",
+                    iconColor: .green,
+                    label: "Fiber",
+                    value: "\(Int(effectiveGoals.fiber))",
+                    unit: "g",
+                    isEditable: false
+                )
+            } else {
+                MacroInputRow(
+                    icon: "circle.hexagongrid.fill",
+                    iconColor: .green,
+                    label: "Fiber",
+                    value: $fiberText,
+                    unit: "g",
+                    isEditable: true
+                )
+            }
+        } header: {
+            Text("Other Targets")
+        } footer: {
+            Text("Fiber supports digestion and gut health. Recommended: 25-35g daily.")
+        }
+    }
+
+    private var quickFillSection: some View {
+        Section {
+            Button {
+                caloriesText = "\(Int(autoGoals.calories))"
+                proteinText = "\(Int(autoGoals.protein))"
+                carbsText = "\(Int(autoGoals.carbs))"
+                fatText = "\(Int(autoGoals.fat))"
+                fiberText = "\(Int(autoGoals.fiber))"
+                saveManualGoals()
+                HapticManager.light()
+            } label: {
+                HStack {
+                    Image(systemName: "wand.and.stars")
+                        .font(.system(size: 18))
+                        .foregroundColor(.green)
+                        .frame(width: 24)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Apply Smart Targets")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(.primary)
+                        Text("\(Int(autoGoals.calories)) kcal • P \(Int(autoGoals.protein))g • C \(Int(autoGoals.carbs))g • F \(Int(autoGoals.fat))g")
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "arrow.down.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(.green)
+                }
+            }
+            .buttonStyle(.plain)
+        } header: {
+            Text("Quick Fill")
+        }
+    }
+
     private func saveManualGoals() {
         if let cal = Double(caloriesText), cal > 0 { manualCalories = cal }
         if let pro = Double(proteinText), pro > 0 { manualProtein = pro }
@@ -325,60 +349,211 @@ struct NutritionGoalsEditorView: View {
     }
 }
 
-// MARK: - Macro Split Visualization
+// MARK: - Macro Input Row
 
-private struct MacroSplitBar: View {
+private struct MacroInputRow: View {
+    let icon: String
+    let iconColor: Color
+    let label: String
+    let value: MacroValue
+    let unit: String
+    var subtext: String? = nil
+    let isEditable: Bool
+
+    enum MacroValue {
+        case display(String)
+        case editable(Binding<String>)
+    }
+
+    init(icon: String, iconColor: Color, label: String, value: String, unit: String, subtext: String? = nil, isEditable: Bool) {
+        self.icon = icon
+        self.iconColor = iconColor
+        self.label = label
+        self.value = .display(value)
+        self.unit = unit
+        self.subtext = subtext
+        self.isEditable = isEditable
+    }
+
+    init(icon: String, iconColor: Color, label: String, value: Binding<String>, unit: String, subtext: String? = nil, isEditable: Bool) {
+        self.icon = icon
+        self.iconColor = iconColor
+        self.label = label
+        self.value = .editable(value)
+        self.unit = unit
+        self.subtext = subtext
+        self.isEditable = isEditable
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // Icon
+            Image(systemName: icon)
+                .font(.system(size: 18))
+                .foregroundColor(iconColor)
+                .frame(width: 24)
+
+            // Label and subtext
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(.system(size: 15, weight: .medium))
+
+                if let subtext = subtext {
+                    Text(subtext)
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Spacer()
+
+            // Value
+            HStack(spacing: 4) {
+                switch value {
+                case .display(let text):
+                    Text(text)
+                        .font(.system(size: 17, weight: .semibold, design: .rounded))
+                        .foregroundColor(.primary)
+                case .editable(let binding):
+                    TextField("0", text: binding)
+                        .keyboardType(.numberPad)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: unit == "kcal" ? 70 : 50)
+                        .font(.system(size: 17, weight: .semibold, design: .rounded))
+                }
+
+                Text(unit)
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Macro Ring Chart
+
+private struct MacroRingChart: View {
+    let calories: Int
+    let proteinGrams: Int
+    let carbsGrams: Int
+    let fatGrams: Int
     let proteinPercent: Int
     let carbsPercent: Int
     let fatPercent: Int
 
+    private let ringSize: CGFloat = 140
+    private let ringWidth: CGFloat = 20
+
     var body: some View {
-        VStack(spacing: 12) {
-            // Visual bar
-            GeometryReader { geometry in
-                HStack(spacing: 2) {
-                    // Protein segment
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(ColorPalette.macroProtein)
-                        .frame(width: geometry.size.width * CGFloat(proteinPercent) / 100)
+        HStack(spacing: 24) {
+            // Ring chart
+            ZStack {
+                // Background ring
+                Circle()
+                    .stroke(Color.secondary.opacity(0.15), lineWidth: ringWidth)
+                    .frame(width: ringSize, height: ringSize)
 
-                    // Carbs segment
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(ColorPalette.macroCarbs)
-                        .frame(width: geometry.size.width * CGFloat(carbsPercent) / 100)
+                // Macro segments
+                MacroArc(
+                    startPercent: 0,
+                    endPercent: Double(proteinPercent),
+                    color: ColorPalette.macroProtein,
+                    ringSize: ringSize,
+                    ringWidth: ringWidth
+                )
 
-                    // Fat segment
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(ColorPalette.macroFat)
-                        .frame(width: geometry.size.width * CGFloat(fatPercent) / 100)
+                MacroArc(
+                    startPercent: Double(proteinPercent),
+                    endPercent: Double(proteinPercent + carbsPercent),
+                    color: ColorPalette.macroCarbs,
+                    ringSize: ringSize,
+                    ringWidth: ringWidth
+                )
+
+                MacroArc(
+                    startPercent: Double(proteinPercent + carbsPercent),
+                    endPercent: Double(proteinPercent + carbsPercent + fatPercent),
+                    color: ColorPalette.macroFat,
+                    ringSize: ringSize,
+                    ringWidth: ringWidth
+                )
+
+                // Center content
+                VStack(spacing: 2) {
+                    Text("\(calories)")
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                    Text("kcal")
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
                 }
             }
-            .frame(height: 24)
 
             // Legend
-            HStack(spacing: 16) {
-                MacroLegendItem(color: ColorPalette.macroProtein, label: "Protein", percent: proteinPercent)
-                MacroLegendItem(color: ColorPalette.macroCarbs, label: "Carbs", percent: carbsPercent)
-                MacroLegendItem(color: ColorPalette.macroFat, label: "Fat", percent: fatPercent)
+            VStack(alignment: .leading, spacing: 12) {
+                MacroLegendRow(
+                    color: ColorPalette.macroProtein,
+                    label: "Protein",
+                    grams: proteinGrams,
+                    percent: proteinPercent
+                )
+
+                MacroLegendRow(
+                    color: ColorPalette.macroCarbs,
+                    label: "Carbs",
+                    grams: carbsGrams,
+                    percent: carbsPercent
+                )
+
+                MacroLegendRow(
+                    color: ColorPalette.macroFat,
+                    label: "Fat",
+                    grams: fatGrams,
+                    percent: fatPercent
+                )
             }
         }
-        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
     }
 }
 
-private struct MacroLegendItem: View {
+private struct MacroArc: View {
+    let startPercent: Double
+    let endPercent: Double
+    let color: Color
+    let ringSize: CGFloat
+    let ringWidth: CGFloat
+
+    var body: some View {
+        Circle()
+            .trim(from: startPercent / 100, to: endPercent / 100)
+            .stroke(color, style: StrokeStyle(lineWidth: ringWidth, lineCap: .butt))
+            .frame(width: ringSize, height: ringSize)
+            .rotationEffect(.degrees(-90))
+    }
+}
+
+private struct MacroLegendRow: View {
     let color: Color
     let label: String
+    let grams: Int
     let percent: Int
 
     var body: some View {
-        HStack(spacing: 4) {
-            Circle()
+        HStack(spacing: 8) {
+            RoundedRectangle(cornerRadius: 3)
                 .fill(color)
-                .frame(width: 8, height: 8)
-            Text("\(label) \(percent)%")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(.secondary)
+                .frame(width: 12, height: 12)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(label)
+                    .font(.system(size: 14, weight: .medium))
+
+                Text("\(grams)g • \(percent)%")
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+            }
         }
     }
 }

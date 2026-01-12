@@ -118,7 +118,7 @@ struct MealRemindersSettingsView: View {
                 HStack(spacing: 12) {
                     Image(systemName: "bell.badge.fill")
                         .font(.title2)
-                        .foregroundStyle(liveActivitiesEnabled ? .teal : .secondary)
+                        .foregroundStyle(liveActivitiesEnabled ? ColorPalette.accentPrimary : .secondary)
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Lock Screen Activities")
@@ -130,7 +130,7 @@ struct MealRemindersSettingsView: View {
                     }
                 }
             }
-            .tint(.teal)
+            .tint(ColorPalette.accentPrimary)
             .disabled(!liveActivitiesEnabled)
 
             // Show permission button if not enabled
@@ -145,7 +145,7 @@ struct MealRemindersSettingsView: View {
                         Image(systemName: "arrow.up.forward")
                             .font(.caption)
                     }
-                    .foregroundStyle(.teal)
+                    .foregroundStyle(ColorPalette.accentPrimary)
                 }
             }
         } footer: {
@@ -199,7 +199,7 @@ struct MealRemindersSettingsView: View {
                         Image(systemName: "plus.circle.fill")
                         Text("Add Meal Window")
                     }
-                    .foregroundStyle(.teal)
+                    .foregroundStyle(ColorPalette.accentPrimary)
                 }
             }
         }
@@ -440,7 +440,7 @@ struct MealWindowSettingsRow: View {
             // Toggle
             Toggle("", isOn: $window.isEnabled)
                 .labelsHidden()
-                .tint(.teal)
+                .tint(ColorPalette.accentPrimary)
                 .onChange(of: window.isEnabled) { onChange() }
 
             // Icon
