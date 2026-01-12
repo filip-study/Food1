@@ -41,9 +41,15 @@ struct SettingsView: View {
     @AppStorage("useAutoGoals") private var useAutoGoals: Bool = true
     @AppStorage("manualCalorieGoal") private var manualCalories: Double = 2000
     @AppStorage("manualProteinGoal") private var manualProtein: Double = 150
+    // These @AppStorage bindings trigger SwiftUI re-renders when goal/diet changes
+    @AppStorage("userGoal") private var userGoalRaw: String = ""
+    @AppStorage("userDietType") private var userDietTypeRaw: String = ""
 
     private var currentGoals: DailyGoals {
-        DailyGoals.fromUserDefaults()
+        // Reference the @AppStorage vars to create SwiftUI dependency
+        _ = userGoalRaw
+        _ = userDietTypeRaw
+        return DailyGoals.fromUserDefaults()
     }
 
     var body: some View {

@@ -44,18 +44,18 @@ class StatisticsService {
         // Calculate previous period range
         let calendar = Calendar.current
         let (currentStart, _) = period.dateRange
-        let previousEnd = calendar.date(byAdding: .day, value: -1, to: currentStart)!
+        let previousEnd = calendar.safeDate(byAdding: .day, value: -1, to: currentStart)
         let previousStart: Date
 
         switch period {
         case .week:
-            previousStart = calendar.date(byAdding: .day, value: -7, to: currentStart)!
+            previousStart = calendar.safeDate(byAdding: .day, value: -7, to: currentStart)
         case .month:
-            previousStart = calendar.date(byAdding: .day, value: -30, to: currentStart)!
+            previousStart = calendar.safeDate(byAdding: .day, value: -30, to: currentStart)
         case .quarter:
-            previousStart = calendar.date(byAdding: .month, value: -3, to: currentStart)!
+            previousStart = calendar.safeDate(byAdding: .month, value: -3, to: currentStart)
         case .year:
-            previousStart = calendar.date(byAdding: .year, value: -1, to: currentStart)!
+            previousStart = calendar.safeDate(byAdding: .year, value: -1, to: currentStart)
         }
 
         let previousAggregates = fetchDailyAggregates(from: previousStart, to: previousEnd, in: context)
@@ -90,7 +90,7 @@ class StatisticsService {
         let aggregateDate = Calendar.current.startOfDay(for: date)
 
         // Check if any meals remain for this date
-        let nextDay = Calendar.current.date(byAdding: .day, value: 1, to: aggregateDate)!
+        let nextDay = Calendar.current.safeDate(byAdding: .day, value: 1, to: aggregateDate)
         let mealPredicate = #Predicate<Meal> { meal in
             meal.timestamp >= aggregateDate && meal.timestamp < nextDay
         }
@@ -169,7 +169,7 @@ class StatisticsService {
         // Create weekly aggregates
         let calendar = Calendar.current
         let weekStarts = Set(mealsByDay.keys.map { date in
-            calendar.dateInterval(of: .weekOfYear, for: date)!.start
+            calendar.safeStartOfInterval(.weekOfYear, for: date)
         })
 
         for weekStart in weekStarts {
@@ -189,7 +189,7 @@ class StatisticsService {
                 components.year = year
                 components.month = month
                 components.day = 1
-                let monthStart = calendar.date(from: components)!
+                let monthStart = calendar.safeDate(from: components)
                 await updateMonthlyAggregate(containing: monthStart, in: context)
             }
         }
@@ -215,7 +215,7 @@ class StatisticsService {
 
     private func recomputeDailyAggregate(_ aggregate: DailyAggregate, in context: ModelContext) async {
         let date = aggregate.date
-        let nextDay = Calendar.current.date(byAdding: .day, value: 1, to: date)!
+        let nextDay = Calendar.current.safeDate(byAdding: .day, value: 1, to: date)
 
         let predicate = #Predicate<Meal> { meal in
             meal.timestamp >= date && meal.timestamp < nextDay
@@ -247,9 +247,9 @@ class StatisticsService {
 
     private func updateWeeklyAggregate(containing date: Date, in context: ModelContext) async {
         let calendar = Calendar.current
-        let weekInterval = calendar.dateInterval(of: .weekOfYear, for: date)!
+        let weekInterval = calendar.safeDateInterval(of: .weekOfYear, for: date)
         let weekStart = weekInterval.start
-        let weekEnd = calendar.date(byAdding: .day, value: -1, to: weekInterval.end)!
+        let weekEnd = calendar.safeDate(byAdding: .day, value: -1, to: weekInterval.end)
 
         // Get daily aggregates for this week
         let dailyAggregates = fetchDailyAggregates(from: weekStart, to: weekEnd, in: context)
@@ -335,13 +335,13 @@ class StatisticsService {
         startComponents.year = year
         startComponents.month = month
         startComponents.day = 1
-        let monthStart = calendar.date(from: startComponents)!
+        let monthStart = calendar.safeDate(from: startComponents)
 
         var endComponents = DateComponents()
         endComponents.year = year
         endComponents.month = month + 1
         endComponents.day = 0
-        let monthEnd = calendar.date(from: endComponents)!
+        let monthEnd = calendar.safeDate(from: endComponents)
 
         // Get daily aggregates for this month
         let dailyAggregates = fetchDailyAggregates(from: monthStart, to: monthEnd, in: context)

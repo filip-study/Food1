@@ -247,13 +247,17 @@ struct DailyGoals {
     ///   - weightKg: User's weight in kilograms
     ///   - heightCm: User's height in centimeters
     ///   - activityLevel: User's typical activity level
+    ///   - goal: User's nutrition goal (affects calorie target and protein ratio)
+    ///   - dietType: User's diet type (affects macro splits)
     /// - Returns: Personalized DailyGoals with calculated TDEE and macros
     static func calculate(
         gender: Gender,
         age: Int,
         weightKg: Double,
         heightCm: Double,
-        activityLevel: ActivityLevel
+        activityLevel: ActivityLevel,
+        goal: NutritionGoal? = nil,
+        dietType: DietType? = nil
     ) -> DailyGoals {
         // Validate inputs - fall back to standard if invalid
         guard age > 0, weightKg > 0, heightCm > 0 else {
@@ -291,17 +295,31 @@ struct DailyGoals {
             activityMultiplier = 1.9
         }
 
-        let tdee = bmr * activityMultiplier
+        let maintenanceTdee = bmr * activityMultiplier
 
-        // Macro split: 30% protein, 35% carbs, 35% fat (balanced approach)
+        // Apply goal-based calorie adjustment
+        // Weight loss: 20% deficit, Muscle building: 10% surplus, Health: maintenance
+        let goalMultiplier = goal?.calorieMultiplier ?? 1.0
+        let tdee = maintenanceTdee * goalMultiplier
+
+        // Get macro splits from diet type (or use balanced defaults: 30/35/35)
+        let macroSplit = dietType?.macroSplit ?? (protein: 0.30, carbs: 0.35, fat: 0.35)
+
+        // Calculate macros from adjusted TDEE
         // Protein: 4 cal/g, Carbs: 4 cal/g, Fat: 9 cal/g
-        let proteinCalories = tdee * 0.30
-        let carbCalories = tdee * 0.35
-        let fatCalories = tdee * 0.35
+        let proteinCalories = tdee * macroSplit.protein
+        let carbCalories = tdee * macroSplit.carbs
+        let fatCalories = tdee * macroSplit.fat
 
-        let protein = proteinCalories / 4
+        var protein = proteinCalories / 4
         let carbs = carbCalories / 4
         let fat = fatCalories / 9
+
+        // For muscle building or weight loss, ensure minimum protein based on body weight
+        if let goal = goal {
+            let minProtein = weightKg * goal.proteinRatio
+            protein = max(protein, minProtein)
+        }
 
         // Fiber: IOM Adequate Intake by gender/age
         // Men 19-50: 38g, Men 51+: 30g
@@ -367,12 +385,20 @@ struct DailyGoals {
         let gender = Gender(rawValue: genderRaw) ?? .preferNotToSay
         let activityLevel = ActivityLevel(rawValue: activityRaw) ?? .moderatelyActive
 
+        // Read goal and diet type for calorie/macro adjustments
+        let goalRaw = defaults.string(forKey: "userGoal") ?? ""
+        let dietTypeRaw = defaults.string(forKey: "userDietType") ?? ""
+        let goal = NutritionGoal(rawValue: goalRaw)
+        let dietType = DietType(rawValue: dietTypeRaw)
+
         return calculate(
             gender: gender,
             age: age,
             weightKg: weightKg,
             heightCm: heightCm,
-            activityLevel: activityLevel
+            activityLevel: activityLevel,
+            goal: goal,
+            dietType: dietType
         )
     }
 
@@ -390,12 +416,20 @@ struct DailyGoals {
         let gender = Gender(rawValue: genderRaw) ?? .preferNotToSay
         let activityLevel = ActivityLevel(rawValue: activityRaw) ?? .moderatelyActive
 
+        // Read goal and diet type for calorie/macro adjustments
+        let goalRaw = defaults.string(forKey: "userGoal") ?? ""
+        let dietTypeRaw = defaults.string(forKey: "userDietType") ?? ""
+        let goal = NutritionGoal(rawValue: goalRaw)
+        let dietType = DietType(rawValue: dietTypeRaw)
+
         return calculate(
             gender: gender,
             age: age,
             weightKg: weightKg,
             heightCm: heightCm,
-            activityLevel: activityLevel
+            activityLevel: activityLevel,
+            goal: goal,
+            dietType: dietType
         )
     }
 }

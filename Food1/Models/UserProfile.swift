@@ -122,6 +122,120 @@ enum HeightUnit: String, CaseIterable, Identifiable {
     var id: String { self.rawValue }
 }
 
+// MARK: - Nutrition Goal
+
+/// User's primary nutrition goal - affects calorie target and macro recommendations
+enum NutritionGoal: String, CaseIterable, Codable, Identifiable {
+    case weightLoss = "weight_loss"
+    case healthOptimization = "health_optimization"
+    case muscleBuilding = "muscle_building"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .weightLoss: return "Weight Loss"
+        case .healthOptimization: return "Health Optimization"
+        case .muscleBuilding: return "Muscle Building"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .weightLoss: return "Lose weight while maintaining energy"
+        case .healthOptimization: return "Optimize nutrition for overall wellness"
+        case .muscleBuilding: return "Build lean muscle with proper nutrition"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .weightLoss: return "arrow.down.circle.fill"
+        case .healthOptimization: return "heart.circle.fill"
+        case .muscleBuilding: return "dumbbell.fill"
+        }
+    }
+
+    var iconColor: Color {
+        switch self {
+        case .weightLoss: return .orange
+        case .healthOptimization: return .pink
+        case .muscleBuilding: return .blue
+        }
+    }
+
+    /// Calorie adjustment factor based on goal
+    /// Weight loss: 20% deficit, Muscle building: 10% surplus, Health: maintenance
+    var calorieMultiplier: Double {
+        switch self {
+        case .weightLoss: return 0.80
+        case .healthOptimization: return 1.0
+        case .muscleBuilding: return 1.10
+        }
+    }
+
+    /// Protein ratio (grams per kg of body weight)
+    var proteinRatio: Double {
+        switch self {
+        case .weightLoss: return 1.6   // Higher protein to preserve muscle
+        case .healthOptimization: return 1.2
+        case .muscleBuilding: return 2.0   // High protein for muscle synthesis
+        }
+    }
+}
+
+// MARK: - Diet Type
+
+/// User's dietary preference - affects macro ratios
+enum DietType: String, CaseIterable, Codable, Identifiable {
+    case balanced = "balanced"
+    case lowCarb = "low_carb"
+    case veganVegetarian = "vegan_vegetarian"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .balanced: return "Balanced"
+        case .lowCarb: return "Low-Carb"
+        case .veganVegetarian: return "Vegan/Vegetarian"
+        }
+    }
+
+    var description: String {
+        switch self {
+        case .balanced: return "No specific restrictions, balanced macros"
+        case .lowCarb: return "Reduced carbs, higher fat (includes Keto)"
+        case .veganVegetarian: return "Plant-based nutrition"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .balanced: return "chart.pie.fill"
+        case .lowCarb: return "leaf.fill"
+        case .veganVegetarian: return "carrot.fill"
+        }
+    }
+
+    var iconColor: Color {
+        switch self {
+        case .balanced: return .teal
+        case .lowCarb: return .green
+        case .veganVegetarian: return .orange
+        }
+    }
+
+    /// Macro split: (protein%, carbs%, fat%)
+    var macroSplit: (protein: Double, carbs: Double, fat: Double) {
+        switch self {
+        case .balanced: return (0.25, 0.45, 0.30)      // 25/45/30
+        case .lowCarb: return (0.30, 0.20, 0.50)       // 30/20/50
+        case .veganVegetarian: return (0.20, 0.55, 0.25)  // 20/55/25
+        }
+    }
+}
+
 // MARK: - Supabase Cloud Profile Models
 
 /// User profile stored in Supabase (cloud-synced)

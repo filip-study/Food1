@@ -13,6 +13,7 @@
 //  5. Activity Level (required)
 //  6. Your Targets (summary, no input)
 //  7. Notifications Setup (skippable)
+//  8. Name Entry (required, last step - handles missing OAuth names)
 //
 //  DESIGN:
 //  - Bold, vibrant visual style distinct from in-app experience
@@ -34,6 +35,7 @@ enum OnboardingFlowStep: Int, CaseIterable, Identifiable {
     case activity = 4
     case targets = 5
     case notifications = 6
+    case name = 7
 
     var id: Int { rawValue }
 
@@ -42,7 +44,7 @@ enum OnboardingFlowStep: Int, CaseIterable, Identifiable {
         switch self {
         case .goal, .diet, .healthKit, .notifications:
             return true
-        case .profile, .activity, .targets:
+        case .profile, .activity, .targets, .name:
             return false
         }
     }
@@ -57,6 +59,7 @@ enum OnboardingFlowStep: Int, CaseIterable, Identifiable {
         case .activity: return "Activity"
         case .targets: return "Targets"
         case .notifications: return "Reminders"
+        case .name: return "Name"
         }
     }
 
@@ -220,8 +223,15 @@ struct OnboardingFlowContainer: View {
             NotificationsSetupView(
                 data: data,
                 onBack: { goBack() },
-                onComplete: { completeOnboarding() },
-                onSkip: { completeOnboarding() }
+                onComplete: { goToNext() },
+                onSkip: { goToNext() }
+            )
+
+        case .name:
+            NameEntryView(
+                data: data,
+                onBack: { goBack() },
+                onComplete: { completeOnboarding() }
             )
         }
     }
@@ -290,6 +300,7 @@ struct OnboardingFlowContainer: View {
 
             // Create update payload struct (Supabase requires Encodable)
             struct ProfileUpdate: Encodable {
+                let full_name: String?
                 let primary_goal: String?
                 let diet_type: String?
                 let age: Int?
@@ -303,6 +314,7 @@ struct OnboardingFlowContainer: View {
             }
 
             let update = ProfileUpdate(
+                full_name: data.fullName.isEmpty ? nil : data.fullName,
                 primary_goal: data.goal?.rawValue,
                 diet_type: data.dietType?.rawValue,
                 age: data.age,

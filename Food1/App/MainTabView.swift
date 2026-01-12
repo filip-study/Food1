@@ -33,6 +33,8 @@ struct MainTabView: View {
     @AppStorage("userHeight") private var userHeight: Double = 170.0
     @AppStorage("userGender") private var userGender: Gender = .preferNotToSay
     @AppStorage("userActivityLevel") private var userActivityLevel: ActivityLevel = .moderatelyActive
+    @AppStorage("userGoal") private var userGoalRaw: String = ""
+    @AppStorage("userDietType") private var userDietTypeRaw: String = ""
 
     // Manual goals override
     @AppStorage("useAutoGoals") private var useAutoGoals: Bool = true
@@ -41,6 +43,16 @@ struct MainTabView: View {
     @AppStorage("manualCarbsGoal") private var manualCarbs: Double = 225
     @AppStorage("manualFatGoal") private var manualFat: Double = 65
     @AppStorage("manualFiberGoal") private var manualFiber: Double = 28
+
+    /// User's nutrition goal (converted from raw string)
+    private var userGoal: NutritionGoal? {
+        NutritionGoal(rawValue: userGoalRaw)
+    }
+
+    /// User's diet type (converted from raw string)
+    private var userDietType: DietType? {
+        DietType(rawValue: userDietTypeRaw)
+    }
 
     /// Daily goals - either auto-calculated from profile or manual override
     private var personalizedGoals: DailyGoals {
@@ -58,7 +70,9 @@ struct MainTabView: View {
             age: userAge,
             weightKg: userWeight,
             heightCm: userHeight,
-            activityLevel: userActivityLevel
+            activityLevel: userActivityLevel,
+            goal: userGoal,
+            dietType: userDietType
         )
     }
 

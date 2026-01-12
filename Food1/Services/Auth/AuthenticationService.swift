@@ -206,9 +206,11 @@ class AuthenticationService: ObservableObject {
 
             // Profile and subscription_status are auto-created by database trigger
 
-            // If Apple provided a name (first sign-in only), save it to profile
-            if let name = fullName, !name.isEmpty {
-                await saveNameToProfile(userId: response.user.id, fullName: name)
+            // If Apple provided a name or email (first sign-in only), save to profile
+            // Note: Apple only provides these on the FIRST sign-in with this Apple ID
+            let appleEmail = appleIDCredential.email
+            if (fullName != nil && !fullName!.isEmpty) || appleEmail != nil {
+                await saveProfileData(userId: response.user.id, fullName: fullName, email: appleEmail)
             }
 
         } catch let error as AuthError {
@@ -238,37 +240,46 @@ class AuthenticationService: ObservableObject {
         return parts.isEmpty ? nil : parts.joined(separator: " ")
     }
 
-    /// Save the user's name to their Supabase profile
+    /// Save user data (name, email) to their Supabase profile
     /// Uses UPSERT to handle race condition with database trigger (profile may not exist yet)
-    private func saveNameToProfile(userId: UUID, fullName: String) async {
+    /// Only sends non-null fields to avoid overwriting existing data with nulls
+    private func saveProfileData(userId: UUID, fullName: String?, email: String?) async {
+        // Skip if nothing to save
+        guard fullName != nil || email != nil else { return }
+
         do {
             // Use UPSERT to handle race condition where profile may not exist yet
             // Database trigger creates profile, but there can be a timing gap
             let now = ISO8601DateFormatter().string(from: Date())
 
-            struct ProfileUpsert: Encodable {
-                let id: String
-                let full_name: String
-                let updated_at: String
-                let created_at: String
-            }
+            // Build dictionary with only non-null values to avoid overwriting existing data
+            var profileData: [String: String] = [
+                "id": userId.uuidString,
+                "updated_at": now,
+                "created_at": now  // Will be ignored on conflict (existing row keeps its created_at)
+            ]
 
-            let upsertData = ProfileUpsert(
-                id: userId.uuidString,
-                full_name: fullName,
-                updated_at: now,
-                created_at: now  // Will be ignored on conflict (existing row)
-            )
+            if let name = fullName, !name.isEmpty {
+                profileData["full_name"] = name
+            }
+            if let email = email, !email.isEmpty {
+                profileData["email"] = email
+            }
 
             try await supabase.client
                 .from("profiles")
-                .upsert(upsertData, onConflict: "id")
+                .upsert(profileData, onConflict: "id")
                 .execute()
 
-            print("✅ Saved name to profile: \(fullName)")
+            if let name = fullName {
+                print("✅ Saved name to profile: \(name)")
+            }
+            if let email = email {
+                print("✅ Saved email to profile: \(email)")
+            }
         } catch {
-            // Don't fail sign-in if name save fails - it's not critical
-            print("⚠️ Failed to save name to profile: \(error)")
+            // Don't fail sign-in if profile save fails - it's not critical
+            print("⚠️ Failed to save profile data: \(error)")
         }
     }
 
@@ -323,14 +334,15 @@ class AuthenticationService: ObservableObject {
 
             // Profile and subscription_status are auto-created by database trigger
 
-            // Extract and save name from Google's user metadata
-            // Google provides: full_name, name, given_name, family_name
+            // Extract and save name + email from Google's user data
+            // Email is directly on user object, name is in metadata
+            let googleEmail = session.user.email
             let metadata = session.user.userMetadata
-            if !metadata.isEmpty {
-                let fullName = extractGoogleName(from: metadata)
-                if let name = fullName, !name.isEmpty {
-                    await saveNameToProfile(userId: session.user.id, fullName: name)
-                }
+            let fullName = extractGoogleName(from: metadata)
+
+            // Save both name and email to profile
+            if (fullName != nil && !fullName!.isEmpty) || googleEmail != nil {
+                await saveProfileData(userId: session.user.id, fullName: fullName, email: googleEmail)
             }
 
         } catch let error as AuthError {
@@ -365,6 +377,97 @@ class AuthenticationService: ObservableObject {
             .joined(separator: " ")
 
         return combined.isEmpty ? nil : combined
+    }
+
+    // MARK: - Profile Existence
+
+    /// Ensure a profile exists for the current user
+    /// This handles returning users after account deletion where the database trigger
+    /// didn't fire (because auth.users already existed for OAuth providers)
+    func ensureProfileExists() async {
+        do {
+            let session = try await supabase.client.auth.session
+            let userId = session.user.id
+
+            // Check if profile exists
+            let response: [CloudUserProfile] = try await supabase.client
+                .from("profiles")
+                .select()
+                .eq("id", value: userId.uuidString)
+                .execute()
+                .value
+
+            if response.isEmpty {
+                // Profile doesn't exist - create it
+                // This happens when returning OAuth user's profile was deleted
+                let now = ISO8601DateFormatter().string(from: Date())
+
+                let newProfile: [String: String] = [
+                    "id": userId.uuidString,
+                    "email": session.user.email ?? "",
+                    "created_at": now,
+                    "updated_at": now
+                ]
+
+                try await supabase.client
+                    .from("profiles")
+                    .insert(newProfile)
+                    .execute()
+
+                print("✅ Created missing profile for returning user")
+            }
+        } catch {
+            // Don't fail sign-in - profile will be created on next attempt or by loadUserData
+            print("⚠️ Could not ensure profile exists: \(error)")
+        }
+    }
+
+    /// Ensure user_onboarding row exists for the current user
+    /// This handles returning users after account deletion
+    func ensureUserOnboardingExists() async {
+        do {
+            let session = try await supabase.client.auth.session
+            let userId = session.user.id
+
+            // Check if user_onboarding exists
+            struct OnboardingCheck: Decodable {
+                let userId: String
+
+                enum CodingKeys: String, CodingKey {
+                    case userId = "user_id"
+                }
+            }
+
+            let response: [OnboardingCheck] = try await supabase.client
+                .from("user_onboarding")
+                .select("user_id")
+                .eq("user_id", value: userId.uuidString)
+                .execute()
+                .value
+
+            if response.isEmpty {
+                // user_onboarding doesn't exist - create it with default values
+                let now = ISO8601DateFormatter().string(from: Date())
+
+                // Using [String: String] works with Supabase - null fields omitted = DB defaults
+                let newOnboarding: [String: String] = [
+                    "user_id": userId.uuidString,
+                    "created_at": now,
+                    "updated_at": now
+                    // personalization_completed_at omitted = NULL = needs onboarding
+                ]
+
+                try await supabase.client
+                    .from("user_onboarding")
+                    .insert(newOnboarding)
+                    .execute()
+
+                print("✅ Created missing user_onboarding for returning user")
+            }
+        } catch {
+            // Don't fail sign-in
+            print("⚠️ Could not ensure user_onboarding exists: \(error)")
+        }
     }
 
     // MARK: - Validation

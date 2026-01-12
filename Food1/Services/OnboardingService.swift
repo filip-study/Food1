@@ -314,6 +314,18 @@ class OnboardingService: ObservableObject {
         }
     }
 
+    // MARK: - Clear State
+
+    /// Clear all cached onboarding state
+    /// Called when user signs out or deletes account to prevent stale state
+    /// on next sign-in (especially important for account deletion where
+    /// the server data is gone but in-memory cache would remain)
+    func clearState() {
+        onboarding = nil
+        pendingStep = nil
+        logger.info("Cleared onboarding state cache")
+    }
+
     // MARK: - Helpers
 
     /// Update the pending step based on current state

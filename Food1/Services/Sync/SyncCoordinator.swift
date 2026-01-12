@@ -332,6 +332,38 @@ class SyncCoordinator: ObservableObject {
         lastSyncDate = nil  // Reset to show sync happening
         await syncAll(context: context)
     }
+
+    // MARK: - Account Deletion Cleanup
+
+    /// Delete all local SwiftData meals and related data
+    /// Called when user deletes account to prevent orphaned data from reappearing
+    /// on re-signup (important because Apple Sign In reuses the same auth.users entry)
+    func clearAllLocalData() async {
+        guard let container = modelContainer else {
+            print("⚠️  Cannot clear local data: ModelContainer not configured")
+            return
+        }
+
+        let context = container.mainContext
+
+        do {
+            // Delete all Meal objects (MealIngredient is cascade-deleted)
+            let mealDescriptor = FetchDescriptor<Meal>()
+            let allMeals = try context.fetch(mealDescriptor)
+            print("🗑️  Deleting \(allMeals.count) local meals...")
+
+            for meal in allMeals {
+                context.delete(meal)
+            }
+
+            // Save changes
+            try context.save()
+            print("✅ Cleared all local SwiftData meals")
+
+        } catch {
+            print("❌ Failed to clear local data: \(error)")
+        }
+    }
 }
 
 // MARK: - Array Extension (Chunking)

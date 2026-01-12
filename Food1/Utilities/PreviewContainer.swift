@@ -34,7 +34,7 @@ struct PreviewContainer {
             Meal(
                 name: "Oatmeal with Berries",
                 emoji: "🥣",
-                timestamp: calendar.date(bySettingHour: 8, minute: 0, second: 0, of: now)!,
+                timestamp: calendar.safeDate(bySettingHour: 8, minute: 0, second: 0, of: now),
                 calories: 320,
                 protein: 12,
                 carbs: 54,
@@ -43,7 +43,7 @@ struct PreviewContainer {
             Meal(
                 name: "Grilled Chicken Salad",
                 emoji: "🥗",
-                timestamp: calendar.date(bySettingHour: 12, minute: 30, second: 0, of: now)!,
+                timestamp: calendar.safeDate(bySettingHour: 12, minute: 30, second: 0, of: now),
                 calories: 420,
                 protein: 35,
                 carbs: 30,
@@ -52,7 +52,7 @@ struct PreviewContainer {
             Meal(
                 name: "Salmon with Quinoa",
                 emoji: "🐟",
-                timestamp: calendar.date(bySettingHour: 19, minute: 0, second: 0, of: now)!,
+                timestamp: calendar.safeDate(bySettingHour: 19, minute: 0, second: 0, of: now),
                 calories: 520,
                 protein: 42,
                 carbs: 48,

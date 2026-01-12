@@ -330,7 +330,11 @@ class MealActivityScheduler: ObservableObject {
             using: nil
         ) { task in
             Task { @MainActor in
-                await MealActivityScheduler.shared.handleBackgroundTask(task as! BGAppRefreshTask)
+                guard let refreshTask = task as? BGAppRefreshTask else {
+                    task.setTaskCompleted(success: false)
+                    return
+                }
+                await MealActivityScheduler.shared.handleBackgroundTask(refreshTask)
             }
         }
     }
@@ -408,7 +412,7 @@ class MealActivityScheduler: ObservableObject {
         }
 
         // All today's meals are past - look at tomorrow
-        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: now) ?? now
+        let tomorrow = now.addingDays(1)
         startTimes = mealWindows
             .filter { $0.isEnabled }
             .map { window in

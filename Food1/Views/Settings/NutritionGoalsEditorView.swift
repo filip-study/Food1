@@ -26,6 +26,10 @@ struct NutritionGoalsEditorView: View {
     @AppStorage("manualFatGoal") private var manualFat: Double = 65
     @AppStorage("manualFiberGoal") private var manualFiber: Double = 28
 
+    // These @AppStorage bindings trigger SwiftUI re-renders when goal/diet changes
+    @AppStorage("userGoal") private var userGoalRaw: String = ""
+    @AppStorage("userDietType") private var userDietTypeRaw: String = ""
+
     // Text fields for editing
     @State private var caloriesText: String = ""
     @State private var proteinText: String = ""
@@ -35,7 +39,10 @@ struct NutritionGoalsEditorView: View {
 
     // Auto-calculated goals for reference
     private var autoGoals: DailyGoals {
-        DailyGoals.autoCalculatedFromUserDefaults()
+        // Reference @AppStorage vars to trigger SwiftUI dependency
+        _ = userGoalRaw
+        _ = userDietTypeRaw
+        return DailyGoals.autoCalculatedFromUserDefaults()
     }
 
     // Current effective goals

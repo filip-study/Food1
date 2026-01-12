@@ -28,6 +28,8 @@ struct TodayView: View {
     @AppStorage("userHeight") private var userHeight: Double = 170.0
     @AppStorage("userGender") private var userGender: Gender = .preferNotToSay
     @AppStorage("userActivityLevel") private var userActivityLevel: ActivityLevel = .moderatelyActive
+    @AppStorage("userGoal") private var userGoalRaw: String = ""
+    @AppStorage("userDietType") private var userDietTypeRaw: String = ""
 
     // Manual goals override
     @AppStorage("useAutoGoals") private var useAutoGoals: Bool = true
@@ -48,6 +50,16 @@ struct TodayView: View {
     @State private var celebrateStreak = false  // Triggers streak flame animation
     @State private var lastKnownMealCount = 0   // For detecting new meals
 
+    /// User's nutrition goal (converted from raw string)
+    private var userGoal: NutritionGoal? {
+        NutritionGoal(rawValue: userGoalRaw)
+    }
+
+    /// User's diet type (converted from raw string)
+    private var userDietType: DietType? {
+        DietType(rawValue: userDietTypeRaw)
+    }
+
     /// Daily goals - either auto-calculated from profile or manual override
     private var personalizedGoals: DailyGoals {
         if !useAutoGoals && manualCalories > 0 && manualProtein > 0 && manualCarbs > 0 && manualFat > 0 {
@@ -64,7 +76,9 @@ struct TodayView: View {
             age: userAge,
             weightKg: userWeight,
             heightCm: userHeight,
-            activityLevel: userActivityLevel
+            activityLevel: userActivityLevel,
+            goal: userGoal,
+            dietType: userDietType
         )
     }
 
@@ -386,10 +400,10 @@ struct TodayView: View {
                             if value.translation.width > threshold {
                                 // Swipe right - previous day
                                 HapticManager.light()
-                                selectedDate = Calendar.current.date(byAdding: .day, value: -1, to: selectedDate)!
+                                selectedDate = selectedDate.addingDays(-1)
                             } else if value.translation.width < -threshold {
                                 // Swipe left - next day (only if not future)
-                                let nextDay = Calendar.current.date(byAdding: .day, value: 1, to: selectedDate)!
+                                let nextDay = selectedDate.addingDays(1)
                                 if nextDay <= Date() {
                                     HapticManager.light()
                                     selectedDate = nextDay

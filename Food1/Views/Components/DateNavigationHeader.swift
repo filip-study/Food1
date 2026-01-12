@@ -38,7 +38,7 @@ struct DateNavigationHeader: View {
     }
 
     private var canGoForward: Bool {
-        let nextDay = Calendar.current.date(byAdding: .day, value: 1, to: selectedDate)!
+        let nextDay = selectedDate.addingDays(1)
         return nextDay <= Date()
     }
 
@@ -47,7 +47,7 @@ struct DateNavigationHeader: View {
             // Previous day button - minimal with large hit area
             Button(action: {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                    selectedDate = Calendar.current.date(byAdding: .day, value: -1, to: selectedDate)!
+                    selectedDate = selectedDate.addingDays(-1)
                 }
             }) {
                 Image(systemName: "chevron.left")
@@ -111,7 +111,7 @@ struct DateNavigationHeader: View {
             if canGoForward {
                 Button(action: {
                     // Double-check to prevent race condition when tapping rapidly
-                    let nextDay = Calendar.current.date(byAdding: .day, value: 1, to: selectedDate)!
+                    let nextDay = selectedDate.addingDays(1)
                     guard nextDay <= Date() else { return }
 
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {

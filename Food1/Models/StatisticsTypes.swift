@@ -23,13 +23,13 @@ enum StatsPeriod: String, CaseIterable {
         let start: Date
         switch self {
         case .week:
-            start = calendar.date(byAdding: .day, value: -6, to: end)!
+            start = calendar.safeDate(byAdding: .day, value: -6, to: end)
         case .month:
-            start = calendar.date(byAdding: .day, value: -29, to: end)!
+            start = calendar.safeDate(byAdding: .day, value: -29, to: end)
         case .quarter:
-            start = calendar.date(byAdding: .month, value: -3, to: end)!
+            start = calendar.safeDate(byAdding: .month, value: -3, to: end)
         case .year:
-            start = calendar.date(byAdding: .year, value: -1, to: end)!
+            start = calendar.safeDate(byAdding: .year, value: -1, to: end)
         }
 
         return (start, end)

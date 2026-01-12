@@ -151,8 +151,8 @@ struct MacroTrendsChart: View {
             return Date()...Date()
         }
         // Extend half a day on each side for visual edge padding
-        let extendedStart = calendar.date(byAdding: .hour, value: -12, to: first)!
-        let extendedEnd = calendar.date(byAdding: .hour, value: 12, to: last)!
+        let extendedStart = first.addingHours(-12)
+        let extendedEnd = last.addingHours(12)
         return extendedStart...extendedEnd
     }
 

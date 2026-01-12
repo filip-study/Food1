@@ -148,7 +148,7 @@ class AuthViewModel: ObservableObject {
             self.profile = profileResponse
 
             // Sync cloud profile to local @AppStorage for RDA calculations
-            syncCloudProfileToLocal(profileResponse)
+            ProfileSyncService.shared.syncCloudToLocal(profileResponse)
 
             // Load subscription status
             let subscriptionResponse: SubscriptionStatus = try await supabase.client
@@ -172,69 +172,18 @@ class AuthViewModel: ObservableObject {
 
     // MARK: - Profile Sync (Cloud ↔ Local)
 
-    /// Sync cloud profile data to local @AppStorage for RDA calculations
-    /// Called after loading profile from Supabase to ensure Stats views use correct values
-    private func syncCloudProfileToLocal(_ cloudProfile: CloudUserProfile) {
-        let defaults = UserDefaults.standard
-
-        // Sync age (used for RDA personalization)
-        if let age = cloudProfile.age {
-            defaults.set(age, forKey: "userAge")
-            logger.debug("Synced age from cloud: \(age)")
-        }
-
-        // Sync weight (in kg internally, converted for display based on unit preference)
-        if let weightKg = cloudProfile.weightKg {
-            defaults.set(weightKg, forKey: "userWeight")
-        }
-
-        // Sync height (in cm internally)
-        if let heightCm = cloudProfile.heightCm {
-            defaults.set(heightCm, forKey: "userHeight")
-        }
-
-        // Sync gender (used for RDA personalization)
-        if let genderEnum = cloudProfile.genderEnum {
-            defaults.set(genderEnum.rawValue, forKey: "userGender")
-            logger.debug("Synced gender from cloud: \(genderEnum.rawValue)")
-        }
-
-        // Sync activity level
-        if let activityEnum = cloudProfile.activityLevelEnum {
-            defaults.set(activityEnum.rawValue, forKey: "userActivityLevel")
-        }
-
-        // Sync unit preferences
-        defaults.set(cloudProfile.weightUnit, forKey: "weightUnit")
-        defaults.set(cloudProfile.heightUnit, forKey: "heightUnit")
-        defaults.set(cloudProfile.nutritionUnit, forKey: "nutritionUnit")
-
-        logger.debug("Cloud → Local profile sync complete")
-    }
-
     /// Sync local @AppStorage values to cloud (called after profile edit)
     func syncLocalProfileToCloud() async {
-        let defaults = UserDefaults.standard
-
-        // Read local values
-        let age = defaults.integer(forKey: "userAge")
-        let weight = defaults.double(forKey: "userWeight")
-        let height = defaults.double(forKey: "userHeight")
-        let genderRaw = defaults.string(forKey: "userGender") ?? Gender.preferNotToSay.rawValue
-        let activityRaw = defaults.string(forKey: "userActivityLevel") ?? ActivityLevel.moderatelyActive.rawValue
-
-        // Convert to enums
-        let gender = Gender(rawValue: genderRaw) ?? .preferNotToSay
-        let activityLevel = ActivityLevel(rawValue: activityRaw) ?? .moderatelyActive
+        let localValues = ProfileSyncService.shared.readLocalProfileValues()
 
         do {
             try await updateProfile(
                 fullName: profile?.fullName,
-                age: age > 0 ? age : nil,
-                weightKg: weight > 0 ? weight : nil,
-                heightCm: height > 0 ? height : nil,
-                gender: gender,
-                activityLevel: activityLevel
+                age: localValues.age > 0 ? localValues.age : nil,
+                weightKg: localValues.weight > 0 ? localValues.weight : nil,
+                heightCm: localValues.height > 0 ? localValues.height : nil,
+                gender: localValues.gender,
+                activityLevel: localValues.activityLevel
             )
             logger.debug("Local → Cloud profile sync complete")
         } catch {
@@ -335,20 +284,26 @@ class AuthViewModel: ObservableObject {
 
         try await authService.signInWithApple(authorization: authorization)
 
-        // Sign-in succeeded - set authenticated immediately
-        // (see signIn() comment about race condition with async listener)
-        isAuthenticated = true
-
         // Fetch current user from session directly
         if let session = try? await supabase.client.auth.session {
             currentUser = session.user
         }
 
-        // Load profile data
+        // Ensure required rows exist (handles returning OAuth users after account deletion)
+        // These MUST run before loadUserData() to prevent failed queries
+        await authService.ensureProfileExists()
+        await authService.ensureUserOnboardingExists()
+        await SubscriptionService.shared.ensureSubscriptionStatusExists()
+
+        // Load profile data (now guaranteed to exist)
         await loadUserData()
 
-        // Ensure subscription_status exists (handles returning users after account deletion)
-        await SubscriptionService.shared.ensureSubscriptionStatusExists()
+        // Reload onboarding state to pick up fresh data (prevents stale cache issues)
+        await OnboardingService.shared.loadOnboardingState()
+
+        // Set authenticated AFTER all data is loaded
+        // This prevents race condition where UI shows before profile is ready
+        isAuthenticated = true
 
         // Trigger initial sync after successful sign-in
         logger.info("Triggering initial sync after Apple Sign In")
@@ -376,19 +331,26 @@ class AuthViewModel: ObservableObject {
 
         try await authService.handleGoogleCallback(url: url)
 
-        // Sign-in succeeded - set authenticated immediately
-        isAuthenticated = true
-
         // Fetch current user from session directly
         if let session = try? await supabase.client.auth.session {
             currentUser = session.user
         }
 
-        // Load profile data
+        // Ensure required rows exist (handles returning OAuth users after account deletion)
+        // These MUST run before loadUserData() to prevent failed queries
+        await authService.ensureProfileExists()
+        await authService.ensureUserOnboardingExists()
+        await SubscriptionService.shared.ensureSubscriptionStatusExists()
+
+        // Load profile data (now guaranteed to exist)
         await loadUserData()
 
-        // Ensure subscription_status exists (handles returning users after account deletion)
-        await SubscriptionService.shared.ensureSubscriptionStatusExists()
+        // Reload onboarding state to pick up fresh data (prevents stale cache issues)
+        await OnboardingService.shared.loadOnboardingState()
+
+        // Set authenticated AFTER all data is loaded
+        // This prevents race condition where UI shows before profile is ready
+        isAuthenticated = true
 
         // Trigger initial sync after successful sign-in
         logger.info("Triggering initial sync after Google Sign In")
@@ -620,98 +582,36 @@ class AuthViewModel: ObservableObject {
     // MARK: - Account Deletion
 
     /// Permanently delete user account and all associated data
-    /// This is irreversible - deletes profile, subscription, meals, onboarding, reminders, and photos
+    /// Uses backend API which deletes from auth.users (GDPR/Apple compliant)
     func deleteAccount() async throws {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
-        // Use cached user ID first (more reliable than session lookup which can fail due to timing)
-        // Fall back to session lookup if cached user not available
-        let userId: UUID
-        if let cachedUserId = currentUser?.id {
-            userId = cachedUserId
-        } else {
-            // Fallback to session lookup
-            userId = try await supabase.requireUserId()
-        }
-        logger.info("Starting account deletion for user: \(userId.uuidString, privacy: .private)")
-
         do {
-            // 1. Delete meal photos from Storage bucket
-            // Storage path format: {userId}/{mealId}/thumbnail.jpg
-            // We delete the entire user folder to clean up all photos
-            await deleteUserPhotosFromStorage(userId: userId)
+            // Call backend to delete all cloud data including auth.users
+            // Backend uses service role key for admin operations
+            try await AccountDeletionService.shared.deleteAccountViaBackend()
 
-            // 2. Delete user's meals from Supabase (meal_ingredients CASCADE-deletes with meals)
-            try await supabase.client
-                .from("meals")
-                .delete()
-                .eq("user_id", value: userId.uuidString)
-                .execute()
-            logger.debug("Deleted meals from cloud")
+            // Clear local state
+            isAuthenticated = false
+            currentUser = nil
+            profile = nil
+            subscription = nil
 
-            // 3. Delete meal reminder windows
-            try await supabase.client
-                .from("meal_windows")
-                .delete()
-                .eq("user_id", value: userId.uuidString)
-                .execute()
-            logger.debug("Deleted meal windows")
+            // Clear OnboardingService cache (critical: prevents stale state on re-signup)
+            OnboardingService.shared.clearState()
 
-            // 4. Delete meal reminder settings
-            try await supabase.client
-                .from("meal_reminder_settings")
-                .delete()
-                .eq("user_id", value: userId.uuidString)
-                .execute()
-            logger.debug("Deleted meal reminder settings")
+            // Clear local SwiftData meals
+            await SyncCoordinator.shared.clearAllLocalData()
 
-            // 5. Delete onboarding progress
-            try await supabase.client
-                .from("user_onboarding")
-                .delete()
-                .eq("user_id", value: userId.uuidString)
-                .execute()
-            logger.debug("Deleted user onboarding")
+            // Clear UserDefaults
+            await AccountDeletionService.shared.clearLocalUserDefaults()
 
-            // 6. Delete subscription status
-            try await supabase.client
-                .from("subscription_status")
-                .delete()
-                .eq("user_id", value: userId.uuidString)
-                .execute()
-            logger.debug("Deleted subscription status")
-
-            // 7. Delete user profile (do this last since other tables may reference it)
-            try await supabase.client
-                .from("profiles")
-                .delete()
-                .eq("id", value: userId.uuidString)
-                .execute()
-            logger.debug("Deleted user profile")
-
-            // 8. Sign out (note: we can't delete auth.users from client-side)
-            // The auth user record remains but all associated data is gone
-            try await supabase.client.auth.signOut()
-
-            // 9. Clear local state
-            await MainActor.run {
-                isAuthenticated = false
-                currentUser = nil
-                profile = nil
-                subscription = nil
-            }
-
-            // 10. Clear local SwiftData and UserDefaults
-            clearLocalData()
-
-            logger.info("Account deletion completed successfully - all user data removed")
+            logger.info("Account deletion completed successfully")
 
         } catch {
             logger.error("Account deletion failed: \(error.localizedDescription)")
-            logger.error("Full error: \(String(describing: error))")
-            // Show more specific error message in CI/debug builds
             #if DEBUG
             errorMessage = "Deletion failed: \(error.localizedDescription)"
             #else
@@ -719,71 +619,5 @@ class AuthViewModel: ObservableObject {
             #endif
             throw error
         }
-    }
-
-    /// Delete all user photos from Supabase Storage bucket
-    /// Attempts to list and delete all files in the user's folder
-    private func deleteUserPhotosFromStorage(userId: UUID) async {
-        let bucketName = "meal-photos"
-        let userFolder = "\(userId.uuidString)/"
-
-        do {
-            // List all files in user's folder
-            let files = try await supabase.client.storage
-                .from(bucketName)
-                .list(path: userFolder)
-
-            if files.isEmpty {
-                logger.debug("No photos to delete for user")
-                return
-            }
-
-            // Collect all file paths (need to include subdirectories for meal photos)
-            var allPaths: [String] = []
-            for file in files {
-                // Each file might be a meal folder containing thumbnail.jpg
-                let mealFolder = "\(userFolder)\(file.name)"
-                let mealFiles = try await supabase.client.storage
-                    .from(bucketName)
-                    .list(path: mealFolder)
-
-                for mealFile in mealFiles {
-                    allPaths.append("\(mealFolder)/\(mealFile.name)")
-                }
-            }
-
-            if !allPaths.isEmpty {
-                // Delete all files
-                _ = try await supabase.client.storage
-                    .from(bucketName)
-                    .remove(paths: allPaths)
-                logger.debug("Deleted \(allPaths.count) photos from storage")
-            }
-
-        } catch {
-            // Log but don't fail account deletion for photo cleanup issues
-            // Photos will be orphaned but user data is still deleted
-            logger.warning("Failed to delete photos from storage: \(error.localizedDescription)")
-        }
-    }
-
-    /// Clear local SwiftData storage (meals, etc.)
-    private func clearLocalData() {
-        // Clear UserDefaults profile data
-        let defaults = UserDefaults.standard
-        let keysToRemove = [
-            "userAge", "userWeight", "userHeight", "userGender",
-            "userActivityLevel", "weightUnit", "heightUnit", "nutritionUnit",
-            "micronutrientStandard"
-        ]
-        for key in keysToRemove {
-            defaults.removeObject(forKey: key)
-        }
-        logger.debug("Cleared local UserDefaults data")
-
-        // Note: SwiftData meals are tied to the local container
-        // They will be orphaned when user signs out (no user_id match)
-        // A full cleanup would require access to ModelContext here
-        // For now, local meals remain but are inaccessible without auth
     }
 }

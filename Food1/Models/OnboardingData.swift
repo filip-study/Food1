@@ -2,11 +2,12 @@
 //  OnboardingData.swift
 //  Food1
 //
-//  Data models and enums for the onboarding personalization flow.
+//  Data models for the onboarding personalization flow.
 //  Collects user goals, diet preferences, and profile data to personalize the app.
 //
 //  DESIGN DECISIONS:
-//  - Separate enums from existing Gender/ActivityLevel to keep onboarding simple (3 levels vs 5)
+//  - NutritionGoal and DietType enums defined in UserProfile.swift (shared with Meal.swift)
+//  - SimpleActivityLevel separate from ActivityLevel to keep onboarding simple (3 levels vs 5)
 //  - ObservableObject for reactive UI updates during onboarding flow
 //  - Calorie calculation uses Mifflin-St Jeor equation (industry standard)
 //  - BiologicalSex used instead of Gender for accurate BMR calculations
@@ -15,119 +16,6 @@
 import Foundation
 import SwiftUI
 import Combine
-
-// MARK: - Nutrition Goal
-
-/// User's primary nutrition goal - affects macro recommendations
-enum NutritionGoal: String, CaseIterable, Codable, Identifiable {
-    case weightLoss = "weight_loss"
-    case healthOptimization = "health_optimization"
-    case muscleBuilding = "muscle_building"
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .weightLoss: return "Weight Loss"
-        case .healthOptimization: return "Health Optimization"
-        case .muscleBuilding: return "Muscle Building"
-        }
-    }
-
-    var description: String {
-        switch self {
-        case .weightLoss: return "Lose weight while maintaining energy"
-        case .healthOptimization: return "Optimize nutrition for overall wellness"
-        case .muscleBuilding: return "Build lean muscle with proper nutrition"
-        }
-    }
-
-    var icon: String {
-        switch self {
-        case .weightLoss: return "arrow.down.circle.fill"
-        case .healthOptimization: return "heart.circle.fill"
-        case .muscleBuilding: return "dumbbell.fill"
-        }
-    }
-
-    var iconColor: Color {
-        switch self {
-        case .weightLoss: return .orange
-        case .healthOptimization: return .pink
-        case .muscleBuilding: return .blue
-        }
-    }
-
-    /// Calorie adjustment factor based on goal
-    var calorieMultiplier: Double {
-        switch self {
-        case .weightLoss: return 0.80  // 20% deficit
-        case .healthOptimization: return 1.0  // Maintenance
-        case .muscleBuilding: return 1.10  // 10% surplus
-        }
-    }
-
-    /// Protein ratio (grams per kg of body weight)
-    var proteinRatio: Double {
-        switch self {
-        case .weightLoss: return 1.6  // Higher protein to preserve muscle
-        case .healthOptimization: return 1.2  // Moderate protein
-        case .muscleBuilding: return 2.0  // High protein for muscle synthesis
-        }
-    }
-}
-
-// MARK: - Diet Type
-
-/// User's dietary preference - affects food suggestions and macro ratios
-enum DietType: String, CaseIterable, Codable, Identifiable {
-    case balanced = "balanced"
-    case lowCarb = "low_carb"
-    case veganVegetarian = "vegan_vegetarian"
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .balanced: return "Balanced"
-        case .lowCarb: return "Low-Carb"
-        case .veganVegetarian: return "Vegan/Vegetarian"
-        }
-    }
-
-    var description: String {
-        switch self {
-        case .balanced: return "No specific restrictions, balanced macros"
-        case .lowCarb: return "Reduced carbs, higher fat (includes Keto)"
-        case .veganVegetarian: return "Plant-based nutrition"
-        }
-    }
-
-    var icon: String {
-        switch self {
-        case .balanced: return "chart.pie.fill"
-        case .lowCarb: return "leaf.fill"
-        case .veganVegetarian: return "carrot.fill"
-        }
-    }
-
-    var iconColor: Color {
-        switch self {
-        case .balanced: return .teal
-        case .lowCarb: return .green
-        case .veganVegetarian: return .orange
-        }
-    }
-
-    /// Macro split: (protein%, carbs%, fat%)
-    var macroSplit: (protein: Double, carbs: Double, fat: Double) {
-        switch self {
-        case .balanced: return (0.25, 0.45, 0.30)  // 25/45/30
-        case .lowCarb: return (0.30, 0.20, 0.50)   // 30/20/50
-        case .veganVegetarian: return (0.20, 0.55, 0.25)  // 20/55/25
-        }
-    }
-}
 
 // MARK: - Biological Sex
 
@@ -247,6 +135,7 @@ class OnboardingData: ObservableObject {
     @Published var heightCm: Double?
     @Published var activityLevel: SimpleActivityLevel?
     @Published var useHealthKitActivity: Bool = false
+    @Published var fullName: String = ""  // User's display name
 
     // MARK: - Unit Preferences
 
@@ -369,6 +258,11 @@ class OnboardingData: ObservableObject {
 
     /// Pre-fill data from existing CloudUserProfile
     func prefillFromProfile(_ profile: CloudUserProfile) {
+        // Pre-fill name if available
+        if let name = profile.fullName, !name.isEmpty {
+            fullName = name
+        }
+
         if let goalStr = profile.primaryGoal {
             goal = NutritionGoal(rawValue: goalStr)
         }
