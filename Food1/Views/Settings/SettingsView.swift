@@ -151,7 +151,7 @@ struct SettingsView: View {
         SettingsCard {
             SettingsRow(
                 icon: "person.crop.circle.fill",
-                iconColor: ColorPalette.accentPrimary,
+                iconColor: .teal,
                 title: "Account",
                 subtitle: accountSubtitle,
                 badge: trialBadge
@@ -182,7 +182,7 @@ struct SettingsView: View {
                 // Profile row
                 SettingsRow(
                     icon: "person.circle.fill",
-                    iconColor: ColorPalette.accentPrimary,
+                    iconColor: .teal,
                     title: "Your Profile",
                     subtitle: profileSubtitle
                 ) {
@@ -197,7 +197,7 @@ struct SettingsView: View {
                 // Goal row
                 SettingsRow(
                     icon: "flag.fill",
-                    iconColor: .green,
+                    iconColor: .teal,
                     title: "Your Goal",
                     subtitle: currentGoalSubtitle
                 ) {
@@ -212,7 +212,7 @@ struct SettingsView: View {
                 // Diet type row
                 SettingsRow(
                     icon: "leaf.fill",
-                    iconColor: .mint,
+                    iconColor: .teal,
                     title: "Diet Type",
                     subtitle: currentDietSubtitle
                 ) {
@@ -227,7 +227,7 @@ struct SettingsView: View {
                 // Nutrition targets row
                 SettingsRow(
                     icon: "target",
-                    iconColor: .orange,
+                    iconColor: .teal,
                     title: "Nutrition Targets",
                     subtitle: goalsSubtitle,
                     badge: useAutoGoals ? "Auto" : "Custom"
@@ -320,7 +320,7 @@ struct SettingsView: View {
         SettingsCard {
             SettingsRow(
                 icon: "bell.badge.fill",
-                iconColor: ColorPalette.accentPrimary,
+                iconColor: .teal,
                 title: "Lock Screen Activities",
                 subtitle: "Meal prompts on Lock Screen"
             ) {
@@ -435,11 +435,9 @@ private struct SettingsRow: View {
 
     private func badgeColor(for badge: String) -> Color {
         if badge.contains("trial") {
-            return .orange
-        } else if badge == "Auto" {
-            return .green
-        } else if badge == "Custom" {
-            return ColorPalette.accentPrimary
+            return .teal
+        } else if badge == "Auto" || badge == "Custom" {
+            return .teal
         }
         return .secondary
     }
@@ -491,7 +489,7 @@ private struct GoalPickerSheet: View {
                                     .frame(width: 40, height: 40)
                                     .background(
                                         Circle()
-                                            .fill(goal == selectedGoal ? Color.green : Color.secondary.opacity(0.15))
+                                            .fill(goal == selectedGoal ? Color.teal : Color.secondary.opacity(0.15))
                                     )
 
                                 VStack(alignment: .leading, spacing: 2) {
@@ -508,7 +506,7 @@ private struct GoalPickerSheet: View {
 
                                 if goal == selectedGoal {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.green)
+                                        .foregroundColor(.teal)
                                         .font(.title2)
                                 }
                             }
@@ -516,12 +514,12 @@ private struct GoalPickerSheet: View {
                             .background(
                                 RoundedRectangle(cornerRadius: 14)
                                     .fill(goal == selectedGoal
-                                          ? Color.green.opacity(0.1)
+                                          ? Color.teal.opacity(0.1)
                                           : Color(UIColor.secondarySystemBackground))
                             )
                             .overlay(
                                 RoundedRectangle(cornerRadius: 14)
-                                    .stroke(goal == selectedGoal ? Color.green : Color.clear, lineWidth: 2)
+                                    .stroke(goal == selectedGoal ? Color.teal : Color.clear, lineWidth: 2)
                             )
                         }
                         .buttonStyle(.plain)
@@ -571,7 +569,7 @@ private struct DietPickerSheet: View {
                                     .frame(width: 40, height: 40)
                                     .background(
                                         Circle()
-                                            .fill(diet == selectedDiet ? Color.mint : Color.secondary.opacity(0.15))
+                                            .fill(diet == selectedDiet ? Color.teal : Color.secondary.opacity(0.15))
                                     )
 
                                 VStack(alignment: .leading, spacing: 2) {
@@ -588,7 +586,7 @@ private struct DietPickerSheet: View {
 
                                 if diet == selectedDiet {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.mint)
+                                        .foregroundColor(.teal)
                                         .font(.title2)
                                 }
                             }
@@ -596,12 +594,12 @@ private struct DietPickerSheet: View {
                             .background(
                                 RoundedRectangle(cornerRadius: 14)
                                     .fill(diet == selectedDiet
-                                          ? Color.mint.opacity(0.1)
+                                          ? Color.teal.opacity(0.1)
                                           : Color(UIColor.secondarySystemBackground))
                             )
                             .overlay(
                                 RoundedRectangle(cornerRadius: 14)
-                                    .stroke(diet == selectedDiet ? Color.mint : Color.clear, lineWidth: 2)
+                                    .stroke(diet == selectedDiet ? Color.teal : Color.clear, lineWidth: 2)
                             )
                         }
                         .buttonStyle(.plain)
