@@ -120,7 +120,7 @@ struct MealEditView: View {
                     DatePicker(
                         "Date",
                         selection: $mealDate,
-                        in: ...Date(),
+                        in: MealDateRestriction.allowedDateRange,
                         displayedComponents: .date
                     )
                     .datePickerStyle(.compact)

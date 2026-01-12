@@ -79,6 +79,11 @@ class ProfileSyncService {
             logger.debug("Synced diet type from cloud: \(dietType)")
         }
 
+        // Sync registration date (used to restrict meal date selection)
+        // Users can only log meals from (registrationDate - 1 day) onwards
+        defaults.set(cloudProfile.createdAt.timeIntervalSince1970, forKey: "userRegistrationDate")
+        logger.debug("Synced registration date from cloud: \(cloudProfile.createdAt)")
+
         logger.debug("Cloud → Local profile sync complete")
     }
 

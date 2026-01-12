@@ -161,6 +161,11 @@ final class DemoModeManager: ObservableObject {
 
         // Use Optimal micronutrient standard for richer stats display
         defaults.set(MicronutrientStandard.optimal.rawValue, forKey: "micronutrientStandard")
+
+        // Unlock all stats periods for demo (bypasses @Query timing issues with in-memory container)
+        defaults.set(true, forKey: "stats_monthUnlocked")
+        defaults.set(true, forKey: "stats_quarterUnlocked")
+        defaults.set(true, forKey: "stats_yearUnlocked")
     }
 
     /// Clear demo-specific user defaults
@@ -168,7 +173,11 @@ final class DemoModeManager: ObservableObject {
         let defaults = UserDefaults.standard
         defaults.removeObject(forKey: "demoModeWasActive")
         defaults.removeObject(forKey: "demoUserName")
-        // Note: We don't reset all user defaults as that would affect real user settings
+
+        // Clear demo stats unlocks (so real user must earn them)
+        defaults.removeObject(forKey: "stats_monthUnlocked")
+        defaults.removeObject(forKey: "stats_quarterUnlocked")
+        defaults.removeObject(forKey: "stats_yearUnlocked")
     }
 
     // MARK: - Mock API Responses

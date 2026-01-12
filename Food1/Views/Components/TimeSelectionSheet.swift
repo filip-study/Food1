@@ -158,7 +158,7 @@ struct TimeSelectionSheet: View {
                         .padding(.top, 16)
                         .padding(.horizontal, 20)
 
-                        // Calendar picker
+                        // Calendar picker (restricted to registration date - 1 day through today)
                         DatePicker(
                             "",
                             selection: Binding(
@@ -167,7 +167,7 @@ struct TimeSelectionSheet: View {
                                     setDate(to: newDate)
                                 }
                             ),
-                            in: ...Date(),
+                            in: MealDateRestriction.allowedDateRange,
                             displayedComponents: .date
                         )
                         .datePickerStyle(.graphical)

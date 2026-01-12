@@ -19,13 +19,13 @@ import SwiftData
 /// Generates realistic sample meal data for demo mode
 enum DemoDataGenerator {
 
-    /// Populate the context with 14 days of varied meal data
+    /// Populate the context with 15 days of varied meal data
     static func populateSampleData(in context: ModelContext) {
         let calendar = Calendar.current
         let now = Date()
 
-        // Generate 14 days of meals (2 weeks)
-        for dayOffset in 0..<14 {
+        // Generate 15 days of meals (ensures month view unlock: requires 14+ days since oldest meal)
+        for dayOffset in 0..<15 {
             guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: now) else { continue }
 
             // Varied meals per day (2-4 meals)
@@ -40,7 +40,7 @@ enum DemoDataGenerator {
         }
 
         try? context.save()
-        print("[DemoData] Generated \(14 * 3) sample meals over 14 days")
+        print("[DemoData] Generated \(15 * 3) sample meals over 15 days")
     }
 
     // MARK: - Meal Templates

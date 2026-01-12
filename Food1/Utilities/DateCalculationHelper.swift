@@ -91,3 +91,50 @@ extension Date {
         Calendar.current.safeStartOfInterval(.month, for: self)
     }
 }
+
+// MARK: - Meal Date Restriction Helper
+
+/// Helper for computing earliest allowed meal date based on user registration
+/// Prevents users from logging historical meals from before they started using the app
+enum MealDateRestriction {
+
+    /// The earliest date a user can log meals for
+    /// Returns (registrationDate - 1 day) to allow "yesterday" logging at signup time
+    /// Falls back to .distantPast if no registration date found (for logged-out users or demo mode)
+    static var earliestAllowedDate: Date {
+        let defaults = UserDefaults.standard
+
+        #if DEBUG
+        // In demo mode, allow all dates for screenshot flexibility
+        // Check UserDefaults flag since DemoModeManager is MainActor-isolated
+        if defaults.bool(forKey: "demoModeWasActive") {
+            return .distantPast
+        }
+        #endif
+
+        let registrationTimestamp = defaults.double(forKey: "userRegistrationDate")
+
+        // If no registration date stored, user isn't properly logged in - allow all dates
+        // This handles edge cases like first launch before profile sync completes
+        guard registrationTimestamp > 0 else {
+            return .distantPast
+        }
+
+        let registrationDate = Date(timeIntervalSince1970: registrationTimestamp)
+
+        // Allow logging from the day BEFORE registration (covers "yesterday" at signup)
+        return Calendar.current.startOfDay(for: registrationDate.addingDays(-1))
+    }
+
+    /// Date range for meal date pickers: from earliest allowed to today
+    static var allowedDateRange: ClosedRange<Date> {
+        earliestAllowedDate...Date()
+    }
+
+    /// Check if a specific date is allowed for meal logging
+    static func isDateAllowed(_ date: Date) -> Bool {
+        let startOfDate = Calendar.current.startOfDay(for: date)
+        let startOfEarliest = Calendar.current.startOfDay(for: earliestAllowedDate)
+        return startOfDate >= startOfEarliest
+    }
+}

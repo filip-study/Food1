@@ -362,6 +362,11 @@ struct Food1App: App {
     private func activateDemoMode() {
         print("[DemoMode] Activating demo mode from app...")
         demoModeManager.activate()
+
+        // Generate statistics aggregates for Stats view (same as launch argument path)
+        Task {
+            await demoModeManager.generateStatisticsAggregates()
+        }
     }
     #endif
 }

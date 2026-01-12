@@ -42,35 +42,47 @@ struct DateNavigationHeader: View {
         return nextDay <= Date()
     }
 
+    /// Check if we can navigate to the previous day (respects registration date restriction)
+    private var canGoBack: Bool {
+        let previousDay = selectedDate.addingDays(-1)
+        return MealDateRestriction.isDateAllowed(previousDay)
+    }
+
     var body: some View {
         HStack(spacing: 16) {
-            // Previous day button - minimal with large hit area
-            Button(action: {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                    selectedDate = selectedDate.addingDays(-1)
+            // Previous day button - only enabled if previous day is allowed
+            if canGoBack {
+                Button(action: {
+                    // Double-check to prevent navigating before registration date
+                    let previousDay = selectedDate.addingDays(-1)
+                    guard MealDateRestriction.isDateAllowed(previousDay) else { return }
+
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        selectedDate = previousDay
+                    }
+                }) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
                 }
-            }) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
+                .buttonStyle(PlainButtonStyle())
+                .scaleEffect(isPreviousPressed ? 0.85 : 1.0)
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { _ in
+                            withAnimation(.easeInOut(duration: 0.08)) {
+                                isPreviousPressed = true
+                            }
+                        }
+                        .onEnded { _ in
+                            withAnimation(.easeInOut(duration: 0.08)) {
+                                isPreviousPressed = false
+                            }
+                        }
+                )
             }
-            .buttonStyle(PlainButtonStyle())
-            .scaleEffect(isPreviousPressed ? 0.85 : 1.0)
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { _ in
-                        withAnimation(.easeInOut(duration: 0.08)) {
-                            isPreviousPressed = true
-                        }
-                    }
-                    .onEnded { _ in
-                        withAnimation(.easeInOut(duration: 0.08)) {
-                            isPreviousPressed = false
-                        }
-                    }
-            )
 
             // Date display
             Button(action: {
@@ -86,7 +98,7 @@ struct DateNavigationHeader: View {
                         DatePicker(
                             "",
                             selection: $selectedDate,
-                            in: ...Date(),
+                            in: MealDateRestriction.allowedDateRange,
                             displayedComponents: .date
                         )
                         .datePickerStyle(.graphical)
