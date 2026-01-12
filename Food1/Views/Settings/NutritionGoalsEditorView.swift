@@ -311,7 +311,7 @@ struct NutritionGoalsEditorView: View {
                 HStack(spacing: 12) {
                     Image(systemName: "chart.bar.fill")
                         .font(.system(size: 18))
-                        .foregroundColor(.purple)
+                        .foregroundColor(.secondary)
                         .frame(width: 24)
 
                     VStack(alignment: .leading, spacing: 2) {
