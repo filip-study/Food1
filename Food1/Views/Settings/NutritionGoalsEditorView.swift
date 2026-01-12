@@ -30,6 +30,9 @@ struct NutritionGoalsEditorView: View {
     @AppStorage("userGoal") private var userGoalRaw: String = ""
     @AppStorage("userDietType") private var userDietTypeRaw: String = ""
 
+    // Micronutrient standard (RDA vs Optimal)
+    @AppStorage("micronutrientStandard") private var micronutrientStandard: MicronutrientStandard = .optimal
+
     // Text fields for editing
     @State private var caloriesText: String = ""
     @State private var proteinText: String = ""
@@ -88,6 +91,7 @@ struct NutritionGoalsEditorView: View {
                 modeToggleSection
                 macrosSection
                 fiberSection
+                micronutrientSection
                 if !useAutoGoals {
                     quickFillSection
                 }
@@ -298,6 +302,42 @@ struct NutritionGoalsEditorView: View {
             Text("Other Targets")
         } footer: {
             Text("Fiber supports digestion and gut health. Recommended: 25-35g daily.")
+        }
+    }
+
+    private var micronutrientSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 12) {
+                    Image(systemName: "chart.bar.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(.purple)
+                        .frame(width: 24)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Micronutrient Standard")
+                            .font(.system(size: 15, weight: .medium))
+                        Text("Target levels for vitamins & minerals")
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                Picker("Standard", selection: $micronutrientStandard) {
+                    ForEach(MicronutrientStandard.allCases) { standard in
+                        Text(standard.rawValue).tag(standard)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                Text(micronutrientStandard.description)
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.vertical, 4)
+        } header: {
+            Text("Micronutrients")
         }
     }
 

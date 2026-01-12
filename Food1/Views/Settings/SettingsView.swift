@@ -264,14 +264,30 @@ struct SettingsView: View {
         "\(Int(currentGoals.calories)) kcal • \(Int(currentGoals.protein))g protein"
     }
 
-    // MARK: - Preferences Card
+    // MARK: - Display Card
 
     private var preferencesCard: some View {
         SettingsCard {
-            VStack(spacing: 20) {
-                // Appearance section
-                VStack(alignment: .leading, spacing: 12) {
-                    SettingsSectionHeader(icon: "circle.lefthalf.filled", title: "Appearance")
+            VStack(spacing: 0) {
+                // Section header
+                HStack(spacing: 10) {
+                    Image(systemName: "paintbrush.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(.purple)
+
+                    Text("Display")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.primary)
+
+                    Spacer()
+                }
+                .padding(.bottom, 16)
+
+                // Appearance
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Theme")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.secondary)
 
                     Picker("Appearance", selection: $selectedTheme) {
                         ForEach(AppTheme.allCases) { theme in
@@ -282,10 +298,13 @@ struct SettingsView: View {
                 }
 
                 Divider()
+                    .padding(.vertical, 14)
 
-                // Units section
-                VStack(alignment: .leading, spacing: 12) {
-                    SettingsSectionHeader(icon: "scalemass.fill", title: "Nutrition Units")
+                // Units
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Nutrition Units")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(.secondary)
 
                     Picker("Units", selection: $nutritionUnit) {
                         ForEach(NutritionUnit.allCases) { unit in
@@ -293,25 +312,6 @@ struct SettingsView: View {
                         }
                     }
                     .pickerStyle(.segmented)
-                }
-
-                Divider()
-
-                // Micronutrient standard section
-                VStack(alignment: .leading, spacing: 12) {
-                    SettingsSectionHeader(icon: "chart.bar.fill", title: "Micronutrient Targets")
-
-                    Picker("Standard", selection: $micronutrientStandard) {
-                        ForEach(MicronutrientStandard.allCases) { standard in
-                            Text(standard.rawValue).tag(standard)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-
-                    Text(micronutrientStandard.description)
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
