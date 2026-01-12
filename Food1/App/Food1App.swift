@@ -235,6 +235,13 @@ struct Food1App: App {
                 )
                 .environmentObject(authViewModel)
                 .onDisappear {
+                    // End the Live Activity when user finishes (logged or cancelled)
+                    // User was prompted, so end regardless of outcome
+                    if let windowId = deepLinkHandler.pendingMealWindowId {
+                        Task {
+                            await MealActivityScheduler.shared.endActivity(for: windowId, reason: .logged)
+                        }
+                    }
                     deepLinkHandler.clearPendingState()
                 }
             }

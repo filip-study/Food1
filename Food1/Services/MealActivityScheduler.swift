@@ -174,6 +174,9 @@ class MealActivityScheduler: ObservableObject {
             return
         }
 
+        // IMPORTANT: Clean up orphaned activities first (activities for windows that no longer exist)
+        await cleanupOrphanedActivities()
+
         let now = Date()
         let leadTime = settings?.leadTimeInterval ?? 2700  // 45 min default
         let dismissTime = settings?.autoDismissInterval ?? 7200  // 2 hours default
@@ -197,8 +200,48 @@ class MealActivityScheduler: ObservableObject {
             }
         }
 
+        // Also end activities for DISABLED windows (user may have disabled in settings)
+        for window in mealWindows where !window.isEnabled {
+            if activeActivities[window.id] != nil {
+                logger.info("Ending activity for disabled window: \(window.name)")
+                await endActivity(for: window.id, reason: .disabled)
+            }
+        }
+
         // Schedule next check
         scheduleBackgroundCheck()
+    }
+
+    /// Clean up activities that don't match any current window (orphaned due to ID changes or deleted windows)
+    private func cleanupOrphanedActivities() async {
+        let currentWindowIds = Set(mealWindows.map { $0.id })
+
+        // Check ActivityKit's actual list for orphaned activities
+        for activity in Activity<MealReminderAttributes>.activities {
+            let windowId = activity.attributes.windowId
+
+            // Activity is orphaned if its windowId doesn't match any current window
+            if !currentWindowIds.contains(windowId) {
+                logger.warning("🧹 Cleaning up orphaned activity: \(activity.attributes.mealName) (windowId: \(windowId) not in current windows)")
+
+                let finalState = MealReminderAttributes.ContentState(
+                    status: .dismissed,
+                    dismissAt: Date()
+                )
+                await activity.end(.init(state: finalState, staleDate: nil), dismissalPolicy: .immediate)
+
+                // Also remove from our cache if present
+                activeActivities.removeValue(forKey: windowId)
+            }
+        }
+
+        // Also clean our in-memory cache of any stale entries
+        for windowId in activeActivities.keys {
+            if !currentWindowIds.contains(windowId) {
+                logger.info("🧹 Removing stale cache entry for windowId: \(windowId)")
+                activeActivities.removeValue(forKey: windowId)
+            }
+        }
     }
 
     /// Start a Live Activity for a meal window
@@ -210,16 +253,25 @@ class MealActivityScheduler: ObservableObject {
             return
         }
 
-        // Don't start if already active
+        // Don't start if already active (check by windowId)
         guard activeActivities[window.id] == nil else {
             logger.debug("Activity already exists for window: \(window.name)")
             return
         }
 
-        // Also check ActivityKit's list in case our cache is stale
+        // Check ActivityKit's list for duplicates
         let existingActivities = Activity<MealReminderAttributes>.activities
+
+        // Primary check: exact windowId match
         if existingActivities.contains(where: { $0.attributes.windowId == window.id }) {
             logger.debug("Activity exists in ActivityKit for window: \(window.name)")
+            return
+        }
+
+        // FALLBACK: Also check by meal name to catch duplicates from ID regeneration bugs
+        // This prevents showing two "Lunch" activities even if IDs got out of sync
+        if existingActivities.contains(where: { $0.attributes.mealName.lowercased() == window.name.lowercased() }) {
+            logger.warning("⚠️ Activity with same meal name '\(window.name)' already exists (possible ID mismatch) - skipping to prevent duplicate")
             return
         }
 

@@ -399,14 +399,8 @@ struct MealRemindersSettingsView: View {
                 useLearning = settings.useLearning
             }
 
-            // Convert MealWindows to EditableMealWindows
-            windows = scheduler.mealWindows.map { window in
-                EditableMealWindow(
-                    name: window.name,
-                    time: window.targetTime.dateForToday(),
-                    isEnabled: window.isEnabled
-                )
-            }
+            // Convert MealWindows to EditableMealWindows (preserving original IDs!)
+            windows = scheduler.mealWindows.map { EditableMealWindow(from: $0) }
 
             hasChanges = false
 
@@ -436,10 +430,10 @@ struct MealRemindersSettingsView: View {
 
             try await scheduler.saveSettings(newSettings)
 
-            // Convert and save windows
+            // Convert and save windows (preserve original IDs to prevent duplicate activities!)
             let mealWindows = windows.enumerated().map { index, editable in
                 MealWindow(
-                    id: UUID(),
+                    id: editable.originalWindowId ?? UUID(),  // Keep original ID if exists
                     userId: userId,
                     name: editable.name,
                     targetTime: TimeComponents(from: editable.time),

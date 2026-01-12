@@ -314,11 +314,30 @@ struct MealRemindersOnboardingView: View {
 
 // MARK: - Editable Meal Window
 
+/// Editable wrapper for MealWindow used in onboarding and settings UI.
+/// Preserves originalWindowId to prevent duplicate activities when saving.
 struct EditableMealWindow: Identifiable {
-    let id = UUID()
+    let id = UUID()  // Local SwiftUI identity (for ForEach)
+    var originalWindowId: UUID?  // Preserves the actual MealWindow.id from Supabase
     var name: String
     var time: Date
     var isEnabled: Bool
+
+    /// Create from existing MealWindow (preserves ID)
+    init(from window: MealWindow) {
+        self.originalWindowId = window.id
+        self.name = window.name
+        self.time = window.targetTime.dateForToday()
+        self.isEnabled = window.isEnabled
+    }
+
+    /// Create new window (no original ID)
+    init(name: String, time: Date, isEnabled: Bool) {
+        self.originalWindowId = nil
+        self.name = name
+        self.time = time
+        self.isEnabled = isEnabled
+    }
 }
 
 // MARK: - Meal Window Row
