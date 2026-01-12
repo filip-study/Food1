@@ -21,6 +21,7 @@
 //  - Meal: Core meal record with macros, timestamp, photo
 //  - MealIngredient: Individual ingredients with USDA enrichment data
 //  - DailyAggregate, WeeklyAggregate, MonthlyAggregate: Pre-computed stats
+//  - Fast: Fasting period confirmations
 //
 
 import Foundation
@@ -35,7 +36,8 @@ struct AppSchemaManager {
         MealIngredient.self,
         DailyAggregate.self,
         WeeklyAggregate.self,
-        MonthlyAggregate.self
+        MonthlyAggregate.self,
+        Fast.self
     ])
 
     /// Creates a configured ModelContainer with migration handling

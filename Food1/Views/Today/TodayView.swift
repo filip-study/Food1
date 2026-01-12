@@ -22,6 +22,7 @@ struct TodayView: View {
     @Environment(\.colorScheme) var colorScheme
     @EnvironmentObject var authViewModel: AuthViewModel
     @Query(sort: \Meal.timestamp, order: .reverse) private var allMeals: [Meal]
+    @Query(sort: \Fast.confirmedAt, order: .reverse) private var allFasts: [Fast]
 
     // Profile data for personalized goals (observed for automatic updates)
     @AppStorage("userAge") private var userAge: Int = 25
@@ -136,6 +137,13 @@ struct TodayView: View {
         allMeals.first?.timestamp  // Already sorted by timestamp descending
     }
 
+    /// Fasts confirmed on the selected date
+    private var fastsForSelectedDate: [Fast] {
+        allFasts.filter { fast in
+            Calendar.current.isDate(fast.confirmedAt, inSameDayAs: selectedDate)
+        }
+    }
+
     // MARK: - Streak Calculation
 
     /// Current consecutive days with meals (counting backward from today/yesterday)
@@ -231,7 +239,23 @@ struct TodayView: View {
     //     return nil
     // }
 
+    // MARK: - Fast Management
 
+    /// Confirms a fast and saves it to the database
+    private func confirmFast() {
+        guard let lastMealDate = mostRecentMealDate else { return }
+
+        let fast = Fast(startTime: lastMealDate, confirmedAt: Date())
+        modelContext.insert(fast)
+
+        HapticManager.success()
+    }
+
+    /// Deletes a fast from the database
+    private func deleteFast(_ fast: Fast) {
+        modelContext.delete(fast)
+        HapticManager.light()
+    }
 
     var body: some View {
         NavigationStack {
@@ -362,35 +386,22 @@ struct TodayView: View {
                             }
                             .padding(.horizontal)
 
-                            if mealsForSelectedDate.isEmpty {
-                                // Fasting prompt with time since last meal
+                            if mealsForSelectedDate.isEmpty && fastsForSelectedDate.isEmpty {
+                                // No meals or fasts today - show fasting prompt
                                 FastingPromptView(
                                     lastMealDate: mostRecentMealDate,
                                     onConfirmFast: {
-                                        // TODO: Implement fast confirmation logic
-                                        // For now, just haptic feedback
-                                        print("Fast confirmed at \(Date())")
+                                        confirmFast()
                                     }
                                 )
                             } else {
-                                // Meal cards
-                                LazyVStack(spacing: 12) {
-                                    ForEach(mealsForSelectedDate.sorted(by: { $0.timestamp > $1.timestamp })) { meal in
-                                        NavigationLink(destination: MealDetailView(meal: meal)) {
-                                            MealCard(meal: meal)
-                                        }
-                                        .buttonStyle(PlainButtonStyle())
-                                        .simultaneousGesture(
-                                            TapGesture().onEnded {
-                                                HapticManager.light()
-                                            }
-                                        )
-                                        .transition(.asymmetric(
-                                            insertion: reduceMotion ? .opacity : .scale.combined(with: .opacity),
-                                            removal: .opacity
-                                        ))
-                                    }
-                                }
+                                // Timeline with meals and fasts
+                                MealFastTimeline(
+                                    meals: mealsForSelectedDate,
+                                    fasts: fastsForSelectedDate,
+                                    reduceMotion: reduceMotion,
+                                    onDeleteFast: deleteFast
+                                )
                             }
                         }
                     }
@@ -451,6 +462,7 @@ struct TodayView: View {
 
 /// Prompt shown in the meal timeline when no meals logged today.
 /// Shows time since last meal and option to confirm a fast.
+/// Design: Inset/embedded appearance - recessed into background rather than floating.
 struct FastingPromptView: View {
     let lastMealDate: Date?
     let onConfirmFast: () -> Void
@@ -479,78 +491,71 @@ struct FastingPromptView: View {
         return hours >= 12
     }
 
-    var body: some View {
-        if let hours = hoursSinceLastMeal, let minutes = minutesSinceLastMeal, shouldShowFastingPrompt {
-            HStack(spacing: 16) {
-                // Timer display - left side
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Image(systemName: "timer")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(ColorPalette.macroProtein.opacity(0.7))
+    /// Formatted time string (e.g., "14h 32m" or "1d 2h")
+    private var formattedDuration: String {
+        guard let hours = hoursSinceLastMeal, let minutes = minutesSinceLastMeal else { return "" }
+        if hours >= 24 {
+            let days = hours / 24
+            let remainingHours = hours % 24
+            return "\(days)d \(remainingHours)h"
+        }
+        return "\(hours)h \(minutes)m"
+    }
 
-                    if hours >= 24 {
-                        let days = hours / 24
-                        let remainingHours = hours % 24
-                        Text("\(days)")
-                            .font(.system(size: 22, weight: .bold, design: .rounded))
-                            .foregroundStyle(.primary)
-                        Text("d")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(.secondary)
-                        Text("\(remainingHours)")
-                            .font(.system(size: 22, weight: .bold, design: .rounded))
-                            .foregroundStyle(.primary)
-                        Text("h")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Text("\(hours)")
-                            .font(.system(size: 22, weight: .bold, design: .rounded))
-                            .foregroundStyle(.primary)
-                        Text("h")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(.secondary)
-                        Text("\(minutes)")
-                            .font(.system(size: 22, weight: .bold, design: .rounded))
-                            .foregroundStyle(.primary)
-                        Text("m")
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(.secondary)
-                    }
+    var body: some View {
+        if shouldShowFastingPrompt {
+            VStack(spacing: 14) {
+                // Duration + context
+                HStack(spacing: 6) {
+                    Text(formattedDuration)
+                        .font(.system(size: 15, weight: .medium, design: .rounded))
+                        .foregroundStyle(.secondary)
+
+                    Text("since last meal")
+                        .font(.system(size: 15, weight: .regular))
+                        .foregroundStyle(.tertiary)
                 }
 
-                Text("fasting")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(.tertiary)
-
-                Spacer()
-
-                // Confirm button - right aligned
+                // Confirm button
                 Button(action: {
                     HapticManager.light()
                     onConfirmFast()
                 }) {
-                    Text("Log fast")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(ColorPalette.macroProtein)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                        .background(
-                            Capsule()
-                                .fill(ColorPalette.macroProtein.opacity(0.12))
-                        )
+                    Text("Confirm")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 24)
+            .padding(.horizontal, 20)
             .background(
+                // Inset effect: slightly darker fill + inner shadow
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(.ultraThinMaterial)
-                    .opacity(0.8)
-                    .overlay(
+                    .fill(
+                        colorScheme == .dark
+                            ? Color.black.opacity(0.2)
+                            : Color.black.opacity(0.03)
+                    )
+            )
+            .overlay(
+                // Inner shadow: blurred dark stroke masked to inside
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.black.opacity(colorScheme == .dark ? 0.4 : 0.12), lineWidth: 3)
+                    .blur(radius: 3)
+                    .offset(y: 1)
+                    .mask(
                         RoundedRectangle(cornerRadius: 16)
-                            .strokeBorder(ColorPalette.macroProtein.opacity(0.15), lineWidth: 0.5)
+                            .fill(Color.black)
+                    )
+            )
+            .overlay(
+                // Subtle outer stroke for definition
+                RoundedRectangle(cornerRadius: 16)
+                    .strokeBorder(
+                        Color.primary.opacity(colorScheme == .dark ? 0.06 : 0.04),
+                        lineWidth: 0.5
                     )
             )
             .padding(.horizontal)
@@ -561,28 +566,124 @@ struct FastingPromptView: View {
                 currentTime = Date()
             }
         } else if lastMealDate == nil {
-            // No previous meals at all - simple empty state
-            HStack(spacing: 10) {
-                Image(systemName: "fork.knife")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(.tertiary)
-
-                Text("No meals logged yet")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.secondary)
-
-                Spacer()
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(.ultraThinMaterial)
-                    .opacity(0.6)
-            )
-            .padding(.horizontal)
+            // No previous meals at all
+            Text("No meals logged yet")
+                .font(.system(size: 14, weight: .regular))
+                .foregroundStyle(.tertiary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
+                .padding(.horizontal, 20)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(
+                            colorScheme == .dark
+                                ? Color.black.opacity(0.2)
+                                : Color.black.opacity(0.03)
+                        )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color.black.opacity(colorScheme == .dark ? 0.4 : 0.12), lineWidth: 3)
+                        .blur(radius: 3)
+                        .offset(y: 1)
+                        .mask(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color.black)
+                        )
+                )
+                .padding(.horizontal)
         }
         // else: Last meal exists but < 12 hours ago - show nothing
+    }
+}
+
+// MARK: - Meal & Fast Timeline
+
+/// Unified timeline displaying meals and fasts sorted by time.
+/// Fasts have connecting lines, meals are standard cards.
+struct MealFastTimeline: View {
+    let meals: [Meal]
+    let fasts: [Fast]
+    let reduceMotion: Bool
+    let onDeleteFast: (Fast) -> Void
+
+    /// Combined timeline items sorted by timestamp (newest first)
+    private var timelineItems: [TimelineItem] {
+        var items: [TimelineItem] = []
+
+        for meal in meals {
+            items.append(.meal(meal))
+        }
+        for fast in fasts {
+            items.append(.fast(fast))
+        }
+
+        return items.sorted { $0.timestamp > $1.timestamp }
+    }
+
+    var body: some View {
+        LazyVStack(spacing: 12) {
+            ForEach(Array(timelineItems.enumerated()), id: \.element.id) { index, item in
+                switch item {
+                case .meal(let meal):
+                    NavigationLink(destination: MealDetailView(meal: meal)) {
+                        MealCard(meal: meal)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .simultaneousGesture(
+                        TapGesture().onEnded {
+                            HapticManager.light()
+                        }
+                    )
+                    .transition(.asymmetric(
+                        insertion: reduceMotion ? .opacity : .scale.combined(with: .opacity),
+                        removal: .opacity
+                    ))
+
+                case .fast(let fast):
+                    // Determine if adjacent items exist for connectors
+                    let hasItemAbove = index > 0
+                    let hasItemBelow = index < timelineItems.count - 1
+
+                    FastEntryView(
+                        fast: fast,
+                        showTopConnector: hasItemAbove,
+                        showBottomConnector: hasItemBelow
+                    )
+                    .transition(.asymmetric(
+                        insertion: reduceMotion ? .opacity : .scale.combined(with: .opacity),
+                        removal: .opacity
+                    ))
+                    .contextMenu {
+                        Button(role: .destructive) {
+                            onDeleteFast(fast)
+                        } label: {
+                            Label("Remove", systemImage: "trash")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Timeline item wrapper for unified sorting
+private enum TimelineItem: Identifiable {
+    case meal(Meal)
+    case fast(Fast)
+
+    var id: String {
+        switch self {
+        case .meal(let meal): return "meal-\(meal.id)"
+        case .fast(let fast): return "fast-\(fast.id)"
+        }
+    }
+
+    var timestamp: Date {
+        switch self {
+        case .meal(let meal): return meal.timestamp
+        case .fast(let fast): return fast.confirmedAt
+        }
     }
 }
 
