@@ -115,11 +115,18 @@ final class MicronutrientTests: XCTestCase {
 
     /// Test RDA percentage calculation for new nutrients (Vitamin K)
     func testRDACalculation_VitaminK() {
+        // Clear UserDefaults to ensure deterministic test (gender affects RDA: male=120mcg, female=90mcg)
+        UserDefaults.standard.removeObject(forKey: "userGender")
+        UserDefaults.standard.removeObject(forKey: "userAge")
         // Force RDA standard for deterministic test (Optimal uses 250mcg, RDA uses 120mcg)
         UserDefaults.standard.set("RDA", forKey: "micronutrientStandard")
-        defer { UserDefaults.standard.removeObject(forKey: "micronutrientStandard") }
+        defer {
+            UserDefaults.standard.removeObject(forKey: "micronutrientStandard")
+            UserDefaults.standard.removeObject(forKey: "userGender")
+            UserDefaults.standard.removeObject(forKey: "userAge")
+        }
 
-        // Given: Profile with 60mcg Vitamin K (50% of 120mcg RDA)
+        // Given: Profile with 60mcg Vitamin K (50% of 120mcg RDA for default/male)
         var profile = MicronutrientProfile()
         profile.vitaminK = 60
 
@@ -149,7 +156,17 @@ final class MicronutrientTests: XCTestCase {
 
     /// Test RDA percentage calculation for Thiamin (B1)
     func testRDACalculation_Thiamin() {
-        // Given: Profile with 0.6mg Thiamin (50% of 1.2mg RDA)
+        // Clear UserDefaults to ensure deterministic test (gender affects RDA: male=1.2mg, female=1.1mg)
+        UserDefaults.standard.removeObject(forKey: "userGender")
+        UserDefaults.standard.removeObject(forKey: "userAge")
+        UserDefaults.standard.set("RDA", forKey: "micronutrientStandard")
+        defer {
+            UserDefaults.standard.removeObject(forKey: "micronutrientStandard")
+            UserDefaults.standard.removeObject(forKey: "userGender")
+            UserDefaults.standard.removeObject(forKey: "userAge")
+        }
+
+        // Given: Profile with 0.6mg Thiamin (50% of 1.2mg RDA for default/male)
         var profile = MicronutrientProfile()
         profile.vitaminB1 = 0.6
 
