@@ -224,7 +224,7 @@ struct NotificationsSetupView: View {
                             ProgressView()
                                 .tint(.white)
                         } else {
-                            Text("Enable Reminders")
+                            Text("Enable")
                                 .font(.headline)
                         }
                     }
@@ -352,7 +352,7 @@ struct NotificationsSetupView: View {
             // Check if Live Activities are enabled
             let authInfo = ActivityAuthorizationInfo()
             if !authInfo.areActivitiesEnabled {
-                errorMessage = "Settings saved! To see reminders on your lock screen, enable Live Activities in Settings > Prismae > Live Activities"
+                errorMessage = "Settings saved! To see activities on your Lock Screen, enable Live Activities in Settings > Prismae > Live Activities"
                 showError = true
             }
 

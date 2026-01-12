@@ -321,8 +321,8 @@ struct SettingsView: View {
             SettingsRow(
                 icon: "bell.badge.fill",
                 iconColor: ColorPalette.accentPrimary,
-                title: "Meal Reminders",
-                subtitle: "Lock Screen & Dynamic Island"
+                title: "Lock Screen Activities",
+                subtitle: "Meal prompts on Lock Screen"
             ) {
                 showingReminders = true
                 HapticManager.light()

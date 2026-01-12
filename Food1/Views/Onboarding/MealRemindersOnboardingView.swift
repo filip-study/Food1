@@ -165,7 +165,7 @@ struct MealRemindersOnboardingView: View {
                         ProgressView()
                             .tint(.white)
                     } else {
-                        Text("Enable Reminders")
+                        Text("Enable")
                             .font(.headline)
                     }
                 }
@@ -249,7 +249,7 @@ struct MealRemindersOnboardingView: View {
             let authInfo = ActivityAuthorizationInfo()
             if !authInfo.areActivitiesEnabled {
                 // Settings saved but activities won't show - inform user
-                errorMessage = "Settings saved! To see reminders on your lock screen, enable Live Activities in Settings > Prismae > Live Activities"
+                errorMessage = "Settings saved! To see activities on your Lock Screen, enable Live Activities in Settings > Prismae > Live Activities"
                 showError = true
                 // Still complete onboarding - user can enable later
             }
