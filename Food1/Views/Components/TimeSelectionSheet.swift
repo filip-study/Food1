@@ -75,7 +75,7 @@ struct TimeSelectionSheet: View {
                             Image(systemName: "calendar")
                                 .font(.system(size: 14))
                             Text(dateDescription)
-                                .font(.system(size: 15, weight: .medium))
+                                .font(DesignSystem.Typography.medium(size: 15))
                         }
                         .foregroundStyle(selectedTab == .date ? .white : .primary)
                         .padding(.horizontal, 14)
@@ -98,7 +98,7 @@ struct TimeSelectionSheet: View {
                             Image(systemName: "clock.fill")
                                 .font(.system(size: 14))
                             Text(timeDescription)
-                                .font(.system(size: 15, weight: .medium))
+                                .font(DesignSystem.Typography.medium(size: 15))
                         }
                         .foregroundStyle(selectedTab == .time ? .white : .primary)
                         .padding(.horizontal, 14)
@@ -245,7 +245,7 @@ private struct QuickDateButton: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.system(size: 15, weight: .medium))
+                .font(DesignSystem.Typography.medium(size: 15))
                 .foregroundStyle(isSelected ? .white : .primary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)

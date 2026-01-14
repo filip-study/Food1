@@ -45,16 +45,16 @@ struct FastEntryView: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
                     Text(fast.formattedDuration)
-                        .font(.system(size: 17, weight: .medium, design: .rounded))
+                        .font(DesignSystem.Typography.medium(size: 17))
                         .foregroundStyle(.secondary)
 
                     Text("fast")
-                        .font(.system(size: 17, weight: .regular))
+                        .font(DesignSystem.Typography.regular(size: 17))
                         .foregroundStyle(.tertiary)
                 }
 
                 Text(timeString)
-                    .font(.system(size: 14, weight: .regular))
+                    .font(DesignSystem.Typography.regular(size: 14))
                     .foregroundStyle(.quaternary)
             }
 
@@ -86,20 +86,24 @@ struct FastEntryView: View {
 
 /// Vertical line that can extend beyond its frame to connect adjacent items.
 /// Rendered as a Path shape to allow drawing outside normal bounds.
+/// Fades to transparent at ends where there's no connector (open ends).
 private struct TimelineLine: View {
     let height: CGFloat
     let topExtension: CGFloat
     let bottomExtension: CGFloat
     let color: Color
 
+    /// Fade distance at open ends (no connector)
+    private let fadeDistance: CGFloat = 16
+
     var body: some View {
         // Total height including extensions
         let totalHeight = height + topExtension + bottomExtension
 
         ZStack {
-            // Vertical line
+            // Vertical line with gradient fade at open ends
             Rectangle()
-                .fill(color)
+                .fill(lineGradient(totalHeight: totalHeight))
                 .frame(width: 1.5, height: totalHeight)
 
             // Center dot marker
@@ -110,6 +114,42 @@ private struct TimelineLine: View {
         .frame(width: 10, height: totalHeight)
         // Offset to account for top extension
         .offset(y: (bottomExtension - topExtension) / 2)
+    }
+
+    /// Creates a gradient that fades at open ends (where there's no connector)
+    private func lineGradient(totalHeight: CGFloat) -> LinearGradient {
+        let hasTopConnector = topExtension > 0
+        let hasBottomConnector = bottomExtension > 0
+
+        // Calculate fade positions as fractions of total height
+        let topFadeEnd = hasTopConnector ? 0 : min(fadeDistance / totalHeight, 0.3)
+        let bottomFadeStart = hasBottomConnector ? 1 : max(1 - (fadeDistance / totalHeight), 0.7)
+
+        var stops: [Gradient.Stop] = []
+
+        if hasTopConnector {
+            // Solid from top
+            stops.append(.init(color: color, location: 0))
+        } else {
+            // Fade in from top
+            stops.append(.init(color: color.opacity(0), location: 0))
+            stops.append(.init(color: color, location: topFadeEnd))
+        }
+
+        if hasBottomConnector {
+            // Solid to bottom
+            stops.append(.init(color: color, location: 1))
+        } else {
+            // Fade out at bottom
+            stops.append(.init(color: color, location: bottomFadeStart))
+            stops.append(.init(color: color.opacity(0), location: 1))
+        }
+
+        return LinearGradient(
+            stops: stops,
+            startPoint: .top,
+            endPoint: .bottom
+        )
     }
 }
 

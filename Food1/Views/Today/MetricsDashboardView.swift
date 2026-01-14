@@ -96,18 +96,18 @@ struct MetricsDashboardView: View {
                 // Line 1: Current calories
                 HStack(spacing: 4) {
                     Text("\(Int(currentCalories))")
-                        .font(.custom("PlusJakartaSans-Bold", size: 24))
+                        .font(DesignSystem.Typography.bold(size: 24))
                         .foregroundColor(.primary)
 
                     Text("calories")
-                        .font(.system(size: 14, weight: .regular))
+                        .font(DesignSystem.Typography.regular(size: 14))
                         .foregroundColor(.secondary)
                         .baselineOffset(-2)
                 }
 
                 // Line 2: Percentage context
                 Text(calorieContextMessage)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(DesignSystem.Typography.medium(size: 12))
                     .foregroundColor(calorieContextColor)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -194,7 +194,7 @@ struct MacroHeroBar: View {
                         .foregroundColor(color)
 
                     Text(name)
-                        .font(.system(size: 11, weight: .bold))
+                        .font(DesignSystem.Typography.bold(size: 11))
                         .foregroundColor(.secondary)
                         .tracking(0.8)
                 }
@@ -204,11 +204,11 @@ struct MacroHeroBar: View {
                 // Large current value
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text("\(Int(current))")
-                        .font(.custom("PlusJakartaSans-Bold", size: 24))
+                        .font(DesignSystem.Typography.bold(size: 24))
                         .foregroundColor(progress >= 0.7 ? color : .primary)
 
                     Text("/ \(Int(goal))g")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(DesignSystem.Typography.medium(size: 13))
                         .foregroundColor(.secondary)
                 }
             }
@@ -237,7 +237,7 @@ struct MacroHeroBar: View {
                     // Percentage label inside bar
                     if progress > 0.15 {
                         Text("\(percentage)%")
-                            .font(.system(size: 11, weight: .semibold, design: .rounded))
+                            .font(DesignSystem.Typography.semiBold(size: 11))
                             .foregroundColor(.white)
                             .padding(.leading, 8)
                             .opacity(animateIn ? 1 : 0)
@@ -248,7 +248,7 @@ struct MacroHeroBar: View {
                         HStack {
                             Spacer()
                             Text("+\(Int(current - goal))g")
-                                .font(.system(size: 10, weight: .bold))
+                                .font(DesignSystem.Typography.bold(size: 10))
                                 .foregroundColor(color)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
@@ -320,11 +320,11 @@ struct CompactGoalsView: View {
                     .frame(width: 10, height: 28)
 
                 Text("\(Int(goals.calories))")
-                    .font(.custom("PlusJakartaSans-Bold", size: 38))
+                    .font(DesignSystem.Typography.bold(size: 38))
                     .foregroundColor(.primary)
 
                 Text("cal")
-                    .font(.system(size: 15, weight: .medium))
+                    .font(DesignSystem.Typography.medium(size: 15))
                     .foregroundStyle(.tertiary)
                     .padding(.top, 8)
 
@@ -387,11 +387,11 @@ private struct GoalIndicator: View {
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(label)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(DesignSystem.Typography.medium(size: 11))
                     .foregroundStyle(.secondary)
 
                 Text("\(Int(value))g")
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .font(DesignSystem.Typography.semiBold(size: 14))
                     .foregroundStyle(color.opacity(0.85))
             }
         }

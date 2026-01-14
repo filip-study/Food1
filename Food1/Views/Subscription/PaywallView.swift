@@ -89,10 +89,10 @@ struct PaywallView: View {
 
             VStack(spacing: 8) {
                 Text("Unlock Premium")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(DesignSystem.Typography.bold(size: 28))
 
                 Text("Get unlimited AI-powered nutrition tracking")
-                    .font(.system(size: 16))
+                    .font(DesignSystem.Typography.regular(size: 16))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
             }
@@ -116,7 +116,7 @@ struct PaywallView: View {
         VStack(spacing: 12) {
             // Free trial callout
             Text("7-Day Free Trial")
-                .font(.system(size: 24, weight: .bold))
+                .font(DesignSystem.Typography.bold(size: 24))
                 .foregroundStyle(
                     LinearGradient(
                         colors: [.blue, .cyan],
@@ -127,19 +127,19 @@ struct PaywallView: View {
 
             if let product = subscriptionService.products.first {
                 Text("then \(product.pricePerPeriod)")
-                    .font(.system(size: 16))
+                    .font(DesignSystem.Typography.regular(size: 16))
                     .foregroundColor(.secondary)
             } else if subscriptionService.isLoading {
                 ProgressView()
                     .padding()
             } else {
                 Text("then $5.99/month")
-                    .font(.system(size: 16))
+                    .font(DesignSystem.Typography.regular(size: 16))
                     .foregroundColor(.secondary)
             }
 
             Text("Cancel anytime. No charge during trial.")
-                .font(.system(size: 14))
+                .font(DesignSystem.Typography.regular(size: 14))
                 .foregroundColor(.secondary)
         }
         .padding(.vertical, 8)
@@ -158,10 +158,10 @@ struct PaywallView: View {
                             .tint(.white)
                     } else if subscriptionService.products.isEmpty {
                         Text("Loading...")
-                            .font(.system(size: 17, weight: .semibold))
+                            .font(DesignSystem.Typography.semiBold(size: 17))
                     } else {
                         Text("Start Free Trial")
-                            .font(.system(size: 17, weight: .semibold))
+                            .font(DesignSystem.Typography.semiBold(size: 17))
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -181,7 +181,7 @@ struct PaywallView: View {
             // Show error if products failed to load
             if !subscriptionService.isLoading && subscriptionService.products.isEmpty {
                 Text("Subscription unavailable. Please try again later.")
-                    .font(.system(size: 13))
+                    .font(DesignSystem.Typography.regular(size: 13))
                     .foregroundColor(.orange)
                     .multilineTextAlignment(.center)
             }
@@ -191,7 +191,7 @@ struct PaywallView: View {
                     await subscriptionService.restorePurchases()
                 }
             }
-            .font(.system(size: 14))
+            .font(DesignSystem.Typography.regular(size: 14))
             .foregroundColor(.blue)
         }
     }
@@ -212,11 +212,11 @@ struct PaywallView: View {
                 Text("•").foregroundColor(.secondary)
                 Link("Privacy Policy", destination: URL(string: "https://prismae.net/privacy")!)
             }
-            .font(.system(size: 12))
+            .font(DesignSystem.Typography.regular(size: 12))
             .foregroundColor(.secondary)
 
             Text("Payment will be charged to your Apple ID account at confirmation of purchase. Subscription automatically renews unless cancelled at least 24 hours before the end of the current period.")
-                .font(.system(size: 10))
+                .font(DesignSystem.Typography.regular(size: 10))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
@@ -285,10 +285,10 @@ private struct FeatureRow: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(DesignSystem.Typography.semiBold(size: 15))
 
                 Text(description)
-                    .font(.system(size: 13))
+                    .font(DesignSystem.Typography.regular(size: 13))
                     .foregroundColor(.secondary)
             }
 
@@ -307,7 +307,7 @@ private struct TrustBadge: View {
                 .font(.system(size: 16))
 
             Text(text)
-                .font(.system(size: 10))
+                .font(DesignSystem.Typography.regular(size: 10))
         }
     }
 }

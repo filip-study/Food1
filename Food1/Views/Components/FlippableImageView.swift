@@ -89,7 +89,7 @@ struct FlippableImageView: View {
                                 Image(systemName: badgeInfo.icon)
                                     .font(.system(size: 10, weight: .semibold))
                                 Text(badgeInfo.text)
-                                    .font(.system(size: 10, weight: .bold))
+                                    .font(DesignSystem.Typography.bold(size: 10))
                             }
                             .foregroundStyle(
                                 LinearGradient(
@@ -120,7 +120,7 @@ struct FlippableImageView: View {
             // Hint text (fades after 2 seconds)
             if canFlip && showHint {
                 Text(showingCartoon ? "Tap to see real photo" : "Tap to see AI version")
-                    .font(.system(size: 13))
+                    .font(DesignSystem.Typography.regular(size: 13))
                     .foregroundColor(.secondary)
                     .transition(.opacity)
                     .onAppear {

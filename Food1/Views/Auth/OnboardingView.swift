@@ -59,7 +59,7 @@ struct OnboardingView: View {
                     // App title and tagline
                     VStack(spacing: 8) {
                         Text("Prismae")
-                            .font(.system(size: 36, weight: .bold))
+                            .font(DesignSystem.Typography.bold(size: 36))
                             .tracking(-0.5)
                             .foregroundStyle(
                                 LinearGradient(
@@ -70,7 +70,7 @@ struct OnboardingView: View {
                             )
 
                         Text("Sign in to continue")
-                            .font(.system(size: 17, weight: .medium))
+                            .font(DesignSystem.Typography.medium(size: 17))
                             .foregroundColor(.secondary)
                     }
                     .padding(.bottom, 24)
@@ -107,7 +107,7 @@ struct OnboardingView: View {
                                         .fill(Color.secondary.opacity(0.3))
                                         .frame(height: 1)
                                     Text("or")
-                                        .font(.system(size: 14))
+                                        .font(DesignSystem.Typography.regular(size: 14))
                                         .foregroundColor(.secondary)
                                     Rectangle()
                                         .fill(Color.secondary.opacity(0.3))
@@ -144,14 +144,14 @@ struct OnboardingView: View {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundColor(.green)
                                 Text("7-day free trial")
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(DesignSystem.Typography.medium(size: 14))
                             }
 
                             HStack(spacing: 8) {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundColor(.blue)
                                 Text("No credit card required")
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(DesignSystem.Typography.medium(size: 14))
                             }
                         }
                         .foregroundColor(.secondary)
@@ -185,7 +185,7 @@ struct OnboardingView: View {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 14, weight: .semibold))
                         Text("Back")
-                            .font(.system(size: 14, weight: .medium))
+                            .font(DesignSystem.Typography.medium(size: 14))
                     }
                 }
                 Spacer()
@@ -201,7 +201,7 @@ struct OnboardingView: View {
             // Email field
             VStack(alignment: .leading, spacing: 8) {
                 Text("Email")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(DesignSystem.Typography.medium(size: 14))
                     .foregroundColor(.secondary)
 
                 TextField("you@example.com", text: $email)
@@ -232,7 +232,7 @@ struct OnboardingView: View {
             // Password field
             VStack(alignment: .leading, spacing: 8) {
                 Text("Password")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(DesignSystem.Typography.medium(size: 14))
                     .foregroundColor(.secondary)
 
                 SecureField("At least 8 characters", text: $password)
@@ -263,7 +263,7 @@ struct OnboardingView: View {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundColor(.red)
                     Text(error)
-                        .font(.system(size: 14))
+                        .font(DesignSystem.Typography.regular(size: 14))
                         .foregroundColor(.red)
                 }
                 .padding(12)
@@ -284,7 +284,7 @@ struct OnboardingView: View {
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                     } else {
                         Text(isSignUpMode ? "Create Account" : "Sign In")
-                            .font(.system(size: 17, weight: .semibold))
+                            .font(DesignSystem.Typography.semiBold(size: 17))
                     }
                 }
             }
@@ -295,7 +295,7 @@ struct OnboardingView: View {
             // Help text
             if isSignUpMode {
                 Text("By creating an account, you agree to our Terms of Service and Privacy Policy")
-                    .font(.system(size: 13))
+                    .font(DesignSystem.Typography.regular(size: 13))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.top, 4)

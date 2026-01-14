@@ -103,31 +103,31 @@ struct ServingSizeAdjustmentView: View {
                     // Primary: Total grams (most important info)
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text("\(Int(totalGrams))")
-                            .font(.system(size: 32, weight: .semibold, design: .rounded))
+                            .font(DesignSystem.Typography.semiBold(size: 32))
                             .contentTransition(.numericText())
 
                         Text("grams")
-                            .font(.system(size: 17, weight: .medium))
+                            .font(DesignSystem.Typography.medium(size: 17))
                             .foregroundStyle(.secondary)
                     }
 
                     // Secondary: Calculation formula (provides context)
                     HStack(spacing: 4) {
                         Text(servingCountText)
-                            .font(.system(size: 15, weight: .medium))
+                            .font(DesignSystem.Typography.medium(size: 15))
 
                         Text(servingCount == 1 ? "serving" : "servings")
-                            .font(.system(size: 15))
+                            .font(DesignSystem.Typography.regular(size: 15))
 
                         Text("×")
-                            .font(.system(size: 15))
+                            .font(DesignSystem.Typography.regular(size: 15))
                             .foregroundStyle(.tertiary)
 
                         Text("\(Int(gramsPerServing))g")
-                            .font(.system(size: 15, weight: .medium))
+                            .font(DesignSystem.Typography.medium(size: 15))
 
                         Text("per serving")
-                            .font(.system(size: 15))
+                            .font(DesignSystem.Typography.regular(size: 15))
                     }
                     .foregroundStyle(.secondary)
                 }
@@ -163,7 +163,7 @@ struct ServingSizeAdjustmentView: View {
                     // Current value display
                     VStack(spacing: 2) {
                         Text(servingCountText)
-                            .font(.system(size: 20, weight: .semibold, design: .rounded))
+                            .font(DesignSystem.Typography.semiBold(size: 20))
                             .contentTransition(.numericText())
 
                         Text(servingLabel)

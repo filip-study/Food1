@@ -21,7 +21,7 @@ struct IngredientListView: View {
         Section {
             if ingredients.isEmpty {
                 Text("No ingredients detected")
-                    .font(.system(size: 15))
+                    .font(DesignSystem.Typography.regular(size: 15))
                     .foregroundColor(.secondary)
                     .padding(.vertical, 8)
             } else {

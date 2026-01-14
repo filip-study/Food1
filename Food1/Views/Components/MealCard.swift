@@ -46,7 +46,7 @@ struct MealCard: View {
             VStack(alignment: .leading, spacing: 6) {
                 // Food name (single line, truncated) - PRIMARY
                 Text(meal.name)
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(DesignSystem.Typography.semiBold(size: 17))
                     .foregroundColor(.primary)
                     .lineLimit(1)
                     .truncationMode(.tail)
@@ -57,7 +57,7 @@ struct MealCard: View {
                     Text("•")
                     Text("\(Int(meal.calories)) cal")
                 }
-                .font(.system(size: 14, weight: .medium))
+                .font(DesignSystem.Typography.medium(size: 14))
                 .foregroundColor(.secondary)
             }
 

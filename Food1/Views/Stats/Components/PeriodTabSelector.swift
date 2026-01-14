@@ -37,7 +37,7 @@ struct PeriodTabSelector: View {
                     VStack(spacing: 8) {
                         HStack(spacing: 4) {
                             Text(label)
-                                .font(.system(size: 14, weight: isSelected ? .semibold : .medium))
+                                .font(isSelected ? DesignSystem.Typography.semiBold(size: 14) : DesignSystem.Typography.medium(size: 14))
 
                             if !isUnlocked {
                                 Image(systemName: "lock.fill")

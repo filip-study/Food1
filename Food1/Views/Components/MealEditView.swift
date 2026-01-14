@@ -207,7 +207,7 @@ struct MealEditView: View {
                         saveMeal()
                     }) {
                         Text("Save Changes")
-                            .font(.system(size: 17, weight: .semibold))
+                            .font(DesignSystem.Typography.semiBold(size: 17))
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)

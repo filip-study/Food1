@@ -170,14 +170,14 @@ struct StreakTooltip: View {
                     .foregroundStyle(Color(hex: "#FF9500"))
 
                 Text("\(currentStreak) \(daysLabel)")
-                    .font(.system(size: 17, weight: .bold))
+                    .font(DesignSystem.Typography.bold(size: 17))
                     .foregroundStyle(.primary)
             }
 
             // Stats row - centered, subtle
             HStack(spacing: 12) {
                 Text("\(longestStreak) best")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(DesignSystem.Typography.medium(size: 13))
                     .foregroundStyle(.secondary)
 
                 Circle()
@@ -185,13 +185,13 @@ struct StreakTooltip: View {
                     .frame(width: 3, height: 3)
 
                 Text("\(totalMealsLogged) meals")
-                    .font(.system(size: 13, weight: .medium))
+                    .font(DesignSystem.Typography.medium(size: 13))
                     .foregroundStyle(.secondary)
             }
 
             // Motivational message
             Text("Consistent logging improves your nutritional insights.")
-                .font(.system(size: 12, weight: .regular))
+                .font(DesignSystem.Typography.regular(size: 12))
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
@@ -229,7 +229,7 @@ struct StreakTooltip: View {
                     .font(.custom("InstrumentSerif-Regular", size: 26))
                     .foregroundStyle(.secondary)
                 Text("Filip")
-                    .font(.custom("PlusJakartaSans-Bold", size: 26))
+                    .font(DesignSystem.Typography.bold(size: 26))
                     .foregroundStyle(.primary)
             }
             Spacer()
@@ -244,7 +244,7 @@ struct StreakTooltip: View {
                     .font(.custom("InstrumentSerif-Regular", size: 26))
                     .foregroundStyle(.secondary)
                 Text("Filip")
-                    .font(.custom("PlusJakartaSans-Bold", size: 26))
+                    .font(DesignSystem.Typography.bold(size: 26))
                     .foregroundStyle(.primary)
             }
             Spacer()
@@ -262,7 +262,7 @@ struct StreakTooltip: View {
                 .font(.custom("InstrumentSerif-Regular", size: 26))
                 .foregroundStyle(.secondary)
             Text("Filip")
-                .font(.custom("PlusJakartaSans-Bold", size: 26))
+                .font(DesignSystem.Typography.bold(size: 26))
                 .foregroundStyle(.primary)
         }
         Spacer()
@@ -283,7 +283,7 @@ struct StreakTooltip: View {
                     .font(.custom("InstrumentSerif-Regular", size: 26))
                     .foregroundStyle(.secondary)
                 Text("Filip")
-                    .font(.custom("PlusJakartaSans-Bold", size: 26))
+                    .font(DesignSystem.Typography.bold(size: 26))
                     .foregroundStyle(.primary)
             }
             Spacer()

@@ -52,7 +52,7 @@ struct BlurredTrendPreview: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Jan 1 – Jan 7")
-                            .font(.system(size: 13, weight: .medium))
+                            .font(DesignSystem.Typography.medium(size: 13))
                             .foregroundColor(.secondary)
                         HStack(spacing: 16) {
                             sampleLegendItem(color: ColorPalette.macroProtein, label: "~85g")
@@ -139,11 +139,11 @@ struct BlurredTrendPreview: View {
                     )
 
                 Text("Trends unlock with more data")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(DesignSystem.Typography.semiBold(size: 17))
                     .foregroundColor(.primary)
 
                 Text("Log another day to see your patterns")
-                    .font(.system(size: 14))
+                    .font(DesignSystem.Typography.regular(size: 14))
                     .foregroundColor(.secondary)
             }
             .padding(.horizontal, 32)

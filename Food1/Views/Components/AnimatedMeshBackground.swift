@@ -2,29 +2,33 @@
 //  AnimatedMeshBackground.swift
 //  Food1
 //
-//  Subtle animated mesh gradient background for premium visual depth.
+//  Premium neutral background with subtle animated depth.
 //  Uses iOS 18+ MeshGradient with very slow, organic movement.
 //
 //  DESIGN PHILOSOPHY:
-//  - "Lowkey" aesthetic: barely perceptible motion, never distracting
-//  - Colors derived from app palette but heavily muted (0.1-0.3 opacity)
-//  - 20-30 second animation cycles feel natural, not mechanical
+//  - Pure neutrals: no color tint, lets content (food photos, macro colors) shine
+//  - "Invisible" aesthetic: provides depth without competing for attention
+//  - Subtle luminosity shifts create premium feel without visible animation
 //  - Respects reduceMotion accessibility setting
+//
+//  WHY NEUTRAL:
+//  - Food photos are colorful - background should not add color competition
+//  - App UI uses blue/teal/coral for macros - neutral background lets these pop
+//  - Matches premium health apps (Oura, Function Health, Apple Health)
+//  - Works with any food imagery without color clashing
 //
 
 import SwiftUI
 
 /// Animated mesh gradient background with subtle, peaceful motion
+/// Uses pure neutrals for a clean, premium aesthetic
 @available(iOS 18.0, *)
 struct AnimatedMeshBackground: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// Animation phase (0 to 1, loops continuously)
-    @State private var phase: CGFloat = 0
-
     /// Animation duration in seconds (longer = more subtle)
-    var cycleDuration: Double = 25
+    var cycleDuration: Double = 30
 
     /// Overall opacity multiplier for the gradient
     var intensity: Double = 1.0
@@ -41,31 +45,31 @@ struct AnimatedMeshBackground: View {
 
     /// Creates the mesh gradient with animated control points
     private func meshGradient(phase: Double) -> some View {
-        // Subtle movement offsets - ONLY for interior points (not edges!)
-        let drift1 = sin(phase * .pi * 2) * 0.04
-        let drift2 = cos(phase * .pi * 2) * 0.03
-        let drift3 = sin(phase * .pi * 2 + 1) * 0.035
+        // Very subtle movement - creates gentle "breathing" effect
+        let drift1 = sin(phase * .pi * 2) * 0.03
+        let drift2 = cos(phase * .pi * 2) * 0.025
+        let drift3 = sin(phase * .pi * 2 + 0.8) * 0.028
 
         return MeshGradient(
             width: 3,
             height: 4,
             points: [
-                // Row 0 (top edge) - FIXED, no movement
+                // Row 0 (top edge) - FIXED
                 .init(0, 0),
                 .init(0.5, 0),
                 .init(1, 0),
 
-                // Row 1 (interior) - edges fixed, center moves
+                // Row 1 (interior) - edges fixed, center breathes
                 .init(0, 0.33),
                 .init(Float(0.5 + drift1), Float(0.33 + drift2)),
                 .init(1, 0.33),
 
-                // Row 2 (interior) - edges fixed, center moves
+                // Row 2 (interior) - edges fixed, center breathes
                 .init(0, 0.66),
                 .init(Float(0.5 + drift3), Float(0.66 + drift1)),
                 .init(1, 0.66),
 
-                // Row 3 (bottom edge) - FIXED, no movement
+                // Row 3 (bottom edge) - FIXED
                 .init(0, 1),
                 .init(0.5, 1),
                 .init(1, 1)
@@ -76,50 +80,55 @@ struct AnimatedMeshBackground: View {
     }
 
     /// Color grid for the mesh (3x4 = 12 colors)
+    /// Pure neutrals with subtle luminosity variation for depth
     private var meshColors: [Color] {
         if colorScheme == .dark {
+            // Dark mode: Rich blacks with subtle gray luminosity zones
+            // Creates depth without any color tint
             return [
-                // Row 0 - Top edge (near black with hint of blue)
-                Color.black,
-                Color(hex: "#0A1628").opacity(0.95),
-                Color.black,
+                // Row 0 - Top edge (pure black)
+                Color(white: 0.0),
+                Color(white: 0.02),
+                Color(white: 0.0),
 
-                // Row 1 - Upper area (subtle blue tint)
-                Color(hex: "#0D1F3C").opacity(0.9),
-                ColorPalette.accentPrimary.opacity(0.15),
-                Color(hex: "#0D1F3C").opacity(0.9),
+                // Row 1 - Upper area (subtle lift)
+                Color(white: 0.03),
+                Color(white: 0.06),
+                Color(white: 0.03),
 
-                // Row 2 - Middle (teal accent, very subtle)
-                Color(hex: "#071F1F").opacity(0.85),
-                ColorPalette.accentSecondary.opacity(0.12),
-                Color(hex: "#071F1F").opacity(0.85),
+                // Row 2 - Middle (gentle luminosity)
+                Color(white: 0.04),
+                Color(white: 0.07),
+                Color(white: 0.04),
 
-                // Row 3 - Bottom (deeper, grounding)
-                Color(hex: "#050A12"),
-                Color(hex: "#0A1525").opacity(0.95),
-                Color(hex: "#050A12")
+                // Row 3 - Bottom (grounding dark)
+                Color(white: 0.01),
+                Color(white: 0.03),
+                Color(white: 0.01)
             ]
         } else {
+            // Light mode: Pure whites with subtle gray shading
+            // Creates soft depth without any color tint
             return [
                 // Row 0 - Top edge (pure white)
-                Color.white,
-                Color.white.opacity(0.98),
-                Color.white,
+                Color(white: 1.0),
+                Color(white: 0.99),
+                Color(white: 1.0),
 
-                // Row 1 - Upper area (whisper of blue)
-                Color.white.opacity(0.97),
-                ColorPalette.accentPrimary.opacity(0.08),
-                Color.white.opacity(0.97),
+                // Row 1 - Upper area (whisper of gray)
+                Color(white: 0.98),
+                Color(white: 0.96),
+                Color(white: 0.98),
 
-                // Row 2 - Middle (hint of teal)
-                Color(hex: "#F0FAFA").opacity(0.95),
-                ColorPalette.accentSecondary.opacity(0.06),
-                Color(hex: "#F0FAFA").opacity(0.95),
+                // Row 2 - Middle (subtle shading)
+                Color(white: 0.97),
+                Color(white: 0.95),
+                Color(white: 0.97),
 
-                // Row 3 - Bottom (subtle blue wash)
-                Color(hex: "#F5F9FF"),
-                ColorPalette.accentPrimary.opacity(0.1),
-                Color(hex: "#F5F9FF")
+                // Row 3 - Bottom (slightly warmer white)
+                Color(white: 0.99),
+                Color(white: 0.97),
+                Color(white: 0.99)
             ]
         }
     }
@@ -132,8 +141,8 @@ struct StaticGradientBackground: View {
     var body: some View {
         LinearGradient(
             colors: colorScheme == .light
-                ? [Color.white, Color.blue.opacity(0.08), ColorPalette.accentSecondary.opacity(0.05)]
-                : [Color.black, Color.blue.opacity(0.15), ColorPalette.accentSecondary.opacity(0.08)],
+                ? [Color(white: 1.0), Color(white: 0.96), Color(white: 0.98)]
+                : [Color(white: 0.0), Color(white: 0.05), Color(white: 0.02)],
             startPoint: .top,
             endPoint: .bottom
         )
@@ -144,7 +153,7 @@ struct StaticGradientBackground: View {
 /// Unified background that uses MeshGradient on iOS 18+ or falls back gracefully
 struct AdaptiveAnimatedBackground: View {
     var intensity: Double = 1.0
-    var cycleDuration: Double = 25
+    var cycleDuration: Double = 30
 
     var body: some View {
         if #available(iOS 18.0, *) {
@@ -163,7 +172,7 @@ struct AdaptiveAnimatedBackground: View {
         VStack {
             Text("Good morning")
                 .font(.largeTitle)
-            Text("Lowkey animated background")
+            Text("Clean neutral background")
                 .foregroundStyle(.secondary)
         }
     }
@@ -176,7 +185,7 @@ struct AdaptiveAnimatedBackground: View {
         VStack {
             Text("Good evening")
                 .font(.largeTitle)
-            Text("Lowkey animated background")
+            Text("Clean neutral background")
                 .foregroundStyle(.secondary)
         }
     }

@@ -68,7 +68,7 @@ struct FoodIdentityCard: View {
                         HStack(spacing: 4) {
                             if isEditingName {
                                 TextField("Meal name", text: $mealName)
-                                    .font(.system(size: 19, weight: .semibold))
+                                    .font(DesignSystem.Typography.semiBold(size: 19))
                                     .textFieldStyle(.plain)
                                     .focused($isNameFocused)
                                     .onSubmit {
@@ -77,7 +77,7 @@ struct FoodIdentityCard: View {
                                     }
                             } else {
                                 Text(mealName.isEmpty ? foodName : mealName)
-                                    .font(.system(size: 19, weight: .semibold))
+                                    .font(DesignSystem.Typography.semiBold(size: 19))
                                     .lineLimit(2)
                                     .fixedSize(horizontal: false, vertical: true)
                                     .onTapGesture {
@@ -99,10 +99,10 @@ struct FoodIdentityCard: View {
                         // Confidence badge
                         VStack(spacing: 2) {
                             Text("\(confidencePercentage)%")
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(DesignSystem.Typography.semiBold(size: 11))
                                 .foregroundColor(.blue)
                             Text(confidenceDots)
-                                .font(.system(size: 8))
+                                .font(DesignSystem.Typography.regular(size: 8))
                                 .foregroundColor(.blue.opacity(0.6))
                         }
                         .padding(.horizontal, 8)
@@ -116,7 +116,7 @@ struct FoodIdentityCard: View {
                     // Description if available
                     if let desc = description, !desc.isEmpty {
                         Text(desc)
-                            .font(.system(size: 15))
+                            .font(DesignSystem.Typography.regular(size: 15))
                             .foregroundColor(.secondary)
                             .lineLimit(3)
                             .fixedSize(horizontal: false, vertical: true)

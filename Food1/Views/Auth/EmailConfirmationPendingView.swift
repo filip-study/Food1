@@ -41,19 +41,19 @@ struct EmailConfirmationPendingView: View {
                     // Title and instructions
                     VStack(spacing: 16) {
                         Text("Check your email")
-                            .font(.system(size: 32, weight: .bold))
+                            .font(DesignSystem.Typography.bold(size: 32))
                             .multilineTextAlignment(.center)
 
                         Text("We sent a confirmation link to:")
-                            .font(.system(size: 17))
+                            .font(DesignSystem.Typography.regular(size: 17))
                             .foregroundColor(.secondary)
 
                         Text(email)
-                            .font(.system(size: 17, weight: .semibold))
+                            .font(DesignSystem.Typography.semiBold(size: 17))
                             .foregroundColor(.primary)
 
                         Text("Click the link in the email to complete your registration.")
-                            .font(.system(size: 15))
+                            .font(DesignSystem.Typography.regular(size: 15))
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 32)
@@ -65,7 +65,7 @@ struct EmailConfirmationPendingView: View {
                         VStack(spacing: 16) {
                             if resendCooldown > 0 {
                                 Text("You can resend the email in \(resendCooldown)s")
-                                    .font(.system(size: 15))
+                                    .font(DesignSystem.Typography.regular(size: 15))
                                     .foregroundColor(.secondary)
                             } else {
                                 Button {
@@ -87,10 +87,10 @@ struct EmailConfirmationPendingView: View {
                             // Help text
                             VStack(spacing: 8) {
                                 Text("Didn't receive the email?")
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(DesignSystem.Typography.medium(size: 14))
 
                                 Text("Check your spam folder or try resending")
-                                    .font(.system(size: 13))
+                                    .font(DesignSystem.Typography.regular(size: 13))
                                     .foregroundColor(.secondary)
                                     .multilineTextAlignment(.center)
                             }
@@ -104,7 +104,7 @@ struct EmailConfirmationPendingView: View {
                         dismiss()
                     } label: {
                         Text("Back to sign in")
-                            .font(.system(size: 16, weight: .medium))
+                            .font(DesignSystem.Typography.medium(size: 16))
                             .foregroundColor(.blue)
                     }
                     .padding(.top, 16)

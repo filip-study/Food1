@@ -80,19 +80,19 @@ struct MicronutrientsSection: View {
         VStack(alignment: .leading, spacing: 20) {
             // Section header
             Text("Micronutrients")
-                .font(.system(size: 17, weight: .semibold))
+                .font(DesignSystem.Typography.semiBold(size: 17))
                 .foregroundColor(.primary)
 
             // Top nutrients
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Text("HIGHEST")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(DesignSystem.Typography.semiBold(size: 11))
                         .foregroundColor(.secondary)
                         .tracking(0.5)
                     Spacer()
                     Text("Daily Avg")
-                        .font(.system(size: 11, weight: .medium))
+                        .font(DesignSystem.Typography.medium(size: 11))
                         .foregroundColor(.secondary)
                 }
 
@@ -106,7 +106,7 @@ struct MicronutrientsSection: View {
             // Bottom nutrients
             VStack(alignment: .leading, spacing: 12) {
                 Text("LOWEST")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(DesignSystem.Typography.semiBold(size: 11))
                     .foregroundColor(.secondary)
                     .tracking(0.5)
 
@@ -122,7 +122,7 @@ struct MicronutrientsSection: View {
             } label: {
                 HStack {
                     Text("View All Nutrients")
-                        .font(.system(size: 14, weight: .medium))
+                        .font(DesignSystem.Typography.medium(size: 14))
                     Spacer()
                     Image(systemName: "arrow.right.circle.fill")
                         .font(.system(size: 18))
@@ -200,14 +200,14 @@ struct NutrientRDARow: View {
 
             // Name
             Text(nutrient.name)
-                .font(.system(size: 14, weight: .medium))
+                .font(DesignSystem.Typography.medium(size: 14))
                 .foregroundColor(.primary)
 
             Spacer()
 
             // Amount
             Text(formatAmount(dailyAvg, unit: nutrient.unit))
-                .font(.system(size: 13, weight: .medium))
+                .font(DesignSystem.Typography.medium(size: 13))
                 .foregroundColor(.secondary)
 
             // RDA %

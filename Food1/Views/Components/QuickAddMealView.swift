@@ -297,13 +297,13 @@ struct QuickAddMealView: View {
 
                 VStack(spacing: 12) {
                     Text(loadingMessages[currentMessageIndex].title)
-                        .font(.system(size: 18, weight: .semibold, design: .rounded))
+                        .font(DesignSystem.Typography.semiBold(size: 18))
                         .foregroundColor(.primary)
                         .id(currentMessageIndex)
                         .transition(.opacity)
 
                     Text(loadingMessages[currentMessageIndex].subtitle)
-                        .font(.system(size: 15))
+                        .font(DesignSystem.Typography.regular(size: 15))
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .id("subtitle-\(currentMessageIndex)")

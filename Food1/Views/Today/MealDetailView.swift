@@ -150,12 +150,12 @@ struct MealDetailView: View {
 
             VStack(spacing: 6) {
                 Text(meal.name)
-                    .font(.system(size: 24, weight: .bold))
+                    .font(DesignSystem.Typography.bold(size: 24))
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
 
                 Text(timeString)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(DesignSystem.Typography.medium(size: 14))
                     .foregroundColor(.secondary)
             }
         }
@@ -177,14 +177,14 @@ struct MealDetailView: View {
                             .frame(width: 28)
 
                         Text("Calories")
-                            .font(.system(size: 16, weight: .medium))
+                            .font(DesignSystem.Typography.medium(size: 16))
                             .foregroundColor(.primary)
                     }
 
                     Spacer()
 
                     Text("\(Int(meal.calories))")
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .font(DesignSystem.Typography.bold(size: 22))
                         .foregroundColor(.primary)
                 }
                 .padding(.bottom, 16)
@@ -237,14 +237,14 @@ struct MealDetailView: View {
                             .foregroundColor(.secondary)
 
                         Text("Ingredients")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(DesignSystem.Typography.semiBold(size: 15))
                             .foregroundColor(.secondary)
                     }
 
                     Spacer()
 
                     Text("\(ingredients.count)")
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
+                        .font(DesignSystem.Typography.semiBold(size: 12))
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -269,7 +269,7 @@ struct MealDetailView: View {
                         Image(systemName: "info.circle")
                             .font(.system(size: 11))
                         Text("Some ingredients have limited nutrition data")
-                            .font(.system(size: 11))
+                            .font(DesignSystem.Typography.regular(size: 11))
                     }
                     .foregroundColor(.secondary)
                     .padding(.top, 4)
@@ -291,7 +291,7 @@ struct MealDetailView: View {
                             .foregroundColor(.green)
 
                         Text("Micronutrients")
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(DesignSystem.Typography.semiBold(size: 15))
                             .foregroundColor(.secondary)
                     }
 
@@ -307,7 +307,7 @@ struct MealDetailView: View {
                             Text(enrichmentProgress.enriched > 0 ?
                                  "\(enrichmentProgress.enriched)/\(enrichmentProgress.total)" :
                                  "Loading...")
-                                .font(.system(size: 11, weight: .medium))
+                                .font(DesignSystem.Typography.medium(size: 11))
                                 .foregroundColor(ColorPalette.accentPrimary)
                         }
                     }
@@ -320,16 +320,16 @@ struct MealDetailView: View {
                             .font(.system(size: 12))
                             .foregroundColor(ColorPalette.accentPrimary)
                         Text("Analyzing ingredients...")
-                            .font(.system(size: 12))
+                            .font(DesignSystem.Typography.regular(size: 12))
                             .foregroundColor(.secondary)
                     }
                 } else if enrichmentProgress.enriched < enrichmentProgress.total && enrichmentProgress.enriched > 0 {
                     Text("Based on \(enrichmentProgress.enriched) of \(enrichmentProgress.total) ingredients")
-                        .font(.system(size: 12))
+                        .font(DesignSystem.Typography.regular(size: 12))
                         .foregroundColor(.secondary)
                 } else {
                     Text("% of daily recommended intake")
-                        .font(.system(size: 12))
+                        .font(DesignSystem.Typography.regular(size: 12))
                         .foregroundColor(.secondary)
                 }
 
@@ -341,7 +341,7 @@ struct MealDetailView: View {
                     ForEach(groupedMicronutrients, id: \.0) { category, nutrients in
                         VStack(alignment: .leading, spacing: 10) {
                             Text(category.uppercased())
-                                .font(.system(size: 10, weight: .semibold))
+                                .font(DesignSystem.Typography.semiBold(size: 10))
                                 .foregroundColor(.secondary)
                                 .tracking(0.5)
                                 .padding(.top, 6)
@@ -375,7 +375,7 @@ struct MealDetailView: View {
                     }) {
                         HStack {
                             Text(showAllMicronutrients ? "Show Less" : "View All \(meal.micronutrients.count) Nutrients")
-                                .font(.system(size: 14, weight: .medium))
+                                .font(DesignSystem.Typography.medium(size: 14))
                             Image(systemName: showAllMicronutrients ? "chevron.up" : "chevron.down")
                                 .font(.system(size: 12, weight: .semibold))
                         }
@@ -404,11 +404,11 @@ struct MealDetailView: View {
                     .foregroundColor(.secondary.opacity(0.5))
 
                 Text("Micronutrient data unavailable")
-                    .font(.system(size: 15, weight: .medium))
+                    .font(DesignSystem.Typography.medium(size: 15))
                     .foregroundColor(.secondary)
 
                 Text("Ingredients couldn't be matched")
-                    .font(.system(size: 13))
+                    .font(DesignSystem.Typography.regular(size: 13))
                     .foregroundColor(.secondary.opacity(0.7))
             }
             .frame(maxWidth: .infinity)
@@ -427,12 +427,12 @@ struct MealDetailView: View {
                         .foregroundColor(.secondary)
 
                     Text("Notes")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(DesignSystem.Typography.semiBold(size: 15))
                         .foregroundColor(.secondary)
                 }
 
                 Text(notes)
-                    .font(.system(size: 15))
+                    .font(DesignSystem.Typography.regular(size: 15))
                     .foregroundColor(.primary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -528,7 +528,7 @@ struct MealDetailView: View {
                     Image(systemName: "pencil")
                         .font(.system(size: 15, weight: .semibold))
                     Text("Edit Meal")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(DesignSystem.Typography.semiBold(size: 16))
                 }
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
@@ -549,7 +549,7 @@ struct MealDetailView: View {
                     Image(systemName: "trash")
                         .font(.system(size: 14, weight: .medium))
                     Text("Delete")
-                        .font(.system(size: 15, weight: .medium))
+                        .font(DesignSystem.Typography.medium(size: 15))
                 }
                 .foregroundColor(.red.opacity(0.8))
                 .frame(maxWidth: .infinity)
@@ -649,11 +649,11 @@ private struct MacroItem: View {
     var body: some View {
         VStack(spacing: 6) {
             Text(value)
-                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .font(DesignSystem.Typography.bold(size: 18))
                 .foregroundColor(color)
 
             Text(label)
-                .font(.system(size: 11, weight: .medium))
+                .font(DesignSystem.Typography.medium(size: 11))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)

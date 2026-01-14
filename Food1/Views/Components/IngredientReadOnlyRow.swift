@@ -41,7 +41,7 @@ struct IngredientReadOnlyRow: View {
 
             // Ingredient name
             Text(ingredient.name.isEmpty ? "Unknown ingredient" : ingredient.name)
-                .font(.system(size: 15, weight: .medium))
+                .font(DesignSystem.Typography.medium(size: 15))
                 .foregroundColor(ingredient.name.isEmpty ? .secondary : .primary)
                 .lineLimit(1)
 
@@ -49,7 +49,7 @@ struct IngredientReadOnlyRow: View {
 
             // Grams amount
             Text("\(Int(ingredient.grams))g")
-                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .font(DesignSystem.Typography.semiBold(size: 14))
                 .foregroundColor(.secondary)
         }
         .accessibilityElement(children: .combine)

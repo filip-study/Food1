@@ -518,7 +518,7 @@ fileprivate struct SmoothedChartHeader: View {
             HStack {
                 if let point = selectedPoint {
                     Text(point.label)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(DesignSystem.Typography.semiBold(size: 14))
                         .foregroundColor(.primary)
                         .transition(.asymmetric(
                             insertion: .opacity.combined(with: .scale(scale: 0.95)),
@@ -527,11 +527,11 @@ fileprivate struct SmoothedChartHeader: View {
                 } else {
                     HStack(spacing: 6) {
                         Text(periodDescription)
-                            .font(.system(size: 13, weight: .medium))
+                            .font(DesignSystem.Typography.medium(size: 13))
                             .foregroundColor(.secondary)
 
                         Text("avg")
-                            .font(.system(size: 11, weight: .medium))
+                            .font(DesignSystem.Typography.medium(size: 11))
                             .foregroundColor(.secondary.opacity(0.7))
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
@@ -618,7 +618,7 @@ private struct MacroLegendValue: View {
             // Vertical stack: label on top, value below (fixed height for stability)
             VStack(alignment: .leading, spacing: 2) {
                 Text(label)
-                    .font(.system(size: 11, weight: .medium))
+                    .font(DesignSystem.Typography.medium(size: 11))
                     .foregroundColor(.secondary)
 
                 // Value row - averages shown with "~" prefix and softer color

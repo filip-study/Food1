@@ -55,7 +55,7 @@ struct PhotoPreviewSheet: View {
                 VStack(spacing: 16) {
                     // Helpful context
                     Text("Ready to analyze your meal")
-                        .font(.system(size: 15, weight: .medium))
+                        .font(DesignSystem.Typography.medium(size: 15))
                         .foregroundColor(.white.opacity(0.8))
 
                     // Primary action - full width, prominent
@@ -67,7 +67,7 @@ struct PhotoPreviewSheet: View {
                     }) {
                         HStack(spacing: 12) {
                             Text("Analyze Photo")
-                                .font(.system(size: 17, weight: .semibold))
+                                .font(DesignSystem.Typography.semiBold(size: 17))
                             Image(systemName: "arrow.right")
                                 .font(.system(size: 14, weight: .bold))
                         }
@@ -95,7 +95,7 @@ struct PhotoPreviewSheet: View {
                             Image(systemName: "crop")
                                 .font(.system(size: 14, weight: .medium))
                             Text("Focus on specific food")
-                                .font(.system(size: 15, weight: .medium))
+                                .font(DesignSystem.Typography.medium(size: 15))
                         }
                         .foregroundColor(.white.opacity(0.7))
                         .padding(.vertical, 12)

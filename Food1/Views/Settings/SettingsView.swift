@@ -186,7 +186,7 @@ struct SettingsView: View {
                         .foregroundColor(.blue)
 
                     Text("Goals & Targets")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(DesignSystem.Typography.semiBold(size: 15))
                         .foregroundColor(.primary)
 
                     Spacer()
@@ -272,7 +272,7 @@ struct SettingsView: View {
                 // Theme
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Theme")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(DesignSystem.Typography.medium(size: 13))
                         .foregroundColor(.secondary)
 
                     Picker("Appearance", selection: $selectedTheme) {
@@ -286,7 +286,7 @@ struct SettingsView: View {
                 // Units
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Nutrition Units")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(DesignSystem.Typography.medium(size: 13))
                         .foregroundColor(.secondary)
 
                     Picker("Units", selection: $nutritionUnit) {
@@ -381,12 +381,12 @@ private struct SettingsRow: View {
                 // Text content
                 VStack(alignment: .leading, spacing: 3) {
                     Text(title)
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(DesignSystem.Typography.semiBold(size: 16))
                         .foregroundColor(.primary)
 
                     if let subtitle = subtitle {
                         Text(subtitle)
-                            .font(.system(size: 13))
+                            .font(DesignSystem.Typography.regular(size: 13))
                             .foregroundColor(.secondary)
                             .lineLimit(1)
                     }
@@ -397,7 +397,7 @@ private struct SettingsRow: View {
                 // Badge pill (moved to right side for consistent row heights)
                 if let badge = badge {
                     Text(badge)
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(DesignSystem.Typography.semiBold(size: 11))
                         .foregroundColor(badgeColor(for: badge))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
@@ -445,20 +445,20 @@ private struct SettingsTextRow: View {
         }) {
             HStack(spacing: 10) {
                 Text(title)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(DesignSystem.Typography.medium(size: 15))
                     .foregroundColor(.secondary)
 
                 Spacer()
 
                 Text(value)
-                    .font(.system(size: 15))
+                    .font(DesignSystem.Typography.regular(size: 15))
                     .foregroundColor(.primary)
                     .lineLimit(1)
 
                 // Badge pill
                 if let badge = badge {
                     Text(badge)
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(DesignSystem.Typography.semiBold(size: 11))
                         .foregroundColor(badgeColor(for: badge))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
@@ -502,7 +502,7 @@ private struct SettingsSectionHeader: View {
                 .foregroundColor(.secondary)
 
             Text(title)
-                .font(.system(size: 13, weight: .semibold))
+                .font(DesignSystem.Typography.semiBold(size: 13))
                 .foregroundColor(.secondary)
         }
     }

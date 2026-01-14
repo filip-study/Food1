@@ -249,7 +249,7 @@ struct MainTabView: View {
                                     .opacity(0)
                                 if userFirstName != nil {
                                     Text("Name")
-                                        .font(.custom("PlusJakartaSans-Bold", size: 26))
+                                        .font(DesignSystem.Typography.bold(size: 26))
                                         .opacity(0)
                                 }
                             }

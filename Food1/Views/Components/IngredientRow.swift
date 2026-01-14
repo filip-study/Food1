@@ -19,14 +19,14 @@ struct IngredientRow: View {
             Button(action: onTap) {
                 HStack {
                     Text(ingredient.name)
-                        .font(.system(size: 15, weight: .medium))
+                        .font(DesignSystem.Typography.medium(size: 15))
                         .foregroundColor(.primary)
                         .lineLimit(2)
 
                     Spacer()
 
                     Text("\(Int(ingredient.grams))g")
-                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .font(DesignSystem.Typography.semiBold(size: 14))
                         .foregroundColor(.secondary)
                 }
                 .contentShape(Rectangle())
@@ -48,7 +48,7 @@ struct IngredientRow: View {
                         Spacer()
 
                         Text("\(Int(ingredient.grams))g")
-                            .font(.system(size: 20, weight: .bold, design: .rounded))
+                            .font(DesignSystem.Typography.bold(size: 20))
                             .foregroundColor(.primary)
 
                         Spacer()
@@ -69,7 +69,7 @@ struct IngredientRow: View {
 
                     // Hint text
                     Text("Tap outside to save")
-                        .font(.system(size: 13))
+                        .font(DesignSystem.Typography.regular(size: 13))
                         .foregroundColor(.secondary)
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))

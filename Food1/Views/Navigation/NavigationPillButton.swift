@@ -29,7 +29,7 @@ struct NavigationPillButton: View {
                     .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isSelected)
 
                 Text(tab.label)
-                    .font(.system(size: 10, weight: isSelected ? .bold : .medium))
+                    .font(isSelected ? DesignSystem.Typography.bold(size: 10) : DesignSystem.Typography.medium(size: 10))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }

@@ -40,10 +40,10 @@ struct PackagingPromptView: View {
                 // Friendly messaging
                 VStack(spacing: 12) {
                     Text("Found packaged food!")
-                        .font(.system(size: 24, weight: .semibold, design: .rounded))
+                        .font(DesignSystem.Typography.semiBold(size: 24))
 
                     Text("I can scan the nutrition label\nfor more accurate data")
-                        .font(.system(size: 16))
+                        .font(DesignSystem.Typography.regular(size: 16))
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                 }
@@ -77,7 +77,7 @@ struct PackagingPromptView: View {
                         onSkipToAI()
                     }) {
                         Text("Skip for now")
-                            .font(.system(size: 16))
+                            .font(DesignSystem.Typography.regular(size: 16))
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 16)

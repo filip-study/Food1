@@ -95,7 +95,7 @@ struct CustomCameraView: View {
                     VStack(spacing: 24) {
                         // Simplified instruction - single line
                         Text("Center your food in the frame")
-                            .font(.system(size: 15, weight: .medium))
+                            .font(DesignSystem.Typography.medium(size: 15))
                             .foregroundColor(.white)
                             .padding(.horizontal, 24)
                             .padding(.vertical, 10)
@@ -118,7 +118,7 @@ struct CustomCameraView: View {
                                         .background(Circle().fill(Color.black.opacity(0.5)))
 
                                     Text("Gallery")
-                                        .font(.system(size: 13, weight: .medium))
+                                        .font(DesignSystem.Typography.medium(size: 13))
                                         .foregroundColor(.white)
                                 }
                             }
@@ -151,7 +151,7 @@ struct CustomCameraView: View {
                                         .background(Circle().fill(Color.black.opacity(0.5)))
 
                                     Text("Text")
-                                        .font(.system(size: 13, weight: .medium))
+                                        .font(DesignSystem.Typography.medium(size: 13))
                                         .foregroundColor(.white)
                                 }
                             }
@@ -224,11 +224,11 @@ struct CustomCameraView: View {
 
             VStack(spacing: 12) {
                 Text("Camera Access Required")
-                    .font(.system(size: 22, weight: .bold))
+                    .font(DesignSystem.Typography.bold(size: 22))
                     .foregroundColor(.white)
 
                 Text("Food1 needs camera access to recognize food and log meals automatically.")
-                    .font(.system(size: 16))
+                    .font(DesignSystem.Typography.regular(size: 16))
                     .foregroundColor(.white.opacity(0.8))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
@@ -241,7 +241,7 @@ struct CustomCameraView: View {
                     }
                 }) {
                     Text("Open Settings")
-                        .font(.system(size: 17, weight: .semibold))
+                        .font(DesignSystem.Typography.semiBold(size: 17))
                         .foregroundColor(.black)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
@@ -253,7 +253,7 @@ struct CustomCameraView: View {
                     dismiss()
                 }) {
                     Text("Cancel")
-                        .font(.system(size: 17, weight: .medium))
+                        .font(DesignSystem.Typography.medium(size: 17))
                         .foregroundColor(.white)
                 }
             }

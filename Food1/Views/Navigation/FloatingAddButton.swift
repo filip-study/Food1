@@ -400,7 +400,7 @@ struct FloatingAddButton: View {
                     .frame(width: 20)
 
                 Text(title)
-                    .font(.system(size: 16, weight: .medium))
+                    .font(DesignSystem.Typography.medium(size: 16))
                     .foregroundColor(.primary)
 
                 Spacer()

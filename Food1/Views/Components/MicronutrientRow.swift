@@ -24,13 +24,13 @@ struct MicronutrientRow: View {
             // Header: name + amount
             HStack {
                 Text(micronutrient.name)
-                    .font(.system(size: 15, weight: .medium))
+                    .font(DesignSystem.Typography.medium(size: 15))
                     .foregroundColor(.primary)
 
                 Spacer()
 
                 Text("\(micronutrient.formattedAmount) \(micronutrient.unit)")
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                    .font(DesignSystem.Typography.semiBold(size: 14))
                     .foregroundColor(.secondary)
             }
 
@@ -56,7 +56,7 @@ struct MicronutrientRow: View {
 
                 // RDA percentage
                 Text("\(Int(micronutrient.rdaPercent))%")
-                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .font(DesignSystem.Typography.semiBold(size: 13))
                     .foregroundColor(micronutrient.rdaColor.color)
                     .frame(width: 40, alignment: .trailing)
             }

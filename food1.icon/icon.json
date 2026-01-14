@@ -1,16 +1,30 @@
 {
-  "fill" : "system-dark",
+  "fill" : {
+    "linear-gradient" : [
+      "extended-gray:1.00000,1.00000",
+      "extended-gray:1.00000,1.00000"
+    ],
+    "orientation" : {
+      "start" : {
+        "x" : 0.5,
+        "y" : 0
+      },
+      "stop" : {
+        "x" : 0.5,
+        "y" : 0.7
+      }
+    }
+  },
   "groups" : [
     {
+      "blur-material" : null,
+      "hidden" : false,
       "layers" : [
         {
-          "fill" : "none",
-          "glass" : true,
-          "hidden" : false,
-          "image-name" : "AppIcon_MacroRings_Layer3_Fat.svg",
-          "name" : "AppIcon_MacroRings_Layer3_Fat",
+          "image-name" : "Asset 7 2.svg",
+          "name" : "Asset 7 2",
           "position" : {
-            "scale" : 1.2,
+            "scale" : 1,
             "translation-in-points" : [
               0,
               0
@@ -18,67 +32,12 @@
           }
         }
       ],
-      "name" : "Group",
-      "opacity" : 0.9,
+      "lighting" : "combined",
       "shadow" : {
         "kind" : "neutral",
         "opacity" : 0.5
       },
       "specular" : true,
-      "translucency" : {
-        "enabled" : true,
-        "value" : 0.5
-      }
-    },
-    {
-      "blur-material" : null,
-      "layers" : [
-        {
-          "fill" : "none",
-          "hidden" : false,
-          "image-name" : "AppIcon_MacroRings_Layer2_Carbs.svg",
-          "name" : "AppIcon_MacroRings_Layer2_Carbs",
-          "position" : {
-            "scale" : 1.2,
-            "translation-in-points" : [
-              0,
-              0
-            ]
-          }
-        }
-      ],
-      "lighting" : "individual",
-      "opacity" : 0.9,
-      "shadow" : {
-        "kind" : "neutral",
-        "opacity" : 0.5
-      },
-      "translucency" : {
-        "enabled" : true,
-        "value" : 0.5
-      }
-    },
-    {
-      "layers" : [
-        {
-          "fill" : "none",
-          "hidden" : false,
-          "image-name" : "AppIcon_MacroRings_Layer1_Protein.svg",
-          "name" : "AppIcon_MacroRings_Layer1_Protein",
-          "position" : {
-            "scale" : 1.2,
-            "translation-in-points" : [
-              0,
-              0
-            ]
-          }
-        }
-      ],
-      "opacity" : 0.9,
-      "shadow" : {
-        "kind" : "neutral",
-        "opacity" : 0.5
-      },
       "translucency" : {
         "enabled" : true,
         "value" : 0.5

@@ -51,6 +51,7 @@ struct TodayView: View {
     @State private var shimmerPhase: CGFloat = -100  // For greeting shimmer (starts off-screen left)
     @State private var celebrateStreak = false  // Triggers streak flame animation
     @State private var lastKnownMealCount = 0   // For detecting new meals
+    @State private var isConfirmingFast = false // Prevents duplicate fast confirmations
 
     /// User's nutrition goal (converted from raw string)
     private var userGoal: NutritionGoal? {
@@ -243,12 +244,21 @@ struct TodayView: View {
 
     /// Confirms a fast and saves it to the database
     private func confirmFast() {
+        // Prevent duplicate confirmations from rapid clicks
+        guard !isConfirmingFast else { return }
         guard let lastMealDate = mostRecentMealDate else { return }
+
+        isConfirmingFast = true
 
         let fast = Fast(startTime: lastMealDate, confirmedAt: Date())
         modelContext.insert(fast)
 
         HapticManager.success()
+
+        // Reset after short delay to allow UI to update
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            isConfirmingFast = false
+        }
     }
 
     /// Deletes a fast from the database
@@ -307,9 +317,9 @@ struct TodayView: View {
                                     }
 
                                 if let name = userFirstName {
-                                    // Name in Plus Jakarta Sans (matches prismae.net branding)
+                                    // Name in Manrope Bold (primary brand font)
                                     Text(name)
-                                        .font(.custom("PlusJakartaSans-Bold", size: 26))
+                                        .font(DesignSystem.Typography.bold(size: 26))
                                         .foregroundStyle(.primary)
                                 }
                             }
@@ -387,13 +397,19 @@ struct TodayView: View {
                             .padding(.horizontal)
 
                             if mealsForSelectedDate.isEmpty && fastsForSelectedDate.isEmpty {
-                                // No meals or fasts today - show fasting prompt
-                                FastingPromptView(
-                                    lastMealDate: mostRecentMealDate,
-                                    onConfirmFast: {
-                                        confirmFast()
-                                    }
-                                )
+                                // Only show fasting prompt for today, not historical dates
+                                if Calendar.current.isDateInToday(selectedDate) {
+                                    FastingPromptView(
+                                        lastMealDate: mostRecentMealDate,
+                                        onConfirmFast: {
+                                            confirmFast()
+                                        },
+                                        isConfirming: isConfirmingFast
+                                    )
+                                } else {
+                                    // Historical day with no meals - show simple empty state
+                                    EmptyDayView(date: selectedDate)
+                                }
                             } else {
                                 // Timeline with meals and fasts
                                 MealFastTimeline(
@@ -466,6 +482,7 @@ struct TodayView: View {
 struct FastingPromptView: View {
     let lastMealDate: Date?
     let onConfirmFast: () -> Void
+    var isConfirming: Bool = false  // Prevents double-tap issues
 
     @State private var currentTime = Date()
     @Environment(\.colorScheme) var colorScheme
@@ -508,11 +525,11 @@ struct FastingPromptView: View {
                 // Duration + context
                 HStack(spacing: 6) {
                     Text(formattedDuration)
-                        .font(.system(size: 15, weight: .medium, design: .rounded))
+                        .font(DesignSystem.Typography.medium(size: 15))
                         .foregroundStyle(.secondary)
 
                     Text("since last meal")
-                        .font(.system(size: 15, weight: .regular))
+                        .font(DesignSystem.Typography.regular(size: 15))
                         .foregroundStyle(.tertiary)
                 }
 
@@ -521,11 +538,12 @@ struct FastingPromptView: View {
                     HapticManager.light()
                     onConfirmFast()
                 }) {
-                    Text("Confirm")
-                        .font(.system(size: 14, weight: .medium))
+                    Text(isConfirming ? "Confirming..." : "Confirm")
+                        .font(DesignSystem.Typography.medium(size: 14))
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
+                .disabled(isConfirming)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 24)
@@ -568,7 +586,7 @@ struct FastingPromptView: View {
         } else if lastMealDate == nil {
             // No previous meals at all
             Text("No meals logged yet")
-                .font(.system(size: 14, weight: .regular))
+                .font(DesignSystem.Typography.regular(size: 14))
                 .foregroundStyle(.tertiary)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 24)
@@ -594,6 +612,55 @@ struct FastingPromptView: View {
                 .padding(.horizontal)
         }
         // else: Last meal exists but < 12 hours ago - show nothing
+    }
+}
+
+// MARK: - Empty Day View (Historical)
+
+/// Simple empty state for historical days with no meals.
+/// Unlike FastingPromptView, this doesn't show fasting prompts for past dates.
+struct EmptyDayView: View {
+    let date: Date
+    @Environment(\.colorScheme) var colorScheme
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Text("No meals logged")
+                .font(DesignSystem.Typography.medium(size: 15))
+                .foregroundStyle(.secondary)
+
+            Text(formattedDate)
+                .font(DesignSystem.Typography.regular(size: 13))
+                .foregroundStyle(.tertiary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
+        .padding(.horizontal, 20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(
+                    colorScheme == .dark
+                        ? Color.black.opacity(0.2)
+                        : Color.black.opacity(0.03)
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.black.opacity(colorScheme == .dark ? 0.4 : 0.12), lineWidth: 3)
+                .blur(radius: 3)
+                .offset(y: 1)
+                .mask(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color.black)
+                )
+        )
+        .padding(.horizontal)
+    }
+
+    private var formattedDate: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        return formatter.string(from: date)
     }
 }
 
@@ -697,7 +764,7 @@ struct EmptyMealsView: View {
                 .foregroundStyle(.quaternary)
 
             Text("No meals yet")
-                .font(.footnote)
+                .font(DesignSystem.Typography.regular(size: 13))
                 .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

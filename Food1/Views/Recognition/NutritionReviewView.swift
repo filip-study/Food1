@@ -236,7 +236,7 @@ struct NutritionReviewView: View {
                             Image(systemName: "clock.fill")
                                 .font(.system(size: 14, weight: .medium))
                             Text(relativeTimeString)
-                                .font(.system(size: 14, weight: .medium))
+                                .font(DesignSystem.Typography.medium(size: 14))
                         }
                         .foregroundStyle(.primary)
                         .padding(.horizontal, 12)
@@ -435,10 +435,8 @@ struct NutritionReviewView: View {
 
         // Use mealTime directly - it contains full date+time from TimeSelectionSheet
         // (TimeSelectionSheet allows changing both date and time)
-        let calendar = Calendar.current
-        var components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: mealTime)
-        components.second = 0  // Zero out seconds for cleaner timestamps
-        let finalTimestamp = calendar.date(from: components) ?? mealTime
+        // Keep seconds for proper ordering when multiple meals logged within same minute
+        let finalTimestamp = mealTime
 
         let newMeal = Meal(
             name: mealName,

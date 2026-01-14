@@ -37,11 +37,11 @@ struct InsightCard: View {
                 // Content
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(DesignSystem.Typography.semiBold(size: 15))
                         .foregroundStyle(.primary)
 
                     Text(message)
-                        .font(.system(size: 14, weight: .regular))
+                        .font(DesignSystem.Typography.regular(size: 14))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }

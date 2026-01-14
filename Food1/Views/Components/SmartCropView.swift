@@ -149,7 +149,7 @@ struct SmartCropView: View {
         Group {
             if scale <= 1.01 && offset == .zero {
                 Text("Pinch to zoom • Drag to pan • Double-tap to zoom")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(DesignSystem.Typography.medium(size: 14))
                     .foregroundColor(.white.opacity(0.8))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)
@@ -157,7 +157,7 @@ struct SmartCropView: View {
                     .background(Capsule().fill(Color.black.opacity(0.4)))
             } else {
                 Text("Position the specific food in the frame")
-                    .font(.system(size: 14, weight: .medium))
+                    .font(DesignSystem.Typography.medium(size: 14))
                     .foregroundColor(.white.opacity(0.8))
                     .padding(.horizontal, 24)
                     .padding(.vertical, 12)
@@ -173,7 +173,7 @@ struct SmartCropView: View {
         Button(action: analyzeCroppedImage) {
             HStack(spacing: 12) {
                 Text("Use This Area")
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(DesignSystem.Typography.semiBold(size: 17))
 
                 Image(systemName: "arrow.right")
                     .font(.system(size: 14, weight: .bold))
@@ -196,7 +196,7 @@ struct SmartCropView: View {
     private var zoomLevelBadge: some View {
         VStack {
             Text(String(format: "%.1f×", scale))
-                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .font(DesignSystem.Typography.bold(size: 16))
                 .foregroundColor(.white)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)

@@ -45,10 +45,10 @@ struct FiberSection: View {
                 // Daily average
                 VStack(alignment: .leading, spacing: 4) {
                     Text(String(format: "%.1fg", avgFiber))
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .font(DesignSystem.Typography.bold(size: 28))
                         .foregroundColor(.primary)
                     Text("daily avg")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(DesignSystem.Typography.medium(size: 12))
                         .foregroundColor(.secondary)
                 }
 
@@ -76,10 +76,10 @@ struct FiberSection: View {
                 // Goal
                 VStack(alignment: .trailing, spacing: 4) {
                     Text(String(format: "%.0fg", fiberGoal))
-                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                        .font(DesignSystem.Typography.semiBold(size: 20))
                         .foregroundColor(.secondary)
                     Text("goal")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(DesignSystem.Typography.medium(size: 12))
                         .foregroundColor(.secondary)
                 }
             }
@@ -87,7 +87,7 @@ struct FiberSection: View {
             // Info text
             if avgFiber < fiberGoal * 0.8 {
                 Text("Tip: Add more vegetables, legumes, and whole grains to boost fiber intake.")
-                    .font(.system(size: 12))
+                    .font(DesignSystem.Typography.regular(size: 12))
                     .foregroundColor(.secondary)
                     .padding(.top, 4)
             }

@@ -274,7 +274,7 @@ struct MicronutrientDetailView: View {
                     Button("Done") {
                         dismiss()
                     }
-                    .font(.system(size: 16, weight: .medium))
+                    .font(DesignSystem.Typography.medium(size: 16))
                 }
             }
         }
@@ -289,13 +289,13 @@ struct MicronutrientDetailView: View {
                 .foregroundColor(.secondary)
 
             Text(periodText)
-                .font(.system(size: 14, weight: .medium))
+                .font(DesignSystem.Typography.medium(size: 14))
                 .foregroundColor(.secondary)
 
             Spacer()
 
             Text("Daily Average")
-                .font(.system(size: 12, weight: .medium))
+                .font(DesignSystem.Typography.medium(size: 12))
                 .foregroundColor(.secondary)
         }
         .padding(.horizontal, 16)
@@ -331,7 +331,7 @@ struct MicronutrientDetailView: View {
                         HapticManager.light()
                     } label: {
                         Text(standard == .optimal ? "Optimal" : "RDA")
-                            .font(.system(size: 12, weight: selectedStandard == standard ? .semibold : .medium))
+                            .font(selectedStandard == standard ? DesignSystem.Typography.semiBold(size: 12) : DesignSystem.Typography.medium(size: 12))
                             .foregroundColor(selectedStandard == standard ? .white : .secondary)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
@@ -353,7 +353,7 @@ struct MicronutrientDetailView: View {
             // Sort options
             HStack(spacing: 4) {
                 Text("Sort:")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(DesignSystem.Typography.medium(size: 12))
                     .foregroundColor(.secondary)
 
                 ForEach(SortOption.allCases, id: \.self) { option in
@@ -367,7 +367,7 @@ struct MicronutrientDetailView: View {
                             Image(systemName: option.icon)
                                 .font(.system(size: 10))
                             Text(option.rawValue)
-                                .font(.system(size: 11, weight: sortOption == option ? .semibold : .medium))
+                                .font(sortOption == option ? DesignSystem.Typography.semiBold(size: 11) : DesignSystem.Typography.medium(size: 11))
                         }
                         .foregroundColor(sortOption == option ? .white : .secondary)
                         .padding(.horizontal, 8)
@@ -394,7 +394,7 @@ struct MicronutrientDetailView: View {
         VStack(alignment: .leading, spacing: 12) {
             // Category header
             Text(category.displayName)
-                .font(.system(size: 11, weight: .semibold))
+                .font(DesignSystem.Typography.semiBold(size: 11))
                 .foregroundColor(.secondary)
                 .tracking(0.5)
                 .padding(.horizontal, 20)
@@ -529,14 +529,14 @@ private struct NutrientDetailRow: View {
 
             // Nutrient name
             Text(nutrient.name)
-                .font(.system(size: 15, weight: .medium))
+                .font(DesignSystem.Typography.medium(size: 15))
                 .foregroundColor(.primary)
 
             Spacer()
 
             // Daily average amount
             Text(formatAmount(nutrient.dailyAverage, unit: nutrient.unit))
-                .font(.system(size: 14, weight: .medium))
+                .font(DesignSystem.Typography.medium(size: 14))
                 .foregroundColor(.secondary)
 
             // RDA percentage with progress bar

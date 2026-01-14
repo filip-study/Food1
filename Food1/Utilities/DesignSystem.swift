@@ -70,6 +70,50 @@ enum DesignSystem {
         static let hero: CGFloat = 64
     }
 
+    // MARK: - Typography
+
+    /// Manrope - Primary brand font for headings, buttons, and UI elements
+    /// Variable font supports weights 200-800
+    enum Typography {
+        /// Font name for the Manrope variable font
+        private static let manropeName = "Manrope"
+
+        /// Extra Light (200) - Decorative, large display text
+        static func extraLight(size: CGFloat) -> Font {
+            .custom(manropeName, size: size).weight(.ultraLight)
+        }
+
+        /// Light (300) - Subtle, secondary text
+        static func light(size: CGFloat) -> Font {
+            .custom(manropeName, size: size).weight(.light)
+        }
+
+        /// Regular (400) - Body text, descriptions
+        static func regular(size: CGFloat) -> Font {
+            .custom(manropeName, size: size).weight(.regular)
+        }
+
+        /// Medium (500) - Emphasized body, labels
+        static func medium(size: CGFloat) -> Font {
+            .custom(manropeName, size: size).weight(.medium)
+        }
+
+        /// SemiBold (600) - Subheadings, buttons
+        static func semiBold(size: CGFloat) -> Font {
+            .custom(manropeName, size: size).weight(.semibold)
+        }
+
+        /// Bold (700) - Headings, important UI
+        static func bold(size: CGFloat) -> Font {
+            .custom(manropeName, size: size).weight(.bold)
+        }
+
+        /// ExtraBold (800) - Display, hero text
+        static func extraBold(size: CGFloat) -> Font {
+            .custom(manropeName, size: size).weight(.heavy)
+        }
+    }
+
     // MARK: - Shadow
 
     enum Shadow {

@@ -15,7 +15,7 @@ struct PrimaryAuthButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 17, weight: .semibold))
+            .font(DesignSystem.Typography.semiBold(size: 17))
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)
             .frame(height: 56)
@@ -43,7 +43,7 @@ struct SecondaryAuthButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 17, weight: .medium))
+            .font(DesignSystem.Typography.medium(size: 17))
             .foregroundColor(colorScheme == .dark ? .white : .black)
             .frame(maxWidth: .infinity)
             .frame(height: 56)

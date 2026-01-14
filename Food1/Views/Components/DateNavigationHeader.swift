@@ -89,7 +89,7 @@ struct DateNavigationHeader: View {
                 showCalendar.toggle()
             }) {
                 Text(formattedDate)
-                    .font(.custom("PlusJakartaSans-Bold", size: 24))
+                    .font(DesignSystem.Typography.bold(size: 24))
                     .foregroundColor(.primary)
             }
             .sheet(isPresented: $showCalendar) {

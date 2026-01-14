@@ -61,7 +61,7 @@ struct WelcomeView: View {
                     // App name and tagline
                     VStack(spacing: 12) {
                         Text("Prismae")
-                            .font(.system(size: 42, weight: .bold))
+                            .font(DesignSystem.Typography.bold(size: 42))
                             .tracking(-0.5)
                             .foregroundStyle(
                                 LinearGradient(
@@ -74,7 +74,7 @@ struct WelcomeView: View {
                             )
 
                         Text("Intelligent Nutrition")
-                            .font(.system(size: 18, weight: .medium))
+                            .font(DesignSystem.Typography.medium(size: 18))
                             .foregroundStyle(.secondary)
                     }
                     .opacity(animateContent ? 1 : 0)
@@ -129,7 +129,7 @@ struct WelcomeView: View {
                 } label: {
                     HStack(spacing: 8) {
                         Text("Get Started")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(DesignSystem.Typography.semiBold(size: 18))
 
                         Image(systemName: "arrow.right")
                             .font(.system(size: 16, weight: .semibold))
@@ -156,7 +156,7 @@ struct WelcomeView: View {
 
                 // Subtle privacy note
                 Text("Your data stays private and secure")
-                    .font(.system(size: 13))
+                    .font(DesignSystem.Typography.regular(size: 13))
                     .foregroundStyle(.secondary)
                     .padding(.top, 16)
                     .opacity(animateButton ? 1 : 0)
@@ -235,11 +235,11 @@ private struct FeatureRow: View {
             // Text content
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(DesignSystem.Typography.semiBold(size: 16))
                     .foregroundStyle(.primary)
 
                 Text(description)
-                    .font(.system(size: 14))
+                    .font(DesignSystem.Typography.regular(size: 14))
                     .foregroundStyle(.secondary)
             }
 
