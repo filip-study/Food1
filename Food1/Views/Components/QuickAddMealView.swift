@@ -14,7 +14,7 @@
 //  - Text mode: Immediate TextEntryView - simplest, fastest path
 //  - Blurred photo background during recognition shows context without distraction
 //  - Rotating sparkles + dynamic messages make 2-5s API wait feel shorter
-//  - 800ms minimum display prevents jarring flash on quick responses (<1s)
+//  - No artificial delays - results shown as soon as API responds
 //
 
 import SwiftUI
@@ -45,7 +45,6 @@ struct QuickAddMealView: View {
     @State private var showingLabelCamera = false
     @State private var nutritionLabelImage: UIImage?
     @State private var labelData: NutritionLabelData?
-    @State private var minimumLoadingDisplayed = false  // Prevents flash on quick API responses
     @State private var currentMessageIndex = 0  // For rotating loading messages
     @State private var rotationAngle: Double = 0  // For custom spinner animation
 
@@ -357,7 +356,6 @@ struct QuickAddMealView: View {
 
         // Clear previous state when starting new recognition
         labelData = nil
-        minimumLoadingDisplayed = false
         currentMessageIndex = 0  // Reset message rotation
 
         print("📸 New photo captured - cleared previous state")
@@ -366,23 +364,12 @@ struct QuickAddMealView: View {
         }
 
         Task {
-            // Start minimum display timer (prevents flash on quick responses)
-            Task {
-                try? await Task.sleep(nanoseconds: 800_000_000)  // 800ms
-                minimumLoadingDisplayed = true
-            }
-
-            // Start recognition
+            // Start recognition immediately - show real progress, no artificial delay
             let processedImage = recognitionService.preprocessImage(image)
             let (results, hasPackaging) = await recognitionService.recognizeFood(in: processedImage)
 
             predictions = results
             self.hasPackaging = hasPackaging
-
-            // Wait for minimum loading time before showing results
-            while !minimumLoadingDisplayed {
-                try? await Task.sleep(nanoseconds: 50_000_000)  // Check every 50ms
-            }
 
             if results.isEmpty {
                 // Show error - no predictions
