@@ -105,7 +105,8 @@ class SyncService: ObservableObject {
                 "total_fiber_g": AnyEncodable(meal.fiber),
                 "sync_status": AnyEncodable("synced"),
                 "last_synced_at": AnyEncodable(ISO8601DateFormatter().string(from: Date())),
-                "user_prompt": AnyEncodable(meal.userPrompt)
+                "user_prompt": AnyEncodable(meal.userPrompt),
+                "tag": AnyEncodable(meal.tag)
             ]
 
             // Upsert meal (insert or update if exists)
@@ -408,6 +409,7 @@ class SyncService: ObservableObject {
         localMeal.mealType = cloudMeal.mealType
         localMeal.photoThumbnailUrl = cloudMeal.photoThumbnailUrl
         localMeal.cartoonImageUrl = cloudMeal.cartoonImageUrl
+        localMeal.tag = cloudMeal.tag
         localMeal.syncStatus = "synced"
         localMeal.lastSyncedAt = Date()
     }
@@ -455,6 +457,7 @@ class SyncService: ObservableObject {
             photoData: nil,  // Photos stored in cloud, thumbnail URL used for display
             ingredients: localIngredients,  // Now populated from JOIN query
             matchedIconName: nil,
+            tag: cloudMeal.tag,
             cloudId: cloudMeal.id,
             syncStatus: "synced",
             lastSyncedAt: Date(),

@@ -457,7 +457,8 @@ class OpenAIVisionService: ObservableObject {
                 fat: predData.nutrition?.fat,
                 estimatedGrams: predData.nutrition?.estimatedGrams ?? 100.0,
                 hasPackaging: hasPackaging,
-                ingredients: ingredients
+                ingredients: ingredients,
+                tag: predData.tag
             )
         }
 
@@ -539,6 +540,7 @@ private struct ProxyResponse: Decodable {
         let emoji: String?
         let confidence: Double
         let description: String?
+        let tag: String?  // AI-assigned nutritional tag: "processed", "protein", or "fat"
         let nutrition: NutritionData?
         let ingredients: [IngredientData]?  // Micronutrient tracking: ingredient breakdown
     }

@@ -59,6 +59,11 @@ struct MealCard: View {
                 }
                 .font(DesignSystem.Typography.medium(size: 14))
                 .foregroundColor(.secondary)
+
+                // Tag pill (if AI assigned one)
+                if let tagPill = MealTagPill(tagString: meal.tag) {
+                    tagPill
+                }
             }
 
             Spacer(minLength: 0)
@@ -70,16 +75,21 @@ struct MealCard: View {
                 .opacity(0.85)
                 .overlay(
                     RoundedRectangle(cornerRadius: 20)
-                        .strokeBorder(Color.white.opacity(0.05), lineWidth: 1)
+                        .strokeBorder(
+                            colorScheme == .dark
+                                ? Color.white.opacity(0.05)
+                                : Color.black.opacity(0.06),
+                            lineWidth: 1
+                        )
                 )
                 .shadow(
-                    color: Color.black.opacity(colorScheme == .dark ? 0.12 : 0.06),
+                    color: Color.black.opacity(colorScheme == .dark ? 0.12 : 0.10),
                     radius: 12,
                     x: 0,
                     y: 4
                 )
                 .shadow(
-                    color: Color.black.opacity(colorScheme == .dark ? 0.04 : 0.02),
+                    color: Color.black.opacity(colorScheme == .dark ? 0.04 : 0.04),
                     radius: 4,
                     x: 0,
                     y: 2
@@ -91,7 +101,7 @@ struct MealCard: View {
 
 #Preview {
     VStack(spacing: 16) {
-        // Test with longer name (2 lines)
+        // Test with protein tag
         MealCard(
             meal: Meal(
                 name: "Grilled Chicken Caesar Salad Bowl",
@@ -100,33 +110,49 @@ struct MealCard: View {
                 calories: 420,
                 protein: 38,
                 carbs: 28,
-                fat: 18
+                fat: 18,
+                tag: "protein"
             )
         )
 
-        // Test with medium name (1 line)
+        // Test with processed tag
         MealCard(
             meal: Meal(
-                name: "Oatmeal with Berries",
-                emoji: "🥣",
+                name: "Potato Chips",
+                emoji: "🍟",
                 timestamp: Date().addingTimeInterval(-3600),
                 calories: 320,
-                protein: 12,
-                carbs: 54,
-                fat: 8
+                protein: 4,
+                carbs: 32,
+                fat: 20,
+                tag: "processed"
             )
         )
 
-        // Test with short name (1 line)
+        // Test with fat tag
         MealCard(
             meal: Meal(
-                name: "Salmon with Quinoa",
-                emoji: "🐟",
+                name: "Avocado Toast with Cheese",
+                emoji: "🥑",
                 timestamp: Date().addingTimeInterval(-7200),
-                calories: 520,
-                protein: 42,
-                carbs: 48,
-                fat: 18
+                calories: 480,
+                protein: 12,
+                carbs: 28,
+                fat: 36,
+                tag: "fat"
+            )
+        )
+
+        // Test without tag (normal meal)
+        MealCard(
+            meal: Meal(
+                name: "Mixed Fruit Bowl",
+                emoji: "🍇",
+                timestamp: Date().addingTimeInterval(-10800),
+                calories: 180,
+                protein: 2,
+                carbs: 45,
+                fat: 1
             )
         )
     }

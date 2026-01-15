@@ -452,6 +452,7 @@ struct NutritionReviewView: View {
             notes: nil,
             photoData: photoData,
             ingredients: mealIngredients,
+            tag: prediction.tag,
             userPrompt: userPrompt
         )
 
@@ -528,7 +529,8 @@ struct NutritionReviewView: View {
             FoodRecognitionService.IngredientData(name: "Chicken breast, grilled", grams: 150, calories: 248, protein: 46.5, carbs: 0, fat: 5.4),
             FoodRecognitionService.IngredientData(name: "Lettuce, romaine", grams: 50, calories: 8, protein: 0.6, carbs: 1.5, fat: 0.2),
             FoodRecognitionService.IngredientData(name: "Tomatoes, cherry", grams: 30, calories: 5, protein: 0.3, carbs: 1.2, fat: 0.1)
-        ]
+        ],
+        tag: "protein"
     )
 
     return NutritionReviewView(

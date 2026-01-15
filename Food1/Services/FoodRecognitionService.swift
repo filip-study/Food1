@@ -48,6 +48,9 @@ class FoodRecognitionService: ObservableObject {
         // Micronutrient tracking: Ingredient breakdown (Phase 1)
         let ingredients: [IngredientData]?
 
+        /// AI-assigned nutritional tag: "processed", "protein", or "fat"
+        let tag: String?
+
         var confidencePercentage: Int {
             Int(confidence * 100)
         }

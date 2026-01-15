@@ -45,6 +45,7 @@ struct CloudMeal: Codable {
     let updatedAt: Date
     let deletedAt: Date?
     let userPrompt: String?
+    let tag: String?
 
     /// Nested ingredients from JOIN query - populated when using .select("*, meal_ingredients(*)")
     let mealIngredients: [CloudIngredientFull]?
@@ -71,6 +72,7 @@ struct CloudMeal: Codable {
         case updatedAt = "updated_at"
         case deletedAt = "deleted_at"
         case userPrompt = "user_prompt"
+        case tag
         case mealIngredients = "meal_ingredients"
     }
 }

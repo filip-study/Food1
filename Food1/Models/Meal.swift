@@ -35,6 +35,10 @@ final class Meal {
     // Matched cartoon icon name (for UI display)
     var matchedIconName: String?
 
+    /// AI-assigned nutritional tag: "processed", "protein", or "fat"
+    /// Single tag only - LLM picks most fitting, nil if none apply
+    var tag: String?
+
     // MARK: - Cloud Sync Fields
 
     /// Supabase meal ID (different from local SwiftData id)
@@ -76,6 +80,7 @@ final class Meal {
         photoData: Data? = nil,
         ingredients: [MealIngredient]? = nil,
         matchedIconName: String? = nil,
+        tag: String? = nil,
         cloudId: UUID? = nil,
         syncStatus: String = "pending",
         lastSyncedAt: Date? = nil,
@@ -98,6 +103,7 @@ final class Meal {
         self.photoData = photoData
         self.ingredients = ingredients
         self.matchedIconName = matchedIconName
+        self.tag = tag
         self.cloudId = cloudId
         self.syncStatus = syncStatus
         self.lastSyncedAt = lastSyncedAt
