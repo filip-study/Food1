@@ -16,16 +16,28 @@ import SwiftUI
 import SwiftData
 
 struct MainTabView: View {
+    @Environment(\.modelContext) private var modelContext
     @State private var selectedTab: NavigationTab = .meals
     @State private var selectedEntryMode: MealEntryMode? = nil  // Triggers fullScreenCover when set
     @State private var showingPaywall = false  // Paywall gate for expired/no subscription
     @State private var selectedDate = Date()  // Shared date state for meal logging
     @State private var showingAddMenu = false  // Controls add button menu + blur backdrop
     @State private var showStreakTooltip = false  // Controls streak tooltip + blur backdrop
+    @State private var showingFastingSheet = false  // Controls start fasting options sheet
     @AppStorage("appTheme") private var selectedTheme: AppTheme = .system
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject var authViewModel: AuthViewModel
     @Query(sort: \Meal.timestamp, order: .reverse) private var allMeals: [Meal]
+    @Query(filter: #Predicate<Fast> { $0.isActive == true }) private var activeFasts: [Fast]
+
+    /// Currently active fast (nil if not fasting)
+    private var activeFast: Fast? { activeFasts.first }
+
+    /// Whether user is currently fasting
+    private var isFasting: Bool { activeFast != nil }
+
+    /// Most recent meal (for "Start from last meal" option)
+    private var mostRecentMeal: Meal? { allMeals.first }
 
     // Profile data for personalized goals (observed for automatic updates)
     @AppStorage("userAge") private var userAge: Int = 25
@@ -211,8 +223,19 @@ struct MainTabView: View {
                 selectedTab: $selectedTab,
                 onEntryModeSelected: { mode in
                     // Paywall gate: check if user has access before allowing meal entry
-                    if authViewModel.hasAccess || UITestingSupport.shouldBypassPaywall {
-                        selectedEntryMode = mode
+                    // Also bypass for demo mode (DEBUG only) and UI testing
+                    var shouldBypass = UITestingSupport.shouldBypassPaywall
+                    #if DEBUG
+                    shouldBypass = shouldBypass || DemoModeManager.shared.isActive
+                    #endif
+
+                    if authViewModel.hasAccess || shouldBypass {
+                        // Handle fasting mode specially (doesn't need QuickAddMealView)
+                        if mode == .fasting {
+                            handleFastingAction()
+                        } else {
+                            selectedEntryMode = mode
+                        }
                     } else {
                         HapticManager.medium()
                         showingPaywall = true
@@ -220,6 +243,7 @@ struct MainTabView: View {
                 },
                 calorieProgress: todayCalorieProgress,
                 hasLoggedMeals: hasLoggedMealsToday,
+                isFasting: isFasting,
                 showingAddMenu: $showingAddMenu
             )
         }
@@ -302,6 +326,112 @@ struct MainTabView: View {
         .sheet(isPresented: $showingPaywall) {
             PaywallView()
         }
+        .sheet(isPresented: $showingFastingSheet) {
+            StartFastingSheet(
+                lastMealDate: mostRecentMeal?.timestamp,
+                onStartNow: {
+                    startFastNow()
+                },
+                onStartFromLastMeal: { mealDate in
+                    startFastFromLastMeal(mealDate)
+                }
+            )
+        }
+    }
+
+    // MARK: - Fasting Actions
+
+    /// Handle fasting action from FAB menu
+    /// If not fasting: shows sheet to choose start time
+    /// If already fasting: switches to Meals tab to show fasting hero
+    private func handleFastingAction() {
+        if isFasting {
+            // Already fasting - switch to Meals tab (hero is visible there)
+            if selectedTab != .meals {
+                selectedTab = .meals
+            }
+            // Reset to today's date to see active fasting hero
+            selectedDate = Date()
+            HapticManager.light()
+        } else {
+            // Show fasting options sheet (or start immediately if no meals)
+            if mostRecentMeal != nil {
+                showingFastingSheet = true
+            } else {
+                // No meals logged - just start now
+                startFastNow()
+            }
+        }
+    }
+
+    /// Start a new fast from current time
+    private func startFastNow() {
+        let fast = Fast(
+            startTime: Date(),
+            confirmedAt: Date(),
+            isActive: true,
+            endTime: nil
+        )
+        modelContext.insert(fast)
+
+        // Explicitly save to ensure persistence
+        do {
+            try modelContext.save()
+        } catch {
+            print("❌ Failed to save fast: \(error)")
+        }
+
+        // Start Live Activity for lock screen
+        Task {
+            #if DEBUG
+            await FastingActivityManager.shared.startActivity(for: fast, demoMode: DemoModeManager.shared.isActive)
+            #else
+            await FastingActivityManager.shared.startActivity(for: fast)
+            #endif
+        }
+
+        // Switch to Meals tab to show fasting hero
+        if selectedTab != .meals {
+            selectedTab = .meals
+        }
+        selectedDate = Date()
+
+        HapticManager.success()
+    }
+
+    /// Start a new fast from a specific time (e.g., last meal)
+    private func startFastFromLastMeal(_ mealDate: Date) {
+        let fast = Fast(
+            startTime: mealDate,
+            confirmedAt: Date(),
+            isActive: true,
+            endTime: nil
+        )
+        modelContext.insert(fast)
+
+        // Explicitly save to ensure persistence
+        do {
+            try modelContext.save()
+        } catch {
+            print("❌ Failed to save fast: \(error)")
+        }
+
+        // Start Live Activity for lock screen
+        Task {
+            #if DEBUG
+            await FastingActivityManager.shared.startActivity(for: fast, demoMode: DemoModeManager.shared.isActive)
+            #else
+            await FastingActivityManager.shared.startActivity(for: fast)
+            #endif
+        }
+
+        // Switch to Meals tab to show fasting hero
+        if selectedTab != .meals {
+            selectedTab = .meals
+        }
+        selectedDate = Date()
+
+        HapticManager.success()
     }
 }
 

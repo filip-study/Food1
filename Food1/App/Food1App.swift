@@ -216,6 +216,9 @@ struct Food1App: App {
 
                 // Load centralized onboarding state (shows pending onboarding automatically)
                 await onboardingService.loadOnboardingState()
+
+                // Restore fasting Live Activity if there's an active fast
+                await restoreFastingActivityIfNeeded()
             }
             .onOpenURL { url in
                 // Handle deep links for authentication callbacks and meal reminders
@@ -244,6 +247,16 @@ struct Food1App: App {
                     }
                     deepLinkHandler.clearPendingState()
                 }
+            }
+            .alert("End Fast?", isPresented: $deepLinkHandler.shouldShowEndFastConfirmation) {
+                Button("End Fast", role: .destructive) {
+                    endFastFromDeepLink()
+                }
+                Button("Keep Fasting", role: .cancel) {
+                    deepLinkHandler.clearFastingState()
+                }
+            } message: {
+                Text("This will end your current fasting session and log it to your history.")
             }
         }
         .modelContainer(modelContainer)
@@ -352,6 +365,75 @@ struct Food1App: App {
             #endif
             authViewModel.errorMessage = errorDescription
         }
+    }
+
+    // MARK: - Restore Fasting Activity
+
+    /// Restore fasting Live Activity if there's an active fast
+    @MainActor
+    private func restoreFastingActivityIfNeeded() async {
+        // Check if ActivityKit already has a fasting activity restored
+        guard !FastingActivityManager.shared.isActivityActive else {
+            return
+        }
+
+        // Query for active fast in SwiftData
+        let context = modelContainer.mainContext
+        let descriptor = FetchDescriptor<Fast>(
+            predicate: #Predicate { $0.isActive }
+        )
+
+        do {
+            if let activeFast = try context.fetch(descriptor).first {
+                // Found an active fast - start a Live Activity for it
+                #if DEBUG
+                await FastingActivityManager.shared.startActivity(for: activeFast, demoMode: DemoModeManager.shared.isActive)
+                #else
+                await FastingActivityManager.shared.startActivity(for: activeFast)
+                #endif
+                print("✅ Restored fasting Live Activity for fast: \(activeFast.id)")
+            }
+        } catch {
+            print("❌ Failed to check for active fast: \(error)")
+        }
+    }
+
+    // MARK: - End Fast from Deep Link
+
+    /// End fast from Live Activity "End Fast" button
+    @MainActor
+    private func endFastFromDeepLink() {
+        guard let fastId = deepLinkHandler.pendingEndFastId else {
+            deepLinkHandler.clearFastingState()
+            return
+        }
+
+        // Find and end the fast in SwiftData
+        let context = modelContainer.mainContext
+        let descriptor = FetchDescriptor<Fast>(
+            predicate: #Predicate { $0.id == fastId && $0.isActive }
+        )
+
+        do {
+            if let fast = try context.fetch(descriptor).first {
+                fast.end()
+                try context.save()
+
+                // End Live Activity
+                Task {
+                    await FastingActivityManager.shared.endActivity()
+                }
+
+                HapticManager.success()
+                print("✅ Fast ended from deep link: \(fastId)")
+            } else {
+                print("⚠️ No active fast found for id: \(fastId)")
+            }
+        } catch {
+            print("❌ Failed to end fast: \(error)")
+        }
+
+        deepLinkHandler.clearFastingState()
     }
 
     // MARK: - Demo Mode (DEBUG Only)

@@ -10,15 +10,17 @@
 //  - Camera: Opens camera for photo-based meal logging (default flow)
 //  - Gallery: Opens photo library to select existing photo
 //  - Text: Opens natural language text entry for manual logging
+//  - Fasting: Start a fast (one-tap instant start)
 //
 
 import SwiftUI
 
-/// Entry mode for meal logging - determines which input method to start with
+/// Entry mode for meal logging and fasting - determines which action to take
 enum MealEntryMode: Identifiable {
     case camera     // Default: capture photo with camera
     case gallery    // Select from photo library
     case text       // Natural language text entry
+    case fasting    // Start fasting mode
 
     var id: Self { self }
 }
@@ -34,6 +36,7 @@ struct FloatingAddButton: View {
     var calorieProgress: Double? = nil  // Optional: shows progress when provided
     var hasLoggedMeals: Bool = false    // Controls ring visibility
     var visualizationStyle: ProgressVisualizationStyle = .ring  // Default to ring
+    var isFasting: Bool = false         // Shifts colors to amber when actively fasting
     @Binding var selectedTab: NavigationTab  // For dismissing menu on tab switch
 
     @State private var isPressed = false
@@ -117,11 +120,12 @@ struct FloatingAddButton: View {
                     .animation(.spring(response: 0.3, dampingFraction: 0.7), value: showingMenu)
             }
             .background(
-                LiquidGlassBackground(shape: Circle(), glowColor: ColorPalette.accentPrimary)
+                LiquidGlassBackground(shape: Circle(), glowColor: primaryColor)
             )
             .overlay(
                 Group {
-                    if ringVisible, let progress = calorieProgress {
+                    // Hide progress ring when fasting (FastingHeroView shows progress instead)
+                    if ringVisible && !isFasting, let progress = calorieProgress {
                         switch visualizationStyle {
                         case .ring:
                             progressRingOverlay(progress: progress)
@@ -163,6 +167,14 @@ struct FloatingAddButton: View {
             // Custom popup menu - positioned above the button, aligned to trailing edge
             if showingMenu {
                 VStack(spacing: 0) {
+                    // Fasting at top (separate from meal logging)
+                    menuItem(title: "Fasting", icon: "flame.fill", mode: .fasting)
+
+                    // Subtle divider between fasting and meal logging
+                    Divider()
+                        .padding(.vertical, 4)
+
+                    // Meal logging options
                     menuItem(title: "Camera", icon: "camera.fill", mode: .camera)
                     Divider().opacity(0.3)
                     menuItem(title: "Gallery", icon: "photo.on.rectangle", mode: .gallery)
@@ -176,7 +188,7 @@ struct FloatingAddButton: View {
                         .shadow(color: .black.opacity(0.15), radius: 12, x: 0, y: 4)
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 14))
-                .offset(x: 8, y: -(menuItemHeight * 3 + menuSpacing + 12))
+                .offset(x: 8, y: -(menuItemHeight * 4 + 9 + menuSpacing + 12))  // 9pt for divider + padding
                 .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .bottomTrailing)))
                 .accessibilityElement(children: .contain)  // Make menu accessible to XCUITest
                 .accessibilityIdentifier("addMealMenu")
@@ -218,14 +230,25 @@ struct FloatingAddButton: View {
     }
 
     // MARK: - Animated Gradient
+
+    /// Primary color for FAB (shifts to amber when fasting)
+    private var primaryColor: Color {
+        isFasting ? ColorPalette.calories : ColorPalette.accentPrimary
+    }
+
+    /// Secondary color for FAB gradient (shifts to orange when fasting)
+    private var secondaryColor: Color {
+        isFasting ? Color.orange : ColorPalette.accentSecondary
+    }
+
     private var animatedGradient: AngularGradient {
         AngularGradient(
             gradient: Gradient(colors: [
-                ColorPalette.accentPrimary,
-                ColorPalette.accentPrimary.opacity(0.9),
-                ColorPalette.accentSecondary.opacity(0.8),
-                ColorPalette.accentPrimary.opacity(0.9),
-                ColorPalette.accentPrimary
+                primaryColor,
+                primaryColor.opacity(0.9),
+                secondaryColor.opacity(0.8),
+                primaryColor.opacity(0.9),
+                primaryColor
             ]),
             center: .center,
             startAngle: .degrees(gradientRotation),

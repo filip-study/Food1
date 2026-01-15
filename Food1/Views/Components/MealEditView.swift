@@ -19,6 +19,7 @@ struct MealEditView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
     @AppStorage("nutritionUnit") private var nutritionUnit: NutritionUnit = .metric
+    @Query private var allFasts: [Fast]  // For adjusting fast times when meal time changes
 
     let editingMeal: Meal
 
@@ -292,6 +293,10 @@ struct MealEditView: View {
         let newDate = calendar.startOfDay(for: newTimestamp)
         let dateChanged = oldDate != newDate
 
+        // Capture old timestamp for fast adjustment (before we update it)
+        let oldTimestamp = editingMeal.timestamp
+        let timestampChanged = oldTimestamp != newTimestamp
+
         // Update existing meal (preserve original emoji - no picker in edit view)
         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
             editingMeal.name = mealName
@@ -331,7 +336,48 @@ struct MealEditView: View {
             }
         }
 
+        // Adjust any fasts that reference this meal's old timestamp
+        // This keeps retroactive fasts synchronized when meal times are edited
+        if timestampChanged {
+            adjustFastsForTimestampChange(oldTimestamp: oldTimestamp, newTimestamp: newTimestamp)
+        }
+
         dismiss()
+    }
+
+    // MARK: - Fast Adjustment
+
+    /// Updates any fasts whose start or end time matched the old meal timestamp
+    /// Uses a 60-second tolerance to handle minor timestamp differences
+    private func adjustFastsForTimestampChange(oldTimestamp: Date, newTimestamp: Date) {
+        let tolerance: TimeInterval = 60  // 1 minute tolerance for matching
+
+        for fast in allFasts {
+            var needsUpdate = false
+
+            // Check if fast's startTime matches old timestamp
+            if abs(fast.startTime.timeIntervalSince(oldTimestamp)) < tolerance {
+                fast.startTime = newTimestamp
+                needsUpdate = true
+            }
+
+            // Check if fast's endTime matches old timestamp
+            if let endTime = fast.endTime,
+               abs(endTime.timeIntervalSince(oldTimestamp)) < tolerance {
+                fast.endTime = newTimestamp
+                needsUpdate = true
+            }
+
+            // Also update confirmedAt if it matched (for sorting purposes)
+            if abs(fast.confirmedAt.timeIntervalSince(oldTimestamp)) < tolerance {
+                fast.confirmedAt = newTimestamp
+                needsUpdate = true
+            }
+
+            if needsUpdate {
+                print("📍 Adjusted fast times after meal edit: \(fast.id)")
+            }
+        }
     }
 }
 

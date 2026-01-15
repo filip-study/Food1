@@ -168,6 +168,12 @@ class MealActivityScheduler: ObservableObject {
             return
         }
 
+        // Don't schedule meal reminders while user is fasting
+        guard !FastingActivityManager.shared.isActivityActive else {
+            logger.info("Fasting mode active, skipping meal reminder scheduling")
+            return
+        }
+
         guard ActivityAuthorizationInfo().areActivitiesEnabled else {
             logger.warning("Live Activities not authorized by user")
             return
@@ -508,5 +514,6 @@ extension MealActivityScheduler {
         case expired     // Auto-dismissed after timeout
         case disabled    // Feature was disabled
         case logged      // User logged a meal
+        case fasting     // User started fasting (suppressed)
     }
 }

@@ -30,6 +30,9 @@ struct NutritionReviewView: View {
     @Environment(\.modelContext) private var modelContext
     @AppStorage("nutritionUnit") private var nutritionUnit: NutritionUnit = .metric
 
+    // Query active fasts to auto-end when meal is saved
+    @Query(filter: #Predicate<Fast> { $0.isActive == true }) private var activeFasts: [Fast]
+
     let selectedDate: Date
     let foodName: String
     let capturedImage: UIImage?
@@ -454,6 +457,18 @@ struct NutritionReviewView: View {
 
         withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
             modelContext.insert(newMeal)
+        }
+
+        // Auto-end active fast if meal timestamp is after the fast started
+        // (Don't end if user is backdating a meal from before they started fasting)
+        if let activeFast = activeFasts.first,
+           finalTimestamp > activeFast.startTime {
+            activeFast.end()
+
+            // End fasting Live Activity
+            Task {
+                await FastingActivityManager.shared.endActivity()
+            }
         }
 
         // Background: Automatically enrich ingredients with USDA micronutrient data (local database, zero API calls)

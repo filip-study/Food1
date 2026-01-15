@@ -23,6 +23,22 @@ struct TodayView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @Query(sort: \Meal.timestamp, order: .reverse) private var allMeals: [Meal]
     @Query(sort: \Fast.confirmedAt, order: .reverse) private var allFasts: [Fast]
+    @Query(filter: #Predicate<Fast> { $0.isActive == true }) private var activeFasts: [Fast]
+
+    /// Currently active fast (nil if not fasting)
+    private var activeFast: Fast? { activeFasts.first }
+
+    /// Whether user is currently fasting
+    private var isFasting: Bool { activeFast != nil }
+
+    /// Check if demo mode is active for fasting timer acceleration
+    private var isDemoMode: Bool {
+        #if DEBUG
+        return DemoModeManager.shared.isActive
+        #else
+        return false
+        #endif
+    }
 
     // Profile data for personalized goals (observed for automatic updates)
     @AppStorage("userAge") private var userAge: Int = 25
@@ -138,9 +154,11 @@ struct TodayView: View {
         allMeals.first?.timestamp  // Already sorted by timestamp descending
     }
 
-    /// Fasts confirmed on the selected date
+    /// Fasts confirmed on the selected date (only completed fasts, not active ones)
     private var fastsForSelectedDate: [Fast] {
         allFasts.filter { fast in
+            // Exclude active fasts - they show in FastingHeroView, not timeline
+            !fast.isActive &&
             Calendar.current.isDate(fast.confirmedAt, inSameDayAs: selectedDate)
         }
     }
@@ -267,6 +285,19 @@ struct TodayView: View {
         HapticManager.light()
     }
 
+    /// Logs a retroactive (untracked) fast between two dates
+    /// Called when user taps "Log it" on untracked fast suggestion card
+    private func logUntrackedFast(startTime: Date, endTime: Date) {
+        let fast = Fast(
+            startTime: startTime,
+            confirmedAt: endTime,  // Use endTime so it sorts correctly in timeline
+            isActive: false,  // Already completed
+            endTime: endTime
+        )
+        modelContext.insert(fast)
+        HapticManager.success()
+    }
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -354,17 +385,21 @@ struct TodayView: View {
                             }
                         }
 
-                        // Macro-focused dashboard with personalized goals
-                        // Shows compact "Today's Goals" view when no meals logged today,
-                        // otherwise shows full progress dashboard
-                        MetricsDashboardView(
-                            currentCalories: totals.calories,
-                            currentProtein: totals.protein,
-                            currentCarbs: totals.carbs,
-                            currentFat: totals.fat,
-                            goals: personalizedGoals,
-                            showCompactGoals: mealsForSelectedDate.isEmpty && isViewingToday
-                        )
+                        // Hero section: Fasting Hero or Metrics Dashboard
+                        // Shows FastingHeroView when actively fasting and viewing today
+                        // Otherwise shows MetricsDashboardView with progress or compact goals
+                        if isFasting && isViewingToday, let fast = activeFast {
+                            FastingHeroView(fast: fast, demoMode: isDemoMode)
+                        } else {
+                            MetricsDashboardView(
+                                currentCalories: totals.calories,
+                                currentProtein: totals.protein,
+                                currentCarbs: totals.carbs,
+                                currentFat: totals.fat,
+                                goals: personalizedGoals,
+                                showCompactGoals: mealsForSelectedDate.isEmpty && isViewingToday && !isFasting
+                            )
+                        }
 
                         // Daily insight - disabled pending redesign
                         // TODO: Redesign with meaningful, data-driven insights
@@ -415,8 +450,10 @@ struct TodayView: View {
                                 MealFastTimeline(
                                     meals: mealsForSelectedDate,
                                     fasts: fastsForSelectedDate,
+                                    allFasts: allFasts,
                                     reduceMotion: reduceMotion,
-                                    onDeleteFast: deleteFast
+                                    onDeleteFast: deleteFast,
+                                    onLogUntrackedFast: logUntrackedFast
                                 )
                             }
                         }
@@ -668,11 +705,17 @@ struct EmptyDayView: View {
 
 /// Unified timeline displaying meals and fasts sorted by time.
 /// Fasts have connecting lines, meals are standard cards.
+/// Shows untracked fast suggestions for 12+ hour gaps between meals.
 struct MealFastTimeline: View {
     let meals: [Meal]
     let fasts: [Fast]
+    let allFasts: [Fast]  // All fasts for checking coverage across days
     let reduceMotion: Bool
     let onDeleteFast: (Fast) -> Void
+    let onLogUntrackedFast: (Date, Date) -> Void  // (startTime, endTime) for retroactive fasts
+
+    /// Minimum gap in hours to suggest logging a fast
+    private let untrackedFastThresholdHours: Double = 12.0
 
     /// Combined timeline items sorted by timestamp (newest first)
     private var timelineItems: [TimelineItem] {
@@ -686,6 +729,35 @@ struct MealFastTimeline: View {
         }
 
         return items.sorted { $0.timestamp > $1.timestamp }
+    }
+
+    /// Check if any fast covers the period between two dates
+    private func isFastCoveringPeriod(from startDate: Date, to endDate: Date) -> Bool {
+        allFasts.contains { fast in
+            // Fast overlaps if it started before endDate and ended after startDate
+            let fastEnd = fast.endTime ?? Date()
+            return fast.startTime < endDate && fastEnd > startDate
+        }
+    }
+
+    /// Calculate gap between current meal and next (older) item
+    private func gapToNextItem(at index: Int) -> (hours: Double, previousMealDate: Date)? {
+        let items = timelineItems
+        guard index < items.count - 1 else { return nil }
+
+        let currentItem = items[index]
+        let nextItem = items[index + 1]
+
+        // Only suggest for meal-to-meal gaps (not meal-to-fast)
+        guard case .meal = currentItem,
+              case .meal(let previousMeal) = nextItem else {
+            return nil
+        }
+
+        let gap = currentItem.timestamp.timeIntervalSince(previousMeal.timestamp)
+        let hours = gap / 3600.0
+
+        return (hours: hours, previousMealDate: previousMeal.timestamp)
     }
 
     var body: some View {
@@ -706,6 +778,24 @@ struct MealFastTimeline: View {
                         insertion: reduceMotion ? .opacity : .scale.combined(with: .opacity),
                         removal: .opacity
                     ))
+
+                    // Show untracked fast suggestion if 12+ hour gap to previous meal
+                    if let gap = gapToNextItem(at: index),
+                       gap.hours >= untrackedFastThresholdHours,
+                       !isFastCoveringPeriod(from: gap.previousMealDate, to: meal.timestamp) {
+                        UntrackedFastSuggestionCard(
+                            fastStartTime: gap.previousMealDate,
+                            fastEndTime: meal.timestamp,
+                            durationHours: gap.hours,
+                            onLogFast: {
+                                onLogUntrackedFast(gap.previousMealDate, meal.timestamp)
+                            }
+                        )
+                        .transition(.asymmetric(
+                            insertion: reduceMotion ? .opacity : .scale.combined(with: .opacity),
+                            removal: .opacity
+                        ))
+                    }
 
                 case .fast(let fast):
                     // Determine if adjacent items exist for connectors
@@ -731,6 +821,89 @@ struct MealFastTimeline: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Untracked Fast Suggestion Card
+
+/// Suggestion card shown in timeline when there's a 12+ hour gap between meals
+/// with no logged fast. Allows user to retroactively log the fasting period.
+struct UntrackedFastSuggestionCard: View {
+    let fastStartTime: Date
+    let fastEndTime: Date
+    let durationHours: Double
+    let onLogFast: () -> Void
+
+    @Environment(\.colorScheme) var colorScheme
+
+    private var formattedDuration: String {
+        let hours = Int(durationHours)
+        let minutes = Int((durationHours - Double(hours)) * 60)
+        if hours >= 24 {
+            let days = hours / 24
+            let remainingHours = hours % 24
+            return "\(days)d \(remainingHours)h"
+        }
+        return "\(hours)h \(minutes)m"
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            // Flame icon (amber to match fasting theme)
+            Image(systemName: "flame.fill")
+                .font(.system(size: 18))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [ColorPalette.calories, Color.orange],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+
+            // Description
+            VStack(alignment: .leading, spacing: 2) {
+                Text("You fasted \(formattedDuration)")
+                    .font(DesignSystem.Typography.medium(size: 14))
+                    .foregroundColor(.primary)
+
+                Text("before this meal")
+                    .font(DesignSystem.Typography.regular(size: 12))
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+
+            // Log it button
+            Button(action: {
+                HapticManager.medium()
+                onLogFast()
+            }) {
+                Text("Log it")
+                    .font(DesignSystem.Typography.semiBold(size: 13))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 6)
+                    .background(
+                        Capsule()
+                            .fill(ColorPalette.calories.opacity(0.9))
+                    )
+            }
+            .buttonStyle(PlainButtonStyle())
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color.orange.opacity(colorScheme == .dark ? 0.08 : 0.04))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(
+                    ColorPalette.calories.opacity(colorScheme == .dark ? 0.2 : 0.12),
+                    style: StrokeStyle(lineWidth: 1, dash: [4, 3])  // Dashed border for suggestion
+                )
+        )
+        .padding(.horizontal)
     }
 }
 

@@ -21,6 +21,7 @@ struct FloatingPillNavigation: View {
     var onEntryModeSelected: (MealEntryMode) -> Void
     var calorieProgress: Double? = nil  // Optional: shows progress on add button
     var hasLoggedMeals: Bool = false    // Controls ring visibility
+    var isFasting: Bool = false         // Shifts FAB colors to amber when actively fasting
     @Binding var showingAddMenu: Bool   // Controls add button menu visibility (exposed for blur backdrop)
 
     private let pillSpacing: CGFloat = 20  // Increased from 12 for better visual separation
@@ -48,6 +49,7 @@ struct FloatingPillNavigation: View {
                                 calorieProgress: calorieProgress,
                                 hasLoggedMeals: hasLoggedMeals,
                                 visualizationStyle: .ring,  // Using Option A (ring) by default
+                                isFasting: isFasting,
                                 selectedTab: $selectedTab,
                                 showingMenu: $showingAddMenu
                             )

@@ -3,12 +3,12 @@
 //  Food1
 //
 //  Handles deep links from Live Activity buttons.
-//  Routes prismae://log-meal and prismae://dismiss-reminder URLs.
+//  Routes prismae://log-meal, prismae://dismiss-reminder, and prismae://end-fast URLs.
 //
 //  WHY THIS ARCHITECTURE:
 //  - Centralized URL handling for all Live Activity actions
-//  - Uses URL query parameters to identify which meal window triggered the action
-//  - Coordinates with MealActivityScheduler to update/end activities
+//  - Uses URL query parameters to identify which meal window/fast triggered the action
+//  - Coordinates with MealActivityScheduler and FastingActivityManager
 //
 
 import Foundation
@@ -18,7 +18,7 @@ import os.log
 
 private let logger = Logger(subsystem: "com.prismae.food1", category: "DeepLink")
 
-/// Handles deep links from meal reminder Live Activities
+/// Handles deep links from Live Activities (meal reminders and fasting)
 @MainActor
 class MealReminderDeepLinkHandler: ObservableObject {
 
@@ -26,13 +26,21 @@ class MealReminderDeepLinkHandler: ObservableObject {
 
     static let shared = MealReminderDeepLinkHandler()
 
-    // MARK: - Published State
+    // MARK: - Published State (Meal Reminders)
 
     /// When set, triggers navigation to meal logging
     @Published var pendingMealWindowId: UUID?
 
     /// Show the quick add meal view
     @Published var shouldShowQuickAdd: Bool = false
+
+    // MARK: - Published State (Fasting)
+
+    /// Fast ID pending end confirmation
+    @Published var pendingEndFastId: UUID?
+
+    /// Show end fast confirmation dialog
+    @Published var shouldShowEndFastConfirmation: Bool = false
 
     // MARK: - Handle URL
 
@@ -49,6 +57,9 @@ class MealReminderDeepLinkHandler: ObservableObject {
 
         case "dismiss-reminder":
             return handleDismissReminder(url: url)
+
+        case "end-fast":
+            return handleEndFast(url: url)
 
         default:
             logger.warning("Unknown deep link host: \(url.host ?? "nil")")
@@ -108,11 +119,36 @@ class MealReminderDeepLinkHandler: ObservableObject {
         return true
     }
 
+    // MARK: - End Fast
+
+    private func handleEndFast(url: URL) -> Bool {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let fastIdString = components.queryItems?.first(where: { $0.name == "id" })?.value,
+              let fastId = UUID(uuidString: fastIdString) else {
+            logger.warning("End fast URL missing fast ID")
+            return false
+        }
+
+        logger.info("End fast requested for: \(fastId)")
+
+        // Store the fast ID and show confirmation dialog
+        pendingEndFastId = fastId
+        shouldShowEndFastConfirmation = true
+
+        return true
+    }
+
     // MARK: - Clear State
 
     /// Clear pending state after navigation is complete
     func clearPendingState() {
         pendingMealWindowId = nil
         shouldShowQuickAdd = false
+    }
+
+    /// Clear fasting state after confirmation handled
+    func clearFastingState() {
+        pendingEndFastId = nil
+        shouldShowEndFastConfirmation = false
     }
 }

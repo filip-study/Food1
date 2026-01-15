@@ -69,6 +69,12 @@ struct QuickAddMealView: View {
             case .camera:
                 // Camera mode: Full camera flow with recognition
                 cameraFlowView
+
+            case .fasting:
+                // Fasting is handled in MainTabView before QuickAddMealView opens
+                // This case should never be reached, but Swift requires exhaustive switches
+                EmptyView()
+                    .onAppear { dismiss() }
             }
         }
         // Shared sheets for recognition flows (camera & gallery)

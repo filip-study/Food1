@@ -66,13 +66,14 @@ final class DemoModeManager: ObservableObject {
 
         do {
             // Create in-memory container for demo data
-            // IMPORTANT: Must include ALL models from production schema for Stats to work
+            // IMPORTANT: Must include ALL models from production schema for features to work
             let schema = Schema([
                 Meal.self,
                 MealIngredient.self,
                 DailyAggregate.self,
                 WeeklyAggregate.self,
-                MonthlyAggregate.self
+                MonthlyAggregate.self,
+                Fast.self
             ])
             let config = ModelConfiguration(isStoredInMemoryOnly: true)
             demoContainer = try ModelContainer(for: schema, configurations: config)
