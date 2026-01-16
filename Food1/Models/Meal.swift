@@ -15,6 +15,15 @@
 import Foundation
 import SwiftData
 
+/// Sync status for cloud synchronization
+enum SyncStatus: String, Codable {
+    case pending    // New meal, not yet synced
+    case syncing    // Upload in progress
+    case synced     // Successfully synced to cloud
+    case error      // Sync failed, will retry
+    case demo       // Demo mode data (not synced)
+}
+
 @Model
 final class Meal {
     var id: UUID
@@ -44,8 +53,15 @@ final class Meal {
     /// Supabase meal ID (different from local SwiftData id)
     var cloudId: UUID?
 
-    /// Sync status: pending, syncing, synced, error
-    var syncStatus: String
+    /// Sync status for cloud synchronization (stored as String for SwiftData predicates)
+    /// Use the `syncStatus` computed property for type-safe access
+    var syncStatusRaw: String
+
+    /// Sync status as enum (computed wrapper around syncStatusRaw)
+    var syncStatus: SyncStatus {
+        get { SyncStatus(rawValue: syncStatusRaw) ?? .pending }
+        set { syncStatusRaw = newValue.rawValue }
+    }
 
     /// Timestamp of last successful sync to Supabase
     var lastSyncedAt: Date?
@@ -82,7 +98,7 @@ final class Meal {
         matchedIconName: String? = nil,
         tag: String? = nil,
         cloudId: UUID? = nil,
-        syncStatus: String = "pending",
+        syncStatus: SyncStatus = .pending,  // Stored as syncStatusRaw internally
         lastSyncedAt: Date? = nil,
         deviceId: String? = nil,
         mealType: String? = nil,
@@ -105,7 +121,7 @@ final class Meal {
         self.matchedIconName = matchedIconName
         self.tag = tag
         self.cloudId = cloudId
-        self.syncStatus = syncStatus
+        self.syncStatusRaw = syncStatus.rawValue
         self.lastSyncedAt = lastSyncedAt
         self.deviceId = deviceId
         self.mealType = mealType
@@ -196,17 +212,17 @@ final class Meal {
 
     /// Check if meal needs to be synced to cloud
     var needsSync: Bool {
-        return syncStatus == "pending" || syncStatus == "error"
+        return syncStatus == .pending || syncStatus == .error
     }
 
     /// Check if meal is currently being synced
     var isSyncing: Bool {
-        return syncStatus == "syncing"
+        return syncStatus == .syncing
     }
 
     /// Check if meal is synced and up-to-date in cloud
     var isSynced: Bool {
-        return syncStatus == "synced" && cloudId != nil
+        return syncStatus == .synced && cloudId != nil
     }
 
     /// Check if meal has a photo that failed to upload and needs retry
@@ -214,7 +230,7 @@ final class Meal {
     var needsPhotoUpload: Bool {
         return photoData != nil &&
                photoThumbnailUrl == nil &&
-               syncStatus == "synced" &&
+               syncStatus == .synced &&
                cloudId != nil
     }
 

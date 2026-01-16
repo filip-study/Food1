@@ -215,12 +215,14 @@ class SyncCoordinator: ObservableObject {
         isSyncing = false
     }
 
-    /// Upload all pending meals (syncStatus = "pending" or "error")
+    /// Upload all pending meals (syncStatus = .pending or .error)
     private func uploadPendingMeals(context: ModelContext) async throws -> Int {
-        // Fetch pending meals
+        // Fetch pending meals using stored syncStatusRaw for predicate compatibility
+        let pendingStatus = SyncStatus.pending.rawValue
+        let errorStatus = SyncStatus.error.rawValue
         let fetchDescriptor = FetchDescriptor<Meal>(
             predicate: #Predicate { meal in
-                meal.syncStatus == "pending" || meal.syncStatus == "error"
+                meal.syncStatusRaw == pendingStatus || meal.syncStatusRaw == errorStatus
             },
             sortBy: [SortDescriptor(\Meal.timestamp, order: .reverse)]
         )
@@ -256,12 +258,13 @@ class SyncCoordinator: ObservableObject {
 
     /// Retry uploading photos that failed during initial meal sync
     private func retryPendingPhotoUploads(context: ModelContext) async throws -> Int {
-        // Count pending photos first
+        // Count pending photos first using stored syncStatusRaw for predicate compatibility
+        let syncedStatus = SyncStatus.synced.rawValue
         let fetchDescriptor = FetchDescriptor<Meal>(
             predicate: #Predicate { meal in
                 meal.photoData != nil &&
                 meal.photoThumbnailUrl == nil &&
-                meal.syncStatus == "synced" &&
+                meal.syncStatusRaw == syncedStatus &&
                 meal.cloudId != nil
             }
         )

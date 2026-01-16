@@ -64,7 +64,7 @@ struct MicronutrientsSection: View {
     /// Nutrients sorted by RDA%, excluding neutral-tracked ones (Vitamin D, Sodium)
     private var sortedNutrients: [NutrientRDA] {
         allNutrientsWithRDA
-            .filter { !neutralTrackingNutrients.contains($0.name) }
+            .filter { !Micronutrient.neutralTrackingNutrients.contains($0.name) }
             .sorted { $0.rdaPercent > $1.rdaPercent }
     }
 
@@ -178,7 +178,7 @@ struct NutrientRDARow: View {
 
     private var rdaColor: Color {
         // Vitamin D and Sodium always use light gray (dietary tracking alone isn't meaningful)
-        if neutralTrackingNutrients.contains(nutrient.name) {
+        if Micronutrient.neutralTrackingNutrients.contains(nutrient.name) {
             return Color.secondary.opacity(0.5)
         }
 

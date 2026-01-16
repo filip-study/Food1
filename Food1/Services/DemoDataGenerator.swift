@@ -1006,7 +1006,7 @@ enum DemoDataGenerator {
         }
 
         meal.ingredients = ingredients
-        meal.syncStatus = "demo"
+        meal.syncStatus = .demo
 
         return meal
     }

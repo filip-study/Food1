@@ -322,7 +322,7 @@ struct MealEditView: View {
             }
 
             // Mark for sync so changes are uploaded to backend
-            editingMeal.syncStatus = "pending"
+            editingMeal.syncStatus = .pending
         }
 
         // Invalidate statistics if date changed or nutrition values were scaled

@@ -64,7 +64,7 @@ class SyncService: ObservableObject {
         }
 
         // Update sync status
-        meal.syncStatus = "syncing"
+        meal.syncStatus = .syncing
         meal.deviceId = await getDeviceId()
         try context.save()
 
@@ -103,7 +103,7 @@ class SyncService: ObservableObject {
                 "total_carbs_g": AnyEncodable(meal.carbs),
                 "total_fat_g": AnyEncodable(meal.fat),
                 "total_fiber_g": AnyEncodable(meal.fiber),
-                "sync_status": AnyEncodable("synced"),
+                "sync_status": AnyEncodable(SyncStatus.synced.rawValue),
                 "last_synced_at": AnyEncodable(ISO8601DateFormatter().string(from: Date())),
                 "user_prompt": AnyEncodable(meal.userPrompt),
                 "tag": AnyEncodable(meal.tag)
@@ -143,13 +143,13 @@ class SyncService: ObservableObject {
             }
 
             // Update local meal sync status
-            meal.syncStatus = "synced"
+            meal.syncStatus = .synced
             meal.lastSyncedAt = Date()
             meal.photoThumbnailUrl = photoThumbnailUrl
             try context.save()
 
         } catch {
-            meal.syncStatus = "error"
+            meal.syncStatus = .error
             try context.save()
             print("❌ Failed to upload meal: \(error)")
             throw SyncError.uploadFailed(error.localizedDescription)
@@ -410,7 +410,7 @@ class SyncService: ObservableObject {
         localMeal.photoThumbnailUrl = cloudMeal.photoThumbnailUrl
         localMeal.cartoonImageUrl = cloudMeal.cartoonImageUrl
         localMeal.tag = cloudMeal.tag
-        localMeal.syncStatus = "synced"
+        localMeal.syncStatus = .synced
         localMeal.lastSyncedAt = Date()
     }
 
@@ -459,7 +459,7 @@ class SyncService: ObservableObject {
             matchedIconName: nil,
             tag: cloudMeal.tag,
             cloudId: cloudMeal.id,
-            syncStatus: "synced",
+            syncStatus: .synced,
             lastSyncedAt: Date(),
             deviceId: nil,
             mealType: cloudMeal.mealType,
@@ -540,12 +540,13 @@ class SyncService: ObservableObject {
         }
 
         // Fetch meals needing photo upload retry
-        // Can't use computed property in #Predicate, so replicate the logic
+        // Can't use computed property in #Predicate, so use stored syncStatusRaw
+        let syncedStatus = SyncStatus.synced.rawValue
         let fetchDescriptor = FetchDescriptor<Meal>(
             predicate: #Predicate { meal in
                 meal.photoData != nil &&
                 meal.photoThumbnailUrl == nil &&
-                meal.syncStatus == "synced" &&
+                meal.syncStatusRaw == syncedStatus &&
                 meal.cloudId != nil
             },
             sortBy: [SortDescriptor(\Meal.timestamp, order: .reverse)]

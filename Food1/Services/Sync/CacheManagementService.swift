@@ -77,11 +77,13 @@ class CacheManagementService {
         print("🧹 Pruning meals older than \(cutoffDate)...")
 
         // Fetch old meals that are synced to cloud (safe to delete locally)
+        // Use stored syncStatusRaw for SwiftData predicate compatibility
+        let syncedStatus = SyncStatus.synced.rawValue
         let fetchDescriptor = FetchDescriptor<Meal>(
             predicate: #Predicate { meal in
                 meal.timestamp < cutoffDate &&  // Older than 30 days
                 meal.cloudId != nil &&          // Synced to cloud
-                meal.syncStatus == "synced"     // Sync completed successfully
+                meal.syncStatusRaw == syncedStatus     // Sync completed successfully
             }
         )
 
@@ -125,10 +127,11 @@ class CacheManagementService {
         )
         let oldMeals = try context.fetch(oldDescriptor).count
 
-        // Synced meals
+        // Synced meals - use stored syncStatusRaw for SwiftData predicate compatibility
+        let syncedStatus = SyncStatus.synced.rawValue
         let syncedDescriptor = FetchDescriptor<Meal>(
             predicate: #Predicate { meal in
-                meal.syncStatus == "synced"
+                meal.syncStatusRaw == syncedStatus
             }
         )
         let syncedMeals = try context.fetch(syncedDescriptor).count
@@ -138,7 +141,7 @@ class CacheManagementService {
             predicate: #Predicate { meal in
                 meal.timestamp < cutoffDate &&
                 meal.cloudId != nil &&
-                meal.syncStatus == "synced"
+                meal.syncStatusRaw == syncedStatus
             }
         )
         let purgeableMeals = try context.fetch(purgeableDescriptor).count

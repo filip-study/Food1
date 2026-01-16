@@ -40,6 +40,11 @@ final class MealIngredient {
     // Cached micronutrient data (JSON blob for offline access)
     var cachedMicronutrientsJSON: Data?
 
+    // MARK: - Transient Cache (not persisted)
+    // These caches avoid repeated JSON decoding when accessing micronutrients
+    @Transient private var _cachedMicronutrients: [Micronutrient]?
+    @Transient private var _lastDecodedHash: Int?
+
     // Flag to track user edits (for analytics)
     var isUserEdited: Bool
 
@@ -76,10 +81,25 @@ final class MealIngredient {
         usdaFdcId != nil && cachedMicronutrientsJSON != nil
     }
 
-    /// Decode cached micronutrients from JSON
+    /// Decode cached micronutrients from JSON (with in-memory caching)
+    /// Uses hash-based invalidation to avoid repeated decoding of unchanged data
     var micronutrients: [Micronutrient]? {
-        guard let data = cachedMicronutrientsJSON else { return nil }
-        return try? JSONDecoder().decode([Micronutrient].self, from: data)
+        guard let data = cachedMicronutrientsJSON else {
+            _cachedMicronutrients = nil
+            return nil
+        }
+
+        // Return cached if data hasn't changed
+        let currentHash = data.hashValue
+        if let cached = _cachedMicronutrients, _lastDecodedHash == currentHash {
+            return cached
+        }
+
+        // Decode and cache
+        let decoded = try? JSONDecoder().decode([Micronutrient].self, from: data)
+        _cachedMicronutrients = decoded
+        _lastDecodedHash = currentHash
+        return decoded
     }
 
     // MARK: - Methods
@@ -87,6 +107,9 @@ final class MealIngredient {
     /// Cache micronutrients to JSON blob
     func cacheMicronutrients(_ nutrients: [Micronutrient]) {
         cachedMicronutrientsJSON = try? JSONEncoder().encode(nutrients)
+        // Clear transient cache so next access re-decodes from fresh data
+        _cachedMicronutrients = nil
+        _lastDecodedHash = nil
         updatedAt = Date()
     }
 

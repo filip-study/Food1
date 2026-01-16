@@ -70,6 +70,11 @@ enum NutrientCategory: String, Codable {
 struct Micronutrient: Codable, Identifiable, Hashable {
     var id: String { name }
 
+    /// Nutrients where dietary tracking alone doesn't tell the full story
+    /// - Vitamin D: ~80-90% comes from sun exposure, not diet
+    /// - Sodium: Most people get excess from processed foods; low dietary sodium is rarely a concern
+    static let neutralTrackingNutrients: Set<String> = ["Vitamin D", "Sodium"]
+
     let name: String
     let amount: Double
     let unit: String  // "mg", "mcg", "IU", "g"
@@ -89,7 +94,7 @@ struct Micronutrient: Codable, Identifiable, Hashable {
     /// Note: Vitamin D and Sodium always use neutral color since dietary tracking alone isn't meaningful
     var rdaColor: RDAColor {
         // For nutrients where dietary tracking alone isn't meaningful, always use neutral
-        if neutralTrackingNutrients.contains(name) {
+        if Micronutrient.neutralTrackingNutrients.contains(name) {
             return .neutral
         }
 
@@ -114,11 +119,6 @@ enum RDAColor {
     case optimal     // Filled green - ≥ 100% - "optimal"
     case neutral     // Light gray - for nutrients where dietary tracking alone isn't meaningful
 }
-
-/// Nutrients where dietary tracking alone doesn't tell the full story
-/// - Vitamin D: ~80-90% comes from sun exposure, not diet
-/// - Sodium: Most people get excess from processed foods; low dietary sodium is rarely a concern
-let neutralTrackingNutrients: Set<String> = ["Vitamin D", "Sodium"]
 
 /// Micronutrient profile aggregated across all ingredients in a meal
 struct MicronutrientProfile: Codable {

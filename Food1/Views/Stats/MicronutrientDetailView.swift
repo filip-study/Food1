@@ -198,8 +198,8 @@ struct MicronutrientDetailView: View {
         }
 
         // Separate neutral nutrients (Vitamin D, Sodium) - they always go at the bottom
-        let regularNutrients = nutrients.filter { !neutralTrackingNutrients.contains($0.name) }
-        let neutralNutrients = nutrients.filter { neutralTrackingNutrients.contains($0.name) }
+        let regularNutrients = nutrients.filter { !Micronutrient.neutralTrackingNutrients.contains($0.name) }
+        let neutralNutrients = nutrients.filter { Micronutrient.neutralTrackingNutrients.contains($0.name) }
 
         // Apply sorting to regular nutrients only
         let sortedRegular: [NutrientDetail]
@@ -491,7 +491,7 @@ private struct NutrientDetailRow: View {
 
     private var rdaColor: Color {
         // Vitamin D and Sodium always use light gray (dietary tracking alone isn't meaningful)
-        if neutralTrackingNutrients.contains(nutrient.name) {
+        if Micronutrient.neutralTrackingNutrients.contains(nutrient.name) {
             return Color.secondary.opacity(0.5)
         }
 
@@ -506,7 +506,7 @@ private struct NutrientDetailRow: View {
 
     private var rdaIndicator: String {
         // Vitamin D and Sodium always use neutral indicator
-        if neutralTrackingNutrients.contains(nutrient.name) {
+        if Micronutrient.neutralTrackingNutrients.contains(nutrient.name) {
             return "circle.fill"
         }
 
