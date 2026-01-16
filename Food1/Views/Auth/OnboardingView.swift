@@ -292,13 +292,18 @@ struct OnboardingView: View {
             .disabled(authViewModel.isLoading || !isFormValid)
             .accessibilityIdentifier("submitAuthButton")
 
-            // Help text
+            // Legal agreement text with tappable links
             if isSignUpMode {
-                Text("By creating an account, you agree to our Terms of Service and Privacy Policy")
-                    .font(DesignSystem.Typography.regular(size: 13))
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.top, 4)
+                HStack(spacing: 0) {
+                    Text("By creating an account, you agree to our ")
+                    Link("Terms", destination: URL(string: "https://prismae.net/terms")!)
+                    Text(" and ")
+                    Link("Privacy Policy", destination: URL(string: "https://prismae.net/privacy")!)
+                }
+                .font(DesignSystem.Typography.regular(size: 13))
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.top, 4)
             }
         }
     }
