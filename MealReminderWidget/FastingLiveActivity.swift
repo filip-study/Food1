@@ -91,12 +91,14 @@ struct FastingLiveActivity: Widget {
                             .foregroundStyle(.white)
                         }
 
-                        // Stage name
-                        HStack(spacing: 6) {
+                        // Stage name with glass badge
+                        HStack(spacing: 8) {
                             Image(systemName: stageSymbol(for: context.state.stageIndex))
-                                .font(.system(size: 14))
+                                .font(.system(size: 12))
                                 .foregroundStyle(stageAccent(for: context.state.stageIndex))
                                 .symbolEffect(.pulse.byLayer, options: .repeating)
+                                .frame(width: 24, height: 24)
+                                .glassEffect(.regular.tint(stageAccent(for: context.state.stageIndex)), in: .circle)
                             Text(context.state.stageName)
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundStyle(stageAccent(for: context.state.stageIndex))
@@ -277,24 +279,22 @@ struct FastingLockScreenView: View {
                             .rotationEffect(.degrees(-90))
                     }
 
-                    // Center: Stage symbol (earned through progression)
+                    // Center: Stage symbol with Liquid Glass container
                     if context.state.stageIndex == 3 {
-                        // Deep Repair: Larger, more prominent sparkles
+                        // Deep Repair: Larger, more prominent sparkles in glass
                         Image(systemName: "sparkles")
-                            .font(.system(size: 24, weight: .medium))
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [stageAccent(for: 3), Color.orange.opacity(0.8)],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundStyle(stageAccent(for: 3))
                             .symbolEffect(.pulse.byLayer, options: .repeating)
+                            .frame(width: 36, height: 36)
+                            .glassEffect(.regular.tint(stageAccent(for: 3)), in: .circle)
                     } else {
                         Image(systemName: stageSymbol(for: context.state.stageIndex))
-                            .font(.system(size: 20))
+                            .font(.system(size: 16))
                             .foregroundStyle(stageAccent(for: context.state.stageIndex))
                             .symbolEffect(.pulse.byLayer, options: .repeating)
+                            .frame(width: 36, height: 36)
+                            .glassEffect(.regular.tint(stageAccent(for: context.state.stageIndex)), in: .circle)
                     }
                 }
                 .frame(width: 56, height: 56)

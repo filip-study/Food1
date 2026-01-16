@@ -83,28 +83,28 @@ struct AnimatedMeshBackground: View {
     /// Pure neutrals with subtle luminosity variation for depth
     private var meshColors: [Color] {
         if colorScheme == .dark {
-            // Dark mode: Rich blacks with subtle gray luminosity zones
-            // Creates depth without any color tint
+            // Dark mode: Elevated charcoal with visible luminosity zones
+            // Softer than pure black, easier on eyes, better depth perception
             return [
-                // Row 0 - Top edge (pure black)
-                Color(white: 0.0),
-                Color(white: 0.02),
-                Color(white: 0.0),
+                // Row 0 - Top edge (dark charcoal base)
+                Color(white: 0.08),
+                Color(white: 0.10),
+                Color(white: 0.08),
 
-                // Row 1 - Upper area (subtle lift)
-                Color(white: 0.03),
-                Color(white: 0.06),
-                Color(white: 0.03),
+                // Row 1 - Upper area (gentle lift)
+                Color(white: 0.10),
+                Color(white: 0.13),
+                Color(white: 0.10),
 
-                // Row 2 - Middle (gentle luminosity)
-                Color(white: 0.04),
-                Color(white: 0.07),
-                Color(white: 0.04),
+                // Row 2 - Middle (luminosity highlight)
+                Color(white: 0.11),
+                Color(white: 0.14),
+                Color(white: 0.11),
 
-                // Row 3 - Bottom (grounding dark)
-                Color(white: 0.01),
-                Color(white: 0.03),
-                Color(white: 0.01)
+                // Row 3 - Bottom (grounding)
+                Color(white: 0.09),
+                Color(white: 0.11),
+                Color(white: 0.09)
             ]
         } else {
             // Light mode: Pure whites with subtle gray shading
@@ -142,7 +142,7 @@ struct StaticGradientBackground: View {
         LinearGradient(
             colors: colorScheme == .light
                 ? [Color(white: 1.0), Color(white: 0.96), Color(white: 0.98)]
-                : [Color(white: 0.0), Color(white: 0.05), Color(white: 0.02)],
+                : [Color(white: 0.08), Color(white: 0.12), Color(white: 0.09)],
             startPoint: .top,
             endPoint: .bottom
         )

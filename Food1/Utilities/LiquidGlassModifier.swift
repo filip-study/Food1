@@ -68,16 +68,16 @@ struct LiquidGlassBackground<S: Shape>: View {
                 .blur(radius: 6)
         }
         .shadow(
-            color: Color.black.opacity(colorScheme == .dark ? 0.4 : 0.2),
-            radius: 30,
+            color: Color.black.opacity(colorScheme == .dark ? 0.4 : 0.15),
+            radius: 20,
             x: 0,
-            y: 10
+            y: 8
         )
         .shadow(
-            color: (glowColor ?? ColorPalette.accentPrimary).opacity(0.15),
-            radius: 12,
+            color: Color.black.opacity(colorScheme == .dark ? 0.2 : 0.08),
+            radius: 8,
             x: 0,
-            y: 4
+            y: 3
         )
     }
 }

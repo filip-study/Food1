@@ -150,12 +150,17 @@ struct MetricsDashboardView: View {
                 .opacity(0.97)
                 .overlay(
                     RoundedRectangle(cornerRadius: 24)
-                        .strokeBorder(Color.white.opacity(0.05), lineWidth: 1)
+                        .strokeBorder(
+                            colorScheme == .dark
+                                ? Color.white.opacity(0.05)
+                                : Color.black.opacity(0.06),
+                            lineWidth: 1
+                        )
                 )
         )
         .shadow(
-            color: Color.black.opacity(colorScheme == .dark ? 0.15 : 0.08),
-            radius: 16, x: 0, y: 4
+            color: Color.black.opacity(colorScheme == .dark ? 0.15 : 0.12),
+            radius: 16, x: 0, y: 6
         )
         .padding(.horizontal)
         .onAppear {
@@ -351,12 +356,17 @@ struct CompactGoalsView: View {
                 .opacity(0.97)
                 .overlay(
                     RoundedRectangle(cornerRadius: 24)
-                        .strokeBorder(Color.white.opacity(0.05), lineWidth: 1)
+                        .strokeBorder(
+                            colorScheme == .dark
+                                ? Color.white.opacity(0.05)
+                                : Color.black.opacity(0.06),
+                            lineWidth: 1
+                        )
                 )
         )
         .shadow(
-            color: Color.black.opacity(colorScheme == .dark ? 0.15 : 0.08),
-            radius: 16, x: 0, y: 4
+            color: Color.black.opacity(colorScheme == .dark ? 0.15 : 0.12),
+            radius: 16, x: 0, y: 6
         )
         .padding(.horizontal)
         .onAppear {

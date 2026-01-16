@@ -59,12 +59,22 @@ struct FastingHeroView: View {
         let minutes = (totalSeconds % 3600) / 60
         let seconds = totalSeconds % 60
 
+        // Progressive reveal: show units as they become relevant
         if hours >= 24 {
+            // Days: "1d 2h 34m" (drop seconds for readability)
             let days = hours / 24
             let remainingHours = hours % 24
             return "\(days)d \(remainingHours)h \(minutes)m"
+        } else if hours > 0 {
+            // Hours: "2h 34m 56s"
+            return String(format: "%dh %02dm %02ds", hours, minutes, seconds)
+        } else if minutes > 0 {
+            // Minutes: "12m 34s"
+            return String(format: "%dm %02ds", minutes, seconds)
+        } else {
+            // Seconds only: "45s"
+            return "\(seconds)s"
         }
-        return String(format: "%dh %02dm %02ds", hours, minutes, seconds)
     }
 
     /// Progress along the timeline (0.0 to 1.0)
@@ -161,7 +171,7 @@ struct FastingHeroView: View {
                 isFedState: isFedState
             )
 
-            // End/Cancel Fast button (proper styled button)
+            // End/Cancel Fast button
             // Fed state (<4h) = Cancel (delete), otherwise = End (log)
             Button {
                 HapticManager.medium()
