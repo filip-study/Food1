@@ -31,6 +31,8 @@ struct Food1App: App {
     @State private var showingDatabaseError = false
     @State private var databaseErrorMessage = ""
     @State private var showOnboarding = false
+    @State private var showLoginSheet = false
+    @State private var showRegistrationAfterOnboarding = false
     @StateObject private var authViewModel = AuthViewModel()
     @StateObject private var migrationService = MigrationService.shared
     @StateObject private var deepLinkHandler = MealReminderDeepLinkHandler.shared
@@ -69,8 +71,9 @@ struct Food1App: App {
                     // Email confirmation pending
                     EmailConfirmationPendingView(email: pendingEmail)
                         .environmentObject(authViewModel)
-                } else if authViewModel.isAuthenticated && !authViewModel.hasCompletedPersonalization {
-                    // Authenticated but hasn't completed personalization: Show full-screen onboarding
+                } else if authViewModel.isAuthenticated && !authViewModel.hasCompletedPersonalization && !showRegistrationAfterOnboarding {
+                    // Authenticated but hasn't completed personalization (and didn't just complete our onboarding flow)
+                    // This handles returning users who somehow have incomplete personalization
                     OnboardingFlowContainer(onComplete: {
                         Task {
                             await authViewModel.markPersonalizationComplete()
@@ -90,17 +93,34 @@ struct Food1App: App {
                             enrichmentManager.scheduleEnrichmentTask()
                         }
                 } else {
-                    // Not authenticated: Show welcome or onboarding
-                    if showOnboarding {
+                    // Not authenticated: Welcome → Onboarding → Register flow
+                    if showRegistrationAfterOnboarding {
+                        // Step 3: Show registration after completing onboarding
                         OnboardingView()
                             .environmentObject(authViewModel)
                             .transition(.asymmetric(
                                 insertion: .move(edge: .trailing).combined(with: .opacity),
                                 removal: .move(edge: .leading).combined(with: .opacity)
                             ))
+                    } else if showOnboarding {
+                        // Step 2: Personalization onboarding (for new users)
+                        OnboardingFlowContainer(onComplete: {
+                            // After onboarding, show registration
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                                showOnboarding = false
+                                showRegistrationAfterOnboarding = true
+                            }
+                        })
+                        .environmentObject(authViewModel)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .move(edge: .leading).combined(with: .opacity)
+                        ))
                     } else {
+                        // Step 1: Welcome screen
                         WelcomeView(
                             showOnboarding: $showOnboarding,
+                            showLoginSheet: $showLoginSheet,
                             onDemoModeActivated: {
                                 activateDemoMode()
                             }
@@ -114,8 +134,9 @@ struct Food1App: App {
                     // Email confirmation pending
                     EmailConfirmationPendingView(email: pendingEmail)
                         .environmentObject(authViewModel)
-                } else if authViewModel.isAuthenticated && !authViewModel.hasCompletedPersonalization {
-                    // Authenticated but hasn't completed personalization: Show full-screen onboarding
+                } else if authViewModel.isAuthenticated && !authViewModel.hasCompletedPersonalization && !showRegistrationAfterOnboarding {
+                    // Authenticated but hasn't completed personalization (and didn't just complete our onboarding flow)
+                    // This handles returning users who somehow have incomplete personalization
                     OnboardingFlowContainer(onComplete: {
                         Task {
                             await authViewModel.markPersonalizationComplete()
@@ -135,17 +156,36 @@ struct Food1App: App {
                             enrichmentManager.scheduleEnrichmentTask()
                         }
                 } else {
-                    // Not authenticated: Show welcome or onboarding
-                    if showOnboarding {
+                    // Not authenticated: Welcome → Onboarding → Register flow
+                    if showRegistrationAfterOnboarding {
+                        // Step 3: Show registration after completing onboarding
                         OnboardingView()
                             .environmentObject(authViewModel)
                             .transition(.asymmetric(
                                 insertion: .move(edge: .trailing).combined(with: .opacity),
                                 removal: .move(edge: .leading).combined(with: .opacity)
                             ))
+                    } else if showOnboarding {
+                        // Step 2: Personalization onboarding (for new users)
+                        OnboardingFlowContainer(onComplete: {
+                            // After onboarding, show registration
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                                showOnboarding = false
+                                showRegistrationAfterOnboarding = true
+                            }
+                        })
+                        .environmentObject(authViewModel)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing).combined(with: .opacity),
+                            removal: .move(edge: .leading).combined(with: .opacity)
+                        ))
                     } else {
-                        WelcomeView(showOnboarding: $showOnboarding)
-                            .transition(.opacity)
+                        // Step 1: Welcome screen
+                        WelcomeView(
+                            showOnboarding: $showOnboarding,
+                            showLoginSheet: $showLoginSheet
+                        )
+                        .transition(.opacity)
                     }
                 }
                 #endif
@@ -164,6 +204,11 @@ struct Food1App: App {
                         .zIndex(3)
                 }
             }
+            // Login sheet for returning users ("I already have an account")
+            .sheet(isPresented: $showLoginSheet) {
+                LoginSheetView()
+                    .environmentObject(authViewModel)
+            }
             .task {
                 // Configure SyncCoordinator FIRST so it's ready when auth triggers sync
                 SyncCoordinator.shared.configure(with: modelContainer)
@@ -176,9 +221,9 @@ struct Food1App: App {
                     // Generate statistics aggregates for Stats view (must complete before UI loads)
                     await demoModeManager.generateStatisticsAggregates()
 
-                    // Still need to wait for and dismiss splash screen
-                    try? await Task.sleep(for: .milliseconds(1400))
-                    withAnimation(.easeOut(duration: 0.4)) {
+                    // Brief splash screen display (1.5s for branding)
+                    try? await Task.sleep(for: .milliseconds(1500))
+                    withAnimation(.easeOut(duration: 0.3)) {
                         launchScreenState.finish()
                     }
                     return  // Skip normal auth flow in demo mode
@@ -188,8 +233,15 @@ struct Food1App: App {
                 // Check for existing session on launch
                 await authViewModel.checkSession()
 
-                // Wait for splash animation to complete FIRST (1.2s animation + 0.2s buffer)
-                try? await Task.sleep(for: .milliseconds(1400))
+                // If user is authenticated but hasn't completed onboarding, log them out
+                // This ensures a fresh start if they killed the app mid-onboarding
+                if authViewModel.isAuthenticated && !authViewModel.hasCompletedPersonalization {
+                    print("🔄 Incomplete onboarding detected - logging out for fresh start")
+                    try? await authViewModel.signOut()
+                }
+
+                // Brief splash screen display (1.5s for branding)
+                try? await Task.sleep(for: .milliseconds(1500))
 
                 // Fade out splash screen
                 withAnimation(.easeOut(duration: 0.4)) {
@@ -284,6 +336,14 @@ struct Food1App: App {
                     if let userId = try? await SupabaseService.shared.requireUserId() {
                         AnalyticsService.shared.identify(userId: userId)
                         AnalyticsService.shared.track(.signIn)
+                    }
+
+                    // If user just completed onboarding flow and registered, mark personalization complete
+                    // This prevents the app from showing onboarding again after registration
+                    if showRegistrationAfterOnboarding {
+                        await authViewModel.markPersonalizationComplete()
+                        // Reset the flow state
+                        showRegistrationAfterOnboarding = false
                     }
 
                     // Small delay for better UX after login animation

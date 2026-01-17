@@ -3,8 +3,12 @@
 //  Food1
 //
 //  Onboarding step 5: Select activity level.
-//  Three simple options with optional HealthKit-based estimation.
-//  NOT skippable - required for calorie calculation.
+//
+//  ACT II - DISCOVERY DESIGN:
+//  - Solid color background for high visibility
+//  - Primary/secondary text colors (adapts to light/dark mode)
+//  - Typography-only selection cards
+//  - HealthKit suggestion styled with solid card
 //
 
 import SwiftUI
@@ -18,45 +22,52 @@ struct ActivityLevelView: View {
     var onBack: () -> Void
     var onNext: () -> Void
 
+    @Environment(\.colorScheme) private var colorScheme
+
     // MARK: - Body
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 32) {
-                // Header
-                headerSection
-                    .padding(.top, 24)
+        ZStack {
+            // Solid color background (Act II)
+            OnboardingBackground(theme: .solid)
 
-                // HealthKit suggestion (if available)
-                if let suggestedLevel = healthKit.estimatedActivityLevel {
-                    healthKitSuggestion(suggestedLevel)
-                }
+            ScrollView {
+                VStack(spacing: 32) {
+                    // Header
+                    headerSection
+                        .padding(.top, 24)
 
-                // Activity options
-                VStack(spacing: 16) {
-                    ForEach(SimpleActivityLevel.allCases) { level in
-                        OnboardingSelectionCard(
-                            option: level,
-                            title: level.title,
-                            description: level.description,
-                            icon: level.icon,
-                            iconColor: level.iconColor,
-                            isSelected: data.activityLevel == level,
-                            action: {
-                                withAnimation(.spring(response: 0.3)) {
-                                    data.activityLevel = level
-                                    data.useHealthKitActivity = false
-                                }
-                            }
-                        )
+                    // HealthKit suggestion (if available)
+                    if let suggestedLevel = healthKit.estimatedActivityLevel {
+                        healthKitSuggestion(suggestedLevel)
                     }
-                }
-                .padding(.horizontal, 24)
 
-                Spacer(minLength: 120)
+                    // Activity options - typography-only cards
+                    VStack(spacing: 16) {
+                        ForEach(SimpleActivityLevel.allCases) { level in
+                            OnboardingSelectionCard(
+                                option: level,
+                                title: level.title,
+                                description: level.description,
+                                icon: level.icon,  // Ignored
+                                iconColor: .white,  // Ignored
+                                isSelected: data.activityLevel == level,
+                                action: {
+                                    withAnimation(.spring(response: 0.3)) {
+                                        data.activityLevel = level
+                                        data.useHealthKitActivity = false
+                                    }
+                                }
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 24)
+
+                    Spacer(minLength: 120)
+                }
             }
+            .scrollIndicators(.hidden)
         }
-        .scrollIndicators(.hidden)
         .safeAreaInset(edge: .bottom) {
             navigationButtons
         }
@@ -67,13 +78,13 @@ struct ActivityLevelView: View {
     private var headerSection: some View {
         VStack(spacing: 12) {
             Text("How active are you?")
-                .font(.largeTitle.bold())
-                .foregroundStyle(.white)
+                .font(DesignSystem.Typography.bold(size: 28))
+                .foregroundStyle(.primary)
                 .multilineTextAlignment(.center)
 
             Text("We'll use this to fine-tune your daily calorie goal")
-                .font(.body)
-                .foregroundStyle(.white.opacity(0.7))
+                .font(DesignSystem.Typography.regular(size: 17))
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
         .padding(.horizontal, 24)
@@ -89,32 +100,26 @@ struct ActivityLevelView: View {
             }
         } label: {
             HStack(spacing: 16) {
-                // Apple Health icon
+                // Health icon in solid circle
                 ZStack {
                     Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.pink, Color.red],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                        .fill(Color(.systemGray5))
                         .frame(width: 44, height: 44)
 
                     Image(systemName: "heart.fill")
                         .font(.system(size: 20))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(.pink)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Based on Apple Health")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.white)
+                        .font(DesignSystem.Typography.semiBold(size: 15))
+                        .foregroundStyle(.primary)
 
                     if let steps = healthKit.averageSteps {
                         Text("~\(steps.formatted()) daily steps → \(level.title)")
-                            .font(.caption)
-                            .foregroundStyle(.white.opacity(0.7))
+                            .font(DesignSystem.Typography.regular(size: 14))
+                            .foregroundStyle(.secondary)
                     }
                 }
 
@@ -124,22 +129,24 @@ struct ActivityLevelView: View {
                 if data.useHealthKitActivity && data.activityLevel == level {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.title2)
-                        .foregroundStyle(.green)
+                        .foregroundStyle(ColorPalette.onboardingCardSelectedBorder)
                 } else {
                     Image(systemName: "circle")
                         .font(.title2)
-                        .foregroundStyle(.white.opacity(0.3))
+                        .foregroundStyle(.tertiary)
                 }
             }
             .padding(16)
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.pink.opacity(0.15))
+                    .fill(Color(.systemGray6))
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
                             .stroke(
-                                data.useHealthKitActivity ? Color.pink : Color.clear,
-                                lineWidth: 2
+                                data.useHealthKitActivity
+                                    ? ColorPalette.onboardingCardSelectedBorder
+                                    : Color(.separator),
+                                lineWidth: data.useHealthKitActivity ? 2 : 1
                             )
                     )
             )
@@ -152,15 +159,7 @@ struct ActivityLevelView: View {
 
     private var navigationButtons: some View {
         HStack(spacing: 16) {
-            Button(action: onBack) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 56, height: 56)
-                    .background(Color.white.opacity(0.1))
-                    .clipShape(Circle())
-            }
-            .buttonStyle(.plain)
+            OnboardingBackButton(action: onBack)
 
             OnboardingNextButton(
                 text: data.activityLevel != nil ? "Continue" : "Select activity level",
@@ -170,21 +169,21 @@ struct ActivityLevelView: View {
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 16)
-        .background(.ultraThinMaterial.opacity(0.5))
+        .background(
+            colorScheme == .dark
+                ? Color.black.opacity(0.3)
+                : Color.white.opacity(0.5)
+        )
     }
 }
 
 // MARK: - Preview
 
 #Preview {
-    ZStack {
-        Color.black.ignoresSafeArea()
-
-        ActivityLevelView(
-            data: OnboardingData(),
-            healthKit: HealthKitService.shared,
-            onBack: { print("Back") },
-            onNext: { print("Next") }
-        )
-    }
+    ActivityLevelView(
+        data: OnboardingData(),
+        healthKit: HealthKitService.shared,
+        onBack: { print("Back") },
+        onNext: { print("Next") }
+    )
 }

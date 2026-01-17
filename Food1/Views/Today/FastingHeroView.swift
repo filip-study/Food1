@@ -205,24 +205,22 @@ struct FastingHeroView: View {
                 durationSeconds: durationSeconds
             )
         }
-        .confirmationDialog(
-            isFedState ? "Cancel Fast" : "End Fast",
+        .confirmationSheet(
             isPresented: $showEndConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button(isFedState ? "Cancel Fast" : "End Fast", role: .destructive) {
-                if isFedState {
-                    cancelFast()
-                } else {
-                    endFast()
-                }
-            }
-            Button("Keep Fasting", role: .cancel) {}
-        } message: {
-            Text(isFedState
+            title: isFedState ? "Cancel Fast" : "End Fast",
+            message: isFedState
                 ? "You've only been fasting \(formattedDuration). This won't be logged."
-                : "You've been fasting for \(formattedDuration). End and log this fast?"
-            )
+                : "You've been fasting for \(formattedDuration). End and log this fast?",
+            confirmTitle: isFedState ? "Cancel Fast" : "End Fast",
+            confirmStyle: .fasting,
+            cancelTitle: "Keep Fasting",
+            icon: isFedState ? "xmark.circle" : "flame.fill"
+        ) {
+            if isFedState {
+                cancelFast()
+            } else {
+                endFast()
+            }
         }
     }
 

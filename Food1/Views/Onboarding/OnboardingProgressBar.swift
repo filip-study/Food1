@@ -2,13 +2,23 @@
 //  OnboardingProgressBar.swift
 //  Food1
 //
-//  Progress indicator showing current step in onboarding flow.
-//  Animated capsule pills with smooth fill transitions.
+//  Progress indicator for onboarding flow - Stepped Dots Design.
+//
+//  PREMIUM EDITORIAL DESIGN:
+//  - 10 discrete dots showing clear step awareness
+//  - Current dot: Filled white with subtle glow/pulse animation
+//  - Completed dots: Filled white
+//  - Upcoming dots: Hollow circle (white stroke, transparent fill)
+//  - Safe area aware positioning (below notch/Dynamic Island)
+//  - Smooth spring animations between steps
 //
 
 import SwiftUI
-import UIKit
 
+// MARK: - Stepped Dots Progress Indicator
+
+/// Redesigned progress indicator using stepped dots.
+/// Each dot represents one step - clearer progress awareness than a continuous bar.
 struct OnboardingProgressBar: View {
 
     // MARK: - Properties
@@ -16,24 +26,178 @@ struct OnboardingProgressBar: View {
     let current: Int
     let total: Int
 
+    // MARK: - Animation State
+
+    @State private var glowOpacity: Double = 0.8
+
+    // MARK: - Environment
+
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     // MARK: - Body
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 12) {
             ForEach(0..<total, id: \.self) { index in
-                Capsule()
-                    .fill(index <= current ? Color.accentColor : Color.secondary.opacity(0.3))
-                    .frame(height: 4)
-                    .animation(.spring(response: 0.4), value: current)
+                progressDot(for: index)
             }
+        }
+        .padding(.horizontal, 40)
+        .padding(.vertical, 8)
+        .onAppear {
+            startGlowAnimation()
+        }
+    }
+
+    // MARK: - Progress Dot
+
+    @ViewBuilder
+    private func progressDot(for index: Int) -> some View {
+        let isCompleted = index < current
+        let isCurrent = index == current
+        let isUpcoming = index > current
+
+        ZStack {
+            // Glow effect for current dot
+            if isCurrent && !reduceMotion {
+                Circle()
+                    .fill(Color.white.opacity(0.3))
+                    .frame(width: 16, height: 16)
+                    .blur(radius: 4)
+                    .opacity(glowOpacity)
+            }
+
+            // Main dot
+            Circle()
+                .fill(isCurrent || isCompleted ? Color.white : Color.clear)
+                .frame(width: 8, height: 8)
+                .overlay(
+                    Circle()
+                        .stroke(Color.white, lineWidth: isUpcoming ? 1.5 : 0)
+                )
+        }
+        .animation(.spring(response: 0.5, dampingFraction: 0.8), value: current)
+    }
+
+    // MARK: - Glow Animation
+
+    private func startGlowAnimation() {
+        guard !reduceMotion else { return }
+
+        withAnimation(
+            .easeInOut(duration: 1.2)
+            .repeatForever(autoreverses: true)
+        ) {
+            glowOpacity = 1.0
+        }
+    }
+}
+
+// MARK: - Solid Background Variant
+
+/// Progress indicator optimized for solid color backgrounds (Act II screens).
+/// Uses primary color adaptation for better visibility on light backgrounds.
+struct OnboardingProgressBarSolid: View {
+
+    let current: Int
+    let total: Int
+
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    @State private var glowOpacity: Double = 0.8
+
+    private var dotColor: Color {
+        colorScheme == .dark ? .white : .primary
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ForEach(0..<total, id: \.self) { index in
+                progressDot(for: index)
+            }
+        }
+        .padding(.horizontal, 40)
+        .padding(.vertical, 8)
+        .onAppear {
+            startGlowAnimation()
+        }
+    }
+
+    @ViewBuilder
+    private func progressDot(for index: Int) -> some View {
+        let isCompleted = index < current
+        let isCurrent = index == current
+        let isUpcoming = index > current
+
+        ZStack {
+            // Glow effect for current dot
+            if isCurrent && !reduceMotion {
+                Circle()
+                    .fill(ColorPalette.accentPrimary.opacity(0.4))
+                    .frame(width: 16, height: 16)
+                    .blur(radius: 4)
+                    .opacity(glowOpacity)
+            }
+
+            // Main dot
+            Circle()
+                .fill(
+                    isCurrent ? ColorPalette.accentPrimary :
+                    isCompleted ? dotColor :
+                    Color.clear
+                )
+                .frame(width: 8, height: 8)
+                .overlay(
+                    Circle()
+                        .stroke(
+                            isUpcoming ? dotColor.opacity(0.3) : Color.clear,
+                            lineWidth: 1.5
+                        )
+                )
+        }
+        .animation(.spring(response: 0.5, dampingFraction: 0.8), value: current)
+    }
+
+    private func startGlowAnimation() {
+        guard !reduceMotion else { return }
+
+        withAnimation(
+            .easeInOut(duration: 1.2)
+            .repeatForever(autoreverses: true)
+        ) {
+            glowOpacity = 1.0
+        }
+    }
+}
+
+// MARK: - Step Counter (Text Variant)
+
+/// Text-based step counter as alternative to visual progress dots.
+struct OnboardingStepCounter: View {
+
+    let current: Int
+    let total: Int
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text("Step \(current + 1)")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(ColorPalette.onboardingText)
+
+            Text("of \(total)")
+                .font(.subheadline)
+                .foregroundStyle(ColorPalette.onboardingTextSecondary)
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 8)
     }
 }
 
-// MARK: - Gradient Variant
+// MARK: - Legacy Support
 
+/// Gradient variant kept for backward compatibility.
+/// New screens should use the standard OnboardingProgressBar.
 struct OnboardingProgressBarGradient: View {
 
     let current: Int
@@ -44,7 +208,7 @@ struct OnboardingProgressBarGradient: View {
         current: Int,
         total: Int,
         gradient: LinearGradient = LinearGradient(
-            colors: [.teal, .cyan],
+            colors: [.white, .white],
             startPoint: .leading,
             endPoint: .trailing
         )
@@ -55,78 +219,86 @@ struct OnboardingProgressBarGradient: View {
     }
 
     var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                // Background track
-                Capsule()
-                    .fill(Color.secondary.opacity(0.2))
+        // Redirect to new stepped dots design
+        OnboardingProgressBar(current: current, total: total)
+    }
+}
 
-                // Progress fill
-                Capsule()
-                    .fill(gradient)
-                    .frame(width: progressWidth(in: geometry.size.width))
-                    .animation(.spring(response: 0.5), value: current)
+// MARK: - Previews
+
+#Preview("Stepped Dots - Various States") {
+    ZStack {
+        OnboardingBackground(theme: .sunlight)
+
+        VStack(spacing: 40) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Step 1 of 10")
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.6))
+                OnboardingProgressBar(current: 0, total: 10)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Step 5 of 10")
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.6))
+                OnboardingProgressBar(current: 4, total: 10)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Step 10 of 10")
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.6))
+                OnboardingProgressBar(current: 9, total: 10)
             }
         }
-        .frame(height: 6)
-        .padding(.horizontal, 24)
-        .padding(.vertical, 8)
-    }
-
-    private func progressWidth(in totalWidth: CGFloat) -> CGFloat {
-        guard total > 0 else { return 0 }
-        let progress = CGFloat(current + 1) / CGFloat(total)
-        return totalWidth * progress
     }
 }
 
-// MARK: - Step Counter Variant
+#Preview("Stepped Dots - Animated") {
+    struct AnimatedPreview: View {
+        @State private var step = 0
 
-struct OnboardingStepCounter: View {
+        var body: some View {
+            ZStack {
+                OnboardingBackground(theme: .forestFloor)
 
-    let current: Int
-    let total: Int
+                VStack(spacing: 40) {
+                    OnboardingProgressBar(current: step, total: 10)
 
-    var body: some View {
-        HStack(spacing: 4) {
-            Text("Step \(current + 1)")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.primary)
+                    Text("Step \(step + 1) of 10")
+                        .font(.headline)
+                        .foregroundStyle(.white)
 
-            Text("of \(total)")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                    Button("Next Step") {
+                        step = (step + 1) % 10
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            }
         }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 8)
     }
+
+    return AnimatedPreview()
 }
 
-// MARK: - Preview
-
-#Preview {
-    VStack(spacing: 32) {
-        VStack(alignment: .leading) {
-            Text("Capsule Pills")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            OnboardingProgressBar(current: 2, total: 7)
-        }
-
-        VStack(alignment: .leading) {
-            Text("Gradient Bar")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            OnboardingProgressBarGradient(current: 3, total: 7)
-        }
-
-        VStack(alignment: .leading) {
-            Text("Step Counter")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            OnboardingStepCounter(current: 4, total: 7)
-        }
+#Preview("Solid Background Variant") {
+    VStack(spacing: 40) {
+        OnboardingProgressBarSolid(current: 2, total: 10)
+        OnboardingProgressBarSolid(current: 5, total: 10)
+        OnboardingProgressBarSolid(current: 8, total: 10)
     }
     .padding()
-    .background(Color(UIColor.systemBackground))
+    .background(ColorPalette.onboardingSolidDark)
+}
+
+#Preview("Step Counter") {
+    ZStack {
+        OnboardingBackground(theme: .droplet)
+
+        VStack(spacing: 32) {
+            OnboardingStepCounter(current: 2, total: 7)
+            OnboardingStepCounter(current: 5, total: 7)
+        }
+    }
 }

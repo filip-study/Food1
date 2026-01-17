@@ -2,33 +2,29 @@
 // LaunchScreenView.swift
 // Food1
 //
-// Splash screen with Prismae golden logo.
-// Simple design - just the logo centered on adaptive background.
+// Simple splash screen with white Prismae logo on black background.
+// Clean, minimal design - no animation, no haptics.
 //
 
 import SwiftUI
 
 struct LaunchScreenView: View {
-    @Environment(\.colorScheme) private var colorScheme
-
-    private let goldColor = Color(hex: "D6AC25")
-
     var body: some View {
         ZStack {
-            // Adaptive background
-            (colorScheme == .dark ? Color.black : Color(hex: "f5f5f7"))
+            // Solid black background
+            Color.black
                 .ignoresSafeArea()
 
-            // Simple centered logo
+            // White logo - clean and simple
             PrismaeLogoShape()
-                .fill(goldColor)
-                .frame(width: 120, height: 120)
+                .fill(Color.white)
+                .frame(width: 140, height: 140)
         }
     }
 }
 
 // MARK: - Preview
 
-#Preview {
+#Preview("Launch Screen") {
     LaunchScreenView()
 }

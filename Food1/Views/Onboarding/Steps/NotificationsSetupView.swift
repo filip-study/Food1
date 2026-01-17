@@ -2,14 +2,19 @@
 //  NotificationsSetupView.swift
 //  Food1
 //
-//  Onboarding step 7: Notifications and meal reminders setup.
-//  Combines notification permission request with meal window configuration.
-//  Simplified version without "smart adjustment" feature.
+//  Onboarding step 8: Notifications and meal reminders setup.
+//
+//  ACT II - DISCOVERY DESIGN:
+//  - Solid background for functional screen
+//  - Preview notification cards showing examples
+//  - Meal window scheduling
+//  - "Enable Reminders" and "Maybe Later" buttons
 //
 
 import SwiftUI
 import UserNotifications
 import ActivityKit
+import Supabase
 
 struct NotificationsSetupView: View {
 
@@ -28,27 +33,37 @@ struct NotificationsSetupView: View {
     @State private var showError = false
     @State private var errorMessage = ""
 
+    @Environment(\.colorScheme) private var colorScheme
+
     // MARK: - Body
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 32) {
-                // Header
-                headerSection
-                    .padding(.top, 24)
+        ZStack {
+            // Solid background (functional screen)
+            OnboardingBackground(theme: .solid)
 
-                // Meal windows
-                mealWindowsSection
+            ScrollView {
+                VStack(spacing: 32) {
+                    // Header
+                    headerSection
+                        .padding(.top, 24)
 
-                // Add window button
-                if mealWindows.count < 6 {
-                    addWindowButton
+                    // Preview notifications
+                    notificationPreviewSection
+
+                    // Meal windows
+                    mealWindowsSection
+
+                    // Add window button
+                    if mealWindows.count < 6 {
+                        addWindowButton
+                    }
+
+                    Spacer(minLength: 120)
                 }
-
-                Spacer(minLength: 120)
             }
+            .scrollIndicators(.hidden)
         }
-        .scrollIndicators(.hidden)
         .safeAreaInset(edge: .bottom) {
             navigationButtons
         }
@@ -62,50 +77,88 @@ struct NotificationsSetupView: View {
         }
     }
 
-    // MARK: - Header
+    // MARK: - Header (No Icon - Typography Driven)
 
     private var headerSection: some View {
-        VStack(spacing: 16) {
-            // Icon
-            ZStack {
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [ColorPalette.accentPrimary.opacity(0.3), Color.clear],
-                            center: .center,
-                            startRadius: 30,
-                            endRadius: 80
-                        )
-                    )
-                    .frame(width: 120, height: 120)
-
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [ColorPalette.accentPrimary, ColorPalette.accentPrimary.opacity(0.7)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 80, height: 80)
-
-                Image(systemName: "bell.badge.fill")
-                    .font(.system(size: 36))
-                    .foregroundStyle(.white)
-            }
-
-            Text("Stay on track")
-                .font(.largeTitle.bold())
-                .foregroundStyle(.white)
+        VStack(spacing: 12) {
+            Text("Lock Screen reminders")
+                .font(DesignSystem.Typography.bold(size: 28))
+                .foregroundStyle(.primary)
                 .multilineTextAlignment(.center)
 
-            Text("Get a gentle nudge when it's time to log meals")
-                .font(.body)
-                .foregroundStyle(.white.opacity(0.7))
+            Text("See meal windows on your Lock Screen with Live Activities")
+                .font(DesignSystem.Typography.regular(size: 17))
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
         .padding(.horizontal, 24)
     }
+
+    // MARK: - Live Activity Preview
+
+    private var notificationPreviewSection: some View {
+        VStack(spacing: 12) {
+            Text("Your Lock Screen will show:")
+                .font(DesignSystem.Typography.medium(size: 14))
+                .foregroundStyle(.tertiary)
+
+            // Simple Live Activity preview
+            liveActivityPreview
+        }
+        .padding(.horizontal, 24)
+    }
+
+    private var liveActivityPreview: some View {
+        VStack(spacing: 8) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("\(currentMealWindowName) window open")
+                        .font(DesignSystem.Typography.semiBold(size: 15))
+                        .foregroundStyle(.primary)
+                    Text("Tap to log your meal")
+                        .font(DesignSystem.Typography.regular(size: 13))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Text(currentMealEmoji)
+                    .font(.system(size: 28))
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(Color(.systemGray6))
+            )
+        }
+    }
+
+    /// Current meal window name based on time of day
+    private var currentMealWindowName: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        if hour < 10 {
+            return "Breakfast"
+        } else if hour < 14 {
+            return "Lunch"
+        } else if hour < 17 {
+            return "Snack"
+        } else {
+            return "Dinner"
+        }
+    }
+
+    /// Emoji matching current meal window
+    private var currentMealEmoji: String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        if hour < 10 {
+            return "🍳"
+        } else if hour < 14 {
+            return "🥗"
+        } else if hour < 17 {
+            return "🍎"
+        } else {
+            return "🍽️"
+        }
+    }
+
 
     // MARK: - Meal Windows
 
@@ -119,29 +172,34 @@ struct NotificationsSetupView: View {
     }
 
     private func mealWindowRow(window: Binding<EditableMealWindow>) -> some View {
-        HStack(spacing: 16) {
-            // Toggle
+        let isEnabled = window.wrappedValue.isEnabled
+
+        return HStack(spacing: 16) {
+            // Toggle - adapts to light/dark mode
             Button {
                 withAnimation(.spring(response: 0.2)) {
                     window.wrappedValue.isEnabled.toggle()
                 }
             } label: {
-                Image(systemName: window.wrappedValue.isEnabled ? "checkmark.circle.fill" : "circle")
+                Image(systemName: isEnabled ? "checkmark.circle.fill" : "circle")
                     .font(.title2)
-                    .foregroundStyle(window.wrappedValue.isEnabled ? ColorPalette.accentPrimary : .white.opacity(0.3))
+                    .foregroundStyle(.blue)
+                    .opacity(isEnabled ? 1.0 : 0.3)
             }
             .buttonStyle(.plain)
 
-            // Icon
+            // Icon - secondary color (adapts to light/dark)
             Image(systemName: iconForTime(window.wrappedValue.time))
                 .font(.title3)
-                .foregroundStyle(window.wrappedValue.isEnabled ? iconColor(for: window.wrappedValue.time) : .white.opacity(0.3))
+                .foregroundStyle(.secondary)
+                .opacity(isEnabled ? 1.0 : 0.5)
                 .frame(width: 28)
 
             // Name
             Text(window.wrappedValue.name)
-                .font(.body.weight(.medium))
-                .foregroundStyle(window.wrappedValue.isEnabled ? .white : .white.opacity(0.5))
+                .font(DesignSystem.Typography.medium(size: 17))
+                .foregroundStyle(.primary)
+                .opacity(isEnabled ? 1.0 : 0.5)
 
             Spacer()
 
@@ -152,7 +210,7 @@ struct NotificationsSetupView: View {
                 displayedComponents: .hourAndMinute
             )
             .labelsHidden()
-            .tint(.white)
+            .tint(.blue)
             .disabled(!window.wrappedValue.isEnabled)
             .opacity(window.wrappedValue.isEnabled ? 1 : 0.5)
 
@@ -165,14 +223,20 @@ struct NotificationsSetupView: View {
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .font(.title3)
-                        .foregroundStyle(.white.opacity(0.3))
+                        .foregroundStyle(.tertiary)
                 }
                 .buttonStyle(.plain)
             }
         }
         .padding(16)
-        .background(Color.white.opacity(0.1))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(.systemGray6))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color(.separator), lineWidth: 1)
+                )
+        )
     }
 
     // MARK: - Add Window
@@ -192,8 +256,8 @@ struct NotificationsSetupView: View {
                 Image(systemName: "plus.circle.fill")
                 Text("Add meal window")
             }
-            .font(.subheadline.weight(.medium))
-            .foregroundStyle(ColorPalette.accentPrimary)
+            .font(DesignSystem.Typography.medium(size: 15))
+            .foregroundStyle(.secondary)
         }
         .buttonStyle(.plain)
     }
@@ -203,17 +267,9 @@ struct NotificationsSetupView: View {
     private var navigationButtons: some View {
         VStack(spacing: 12) {
             HStack(spacing: 16) {
-                Button(action: onBack) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 56, height: 56)
-                        .background(Color.white.opacity(0.1))
-                        .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
+                OnboardingBackButton(action: onBack)
 
-                // Enable button
+                // Enable button - Blue primary
                 Button {
                     Task {
                         await enableReminders()
@@ -224,34 +280,34 @@ struct NotificationsSetupView: View {
                             ProgressView()
                                 .tint(.white)
                         } else {
-                            Text("Enable")
-                                .font(.headline)
+                            Text("Enable Reminders")
+                                .font(DesignSystem.Typography.semiBold(size: 18))
                         }
                     }
+                    .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
                     .background(
-                        LinearGradient(
-                            colors: [ColorPalette.accentPrimary, ColorPalette.accentPrimary.opacity(0.8)],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color.blue)
                     )
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
                 .buttonStyle(.plain)
                 .disabled(isLoading || enabledWindowCount == 0)
                 .opacity(enabledWindowCount == 0 ? 0.5 : 1)
             }
 
-            Button("Skip for now", action: onSkip)
-                .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.6))
+            Button("Maybe Later", action: onSkip)
+                .font(DesignSystem.Typography.regular(size: 14))
+                .foregroundStyle(.tertiary)
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 16)
-        .background(.ultraThinMaterial.opacity(0.5))
+        .background(
+            colorScheme == .dark
+                ? Color.black.opacity(0.3)
+                : Color.white.opacity(0.5)
+        )
     }
 
     // MARK: - Helpers
@@ -273,18 +329,7 @@ struct NotificationsSetupView: View {
         }
     }
 
-    private func iconColor(for date: Date) -> Color {
-        let hour = Calendar.current.component(.hour, from: date)
-        if hour < 10 {
-            return .orange
-        } else if hour < 14 {
-            return .yellow
-        } else if hour < 17 {
-            return .cyan
-        } else {
-            return .indigo
-        }
-    }
+    // Note: iconColor removed - icons are now always white per photo-first neutral design
 
     // MARK: - Actions
 
@@ -312,56 +357,19 @@ struct NotificationsSetupView: View {
             }
         }
 
-        // Save meal reminders
-        do {
-            let userId = try await SupabaseService.shared.requireUserId()
+        // Store meal window preferences in OnboardingData for later sync
+        // This allows the flow to work before the user has registered
+        data.mealWindows = mealWindows.filter { $0.isEnabled }
+        data.notificationsEnabled = true
 
-            // Create settings
-            let settings = MealReminderSettings(
-                userId: userId,
-                isEnabled: true,
-                leadTimeMinutes: 45,
-                autoDismissMinutes: 120,
-                onboardingCompleted: true,
-                createdAt: Date(),
-                updatedAt: Date()
-            )
-
-            // Convert editable windows to MealWindow
-            let windows = mealWindows.enumerated().compactMap { index, editable -> MealWindow? in
-                guard editable.isEnabled else { return nil }
-                return MealWindow(
-                    id: UUID(),
-                    userId: userId,
-                    name: editable.name,
-                    targetTime: TimeComponents(from: editable.time),
-                    isEnabled: true,
-                    sortOrder: index,
-                    createdAt: Date(),
-                    updatedAt: Date()
-                )
-            }
-
-            // Save to Supabase
-            try await MealActivityScheduler.shared.saveSettings(settings)
-            try await MealActivityScheduler.shared.saveMealWindows(windows)
-
-            // Start activities
-            await MealActivityScheduler.shared.checkAndScheduleActivities()
-
-            // Check if Live Activities are enabled
-            let authInfo = ActivityAuthorizationInfo()
-            if !authInfo.areActivitiesEnabled {
-                errorMessage = "Settings saved! To see activities on your Lock Screen, enable Live Activities in Settings > Prismae > Live Activities"
-                showError = true
-            }
-
-            onComplete()
-
-        } catch {
-            errorMessage = error.localizedDescription
+        // Check if Live Activities are enabled
+        let authInfo = ActivityAuthorizationInfo()
+        if !authInfo.areActivitiesEnabled {
+            errorMessage = "Settings saved! To see activities on your Lock Screen, enable Live Activities in Settings > Prismae > Live Activities"
             showError = true
         }
+
+        onComplete()
     }
 
     // MARK: - Default Windows
@@ -393,14 +401,10 @@ struct NotificationsSetupView: View {
 // MARK: - Preview
 
 #Preview {
-    ZStack {
-        Color.black.ignoresSafeArea()
-
-        NotificationsSetupView(
-            data: OnboardingData(),
-            onBack: { print("Back") },
-            onComplete: { print("Complete") },
-            onSkip: { print("Skip") }
-        )
-    }
+    NotificationsSetupView(
+        data: OnboardingData(),
+        onBack: { print("Back") },
+        onComplete: { print("Complete") },
+        onSkip: { print("Skip") }
+    )
 }

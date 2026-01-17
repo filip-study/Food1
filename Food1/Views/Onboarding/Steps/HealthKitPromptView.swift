@@ -3,7 +3,12 @@
 //  Food1
 //
 //  Onboarding step 3: Request HealthKit permission.
-//  Explains benefits and offers manual entry as alternative.
+//
+//  ACT II - DISCOVERY DESIGN:
+//  - Solid color background for high visibility
+//  - Pink heart icon (Apple Health color)
+//  - Primary/secondary text colors
+//  - Blue primary button
 //
 
 import SwiftUI
@@ -24,26 +29,33 @@ struct HealthKitPromptView: View {
     @State private var showError = false
     @State private var errorMessage = ""
 
+    @Environment(\.colorScheme) private var colorScheme
+
     // MARK: - Body
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 40) {
-                Spacer(minLength: 40)
+        ZStack {
+            // Solid color background (Act II)
+            OnboardingBackground(theme: .solid)
 
-                // Icon
-                iconSection
+            ScrollView {
+                VStack(spacing: 40) {
+                    Spacer(minLength: 40)
 
-                // Header
-                headerSection
+                    // Icon - Pink heart (Apple Health color)
+                    iconSection
 
-                // Benefits list
-                benefitsList
+                    // Header
+                    headerSection
 
-                Spacer(minLength: 120)
+                    // Benefits list
+                    benefitsList
+
+                    Spacer(minLength: 120)
+                }
             }
+            .scrollIndicators(.hidden)
         }
-        .scrollIndicators(.hidden)
         .safeAreaInset(edge: .bottom) {
             navigationButtons
         }
@@ -54,33 +66,30 @@ struct HealthKitPromptView: View {
         }
     }
 
-    // MARK: - Icon (Apple Health Style)
+    // MARK: - Apple Health Icon (Clean, recognizable)
 
     private var iconSection: some View {
+        // Apple Health-style icon: white heart on gradient rounded rectangle
         ZStack {
-            // Outer glow
-            Circle()
+            // Gradient background mimicking Apple Health app icon
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(
-                    RadialGradient(
-                        colors: [Color.pink.opacity(0.3), Color.clear],
-                        center: .center,
-                        startRadius: 40,
-                        endRadius: 100
-                    )
-                )
-                .frame(width: 180, height: 180)
-
-            // Apple Health icon (matches MyHealthPlaceholderView)
-            Image(systemName: "heart.text.square.fill")
-                .font(.system(size: 80))
-                .foregroundStyle(
                     LinearGradient(
-                        colors: [Color.pink, Color.red],
+                        colors: [
+                            Color(red: 1.0, green: 0.4, blue: 0.5),   // Pink
+                            Color(red: 1.0, green: 0.25, blue: 0.35)  // Red
+                        ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
-                .symbolRenderingMode(.hierarchical)
+                .frame(width: 100, height: 100)
+                .shadow(color: Color.pink.opacity(0.4), radius: 20, y: 8)
+
+            // White heart icon
+            Image(systemName: "heart.fill")
+                .font(.system(size: 48, weight: .medium))
+                .foregroundStyle(.white)
         }
     }
 
@@ -89,13 +98,13 @@ struct HealthKitPromptView: View {
     private var headerSection: some View {
         VStack(spacing: 12) {
             Text("Speed up setup")
-                .font(.largeTitle.bold())
-                .foregroundStyle(.white)
+                .font(DesignSystem.Typography.bold(size: 28))
+                .foregroundStyle(.primary)
                 .multilineTextAlignment(.center)
 
             Text("We can read your health data to personalize your experience faster")
-                .font(.body)
-                .foregroundStyle(.white.opacity(0.7))
+                .font(DesignSystem.Typography.regular(size: 17))
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
         }
@@ -117,17 +126,17 @@ struct HealthKitPromptView: View {
         HStack(spacing: 16) {
             Image(systemName: icon)
                 .font(.system(size: 20))
-                .foregroundStyle(.pink)
+                .foregroundStyle(.secondary)
                 .frame(width: 32)
 
             Text(text)
-                .font(.body)
-                .foregroundStyle(.white.opacity(0.9))
+                .font(DesignSystem.Typography.regular(size: 17))
+                .foregroundStyle(.primary)
 
             Spacer()
 
             Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(.green.opacity(0.8))
+                .foregroundStyle(.green)
         }
     }
 
@@ -135,7 +144,7 @@ struct HealthKitPromptView: View {
 
     private var navigationButtons: some View {
         VStack(spacing: 16) {
-            // Primary: Allow Access
+            // Primary: Allow Access - Blue
             Button(action: requestHealthKitAccess) {
                 HStack(spacing: 8) {
                     if isLoading {
@@ -143,52 +152,47 @@ struct HealthKitPromptView: View {
                             .tint(.white)
                     } else {
                         Image(systemName: "heart.fill")
+                            .foregroundStyle(.pink)
                         Text("Allow Access")
-                            .font(.headline)
+                            .font(DesignSystem.Typography.semiBold(size: 18))
                     }
                 }
+                .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 56)
                 .background(
-                    LinearGradient(
-                        colors: [Color.pink, Color.red],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(Color.blue)
                 )
-                .foregroundStyle(.white)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
             }
             .buttonStyle(.plain)
             .disabled(isLoading)
 
             // Secondary: Enter Manually
             HStack(spacing: 16) {
-                Button(action: onBack) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 56, height: 56)
-                        .background(Color.white.opacity(0.1))
-                        .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
+                OnboardingBackButton(action: onBack)
 
                 Button(action: onSkip) {
                     Text("Enter manually instead")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.white.opacity(0.8))
+                        .font(DesignSystem.Typography.medium(size: 15))
+                        .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity)
                         .frame(height: 50)
-                        .background(Color.white.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color(.systemGray5))
+                        )
                 }
                 .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 16)
-        .background(.ultraThinMaterial.opacity(0.5))
+        .background(
+            colorScheme == .dark
+                ? Color.black.opacity(0.3)
+                : Color.white.opacity(0.5)
+        )
     }
 
     // MARK: - Actions
@@ -220,15 +224,11 @@ struct HealthKitPromptView: View {
 // MARK: - Preview
 
 #Preview {
-    ZStack {
-        Color.black.ignoresSafeArea()
-
-        HealthKitPromptView(
-            data: OnboardingData(),
-            healthKit: HealthKitService.shared,
-            onBack: { print("Back") },
-            onNext: { print("Next") },
-            onSkip: { print("Skip") }
-        )
-    }
+    HealthKitPromptView(
+        data: OnboardingData(),
+        healthKit: HealthKitService.shared,
+        onBack: { print("Back") },
+        onNext: { print("Next") },
+        onSkip: { print("Skip") }
+    )
 }

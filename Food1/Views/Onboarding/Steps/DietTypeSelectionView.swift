@@ -3,7 +3,11 @@
 //  Food1
 //
 //  Onboarding step 2: Select dietary preference.
-//  Balanced, Low-Carb, or Vegan/Vegetarian.
+//
+//  ACT II - DISCOVERY DESIGN:
+//  - Solid color background for high visibility
+//  - Primary/secondary text colors (adapts to light/dark mode)
+//  - Typography-only selection cards (no icons)
 //
 
 import SwiftUI
@@ -17,43 +21,50 @@ struct DietTypeSelectionView: View {
     var onNext: () -> Void
     var onSkip: () -> Void
 
+    @Environment(\.colorScheme) private var colorScheme
+
     // MARK: - Body
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 32) {
-                // Header
-                headerSection
-                    .padding(.top, 24)
+        ZStack {
+            // Solid color background (Act II)
+            OnboardingBackground(theme: .solid)
 
-                // Diet options
-                VStack(spacing: 16) {
-                    ForEach(DietType.allCases) { diet in
-                        OnboardingSelectionCard(
-                            option: diet,
-                            title: diet.title,
-                            description: diet.description,
-                            icon: diet.icon,
-                            iconColor: diet.iconColor,
-                            isSelected: data.dietType == diet,
-                            action: {
-                                withAnimation(.spring(response: 0.3)) {
-                                    data.dietType = diet
+            ScrollView {
+                VStack(spacing: 32) {
+                    // Header
+                    headerSection
+                        .padding(.top, 24)
+
+                    // Diet options - typography-only cards
+                    VStack(spacing: 16) {
+                        ForEach(DietType.allCases) { diet in
+                            OnboardingSelectionCard(
+                                option: diet,
+                                title: diet.title,
+                                description: diet.description,
+                                icon: diet.icon,  // Ignored
+                                iconColor: .white,  // Ignored
+                                isSelected: data.dietType == diet,
+                                action: {
+                                    withAnimation(.spring(response: 0.3)) {
+                                        data.dietType = diet
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
-                }
-                .padding(.horizontal, 24)
-
-                // Footer note
-                footerNote
                     .padding(.horizontal, 24)
 
-                Spacer(minLength: 120)
+                    // Footer note
+                    footerNote
+                        .padding(.horizontal, 24)
+
+                    Spacer(minLength: 120)
+                }
             }
+            .scrollIndicators(.hidden)
         }
-        .scrollIndicators(.hidden)
         .safeAreaInset(edge: .bottom) {
             navigationButtons
         }
@@ -64,13 +75,13 @@ struct DietTypeSelectionView: View {
     private var headerSection: some View {
         VStack(spacing: 12) {
             Text("Do you follow a specific diet?")
-                .font(.largeTitle.bold())
-                .foregroundStyle(.white)
+                .font(DesignSystem.Typography.bold(size: 28))
+                .foregroundStyle(.primary)
                 .multilineTextAlignment(.center)
 
             Text("Don't worry if yours isn't listed — just choose Balanced")
-                .font(.body)
-                .foregroundStyle(.white.opacity(0.7))
+                .font(DesignSystem.Typography.regular(size: 17))
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
         .padding(.horizontal, 24)
@@ -81,11 +92,11 @@ struct DietTypeSelectionView: View {
     private var footerNote: some View {
         HStack(spacing: 8) {
             Image(systemName: "info.circle")
-                .foregroundStyle(.cyan)
+                .foregroundStyle(.secondary)
 
             Text("This affects your recommended macro balance")
-                .font(.caption)
-                .foregroundStyle(.white.opacity(0.6))
+                .font(DesignSystem.Typography.regular(size: 14))
+                .foregroundStyle(.tertiary)
         }
     }
 
@@ -94,15 +105,7 @@ struct DietTypeSelectionView: View {
     private var navigationButtons: some View {
         HStack(spacing: 16) {
             // Back button
-            Button(action: onBack) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 56, height: 56)
-                    .background(Color.white.opacity(0.1))
-                    .clipShape(Circle())
-            }
-            .buttonStyle(.plain)
+            OnboardingBackButton(action: onBack)
 
             // Continue button
             VStack(spacing: 8) {
@@ -113,27 +116,27 @@ struct DietTypeSelectionView: View {
                 )
 
                 Button("Skip for now", action: onSkip)
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.6))
+                    .font(DesignSystem.Typography.regular(size: 14))
+                    .foregroundStyle(.tertiary)
             }
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 16)
-        .background(.ultraThinMaterial.opacity(0.5))
+        .background(
+            colorScheme == .dark
+                ? Color.black.opacity(0.3)
+                : Color.white.opacity(0.5)
+        )
     }
 }
 
 // MARK: - Preview
 
 #Preview {
-    ZStack {
-        Color.black.ignoresSafeArea()
-
-        DietTypeSelectionView(
-            data: OnboardingData(),
-            onBack: { print("Back") },
-            onNext: { print("Next") },
-            onSkip: { print("Skip") }
-        )
-    }
+    DietTypeSelectionView(
+        data: OnboardingData(),
+        onBack: { print("Back") },
+        onNext: { print("Next") },
+        onSkip: { print("Skip") }
+    )
 }

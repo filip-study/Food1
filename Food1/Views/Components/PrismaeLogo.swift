@@ -24,9 +24,10 @@ struct PrismaeLogoShape: Shape {
         // Scale factor to fit the rect while maintaining aspect ratio
         let scale = min(rect.width / originalWidth, rect.height / originalHeight)
 
-        // Center the logo in the rect
-        let xOffset = (rect.width - originalWidth * scale) / 2
-        let yOffset = (rect.height - originalHeight * scale) / 2
+        // Center the logo in the rect, accounting for rect's origin position
+        // This is crucial when the rect doesn't start at (0,0), e.g., in Canvas drawing
+        let xOffset = rect.minX + (rect.width - originalWidth * scale) / 2
+        let yOffset = rect.minY + (rect.height - originalHeight * scale) / 2
 
         // Helper to transform points
         func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint {

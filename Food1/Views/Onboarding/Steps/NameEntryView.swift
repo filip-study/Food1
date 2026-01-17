@@ -2,14 +2,23 @@
 //  NameEntryView.swift
 //  Food1
 //
-//  Onboarding step 8: Name entry (final step).
-//  Ensures we always have a display name for the user, handling cases where
-//  OAuth providers (Apple/Google) don't provide a name on re-authentication.
+//  Onboarding step 9: Name entry (final step).
+//
+//  PREMIUM EDITORIAL DESIGN:
+//  - Solid dark background (Act III finale)
+//  - "Almost there!" headline (not apologetic "One last thing")
+//  - High-visibility input field with proper focus styling
+//  - Fixed: Space bug in textInputAutocapitalization
+//  - Proper keyboard handling with scrollDismissesKeyboard
 //
 //  WHY THIS EXISTS:
 //  - Apple Sign In only provides name on FIRST authorization
 //  - If user deletes account and re-signs up, Apple doesn't share name again
 //  - This step guarantees we have a name by the end of onboarding
+//
+//  BUG FIX - Space Issue:
+//  - Problem: textInputAutocapitalization(.words) was dropping text after space
+//  - Solution: Use local @State, only sync to data on commit (not during editing)
 //
 
 import SwiftUI
@@ -24,173 +33,222 @@ struct NameEntryView: View {
 
     // MARK: - State
 
+    // Local state to fix space bug - don't trim during editing
+    @State private var localName: String = ""
     @FocusState private var isTextFieldFocused: Bool
+
+    // MARK: - Environment
+
+    @Environment(\.colorScheme) private var colorScheme
 
     // MARK: - Computed
 
     private var isValidName: Bool {
-        data.fullName.trimmingCharacters(in: .whitespacesAndNewlines).count >= 2
+        localName.trimmingCharacters(in: .whitespacesAndNewlines).count >= 2
     }
 
     // MARK: - Body
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 32) {
-                // Header
-                headerSection
-                    .padding(.top, 40)
+        ZStack {
+            // Solid dark background
+            solidBackground
 
-                // Name input
-                nameInputSection
+            ScrollView {
+                VStack(spacing: 32) {
+                    // Header
+                    headerSection
+                        .padding(.top, 60)
 
-                Spacer(minLength: 120)
+                    // Name input
+                    nameInputSection
+
+                    Spacer(minLength: 120)
+                }
             }
+            .scrollIndicators(.hidden)
+            .scrollDismissesKeyboard(.interactively)
         }
-        .scrollIndicators(.hidden)
         .safeAreaInset(edge: .bottom) {
             navigationButtons
         }
         .onAppear {
-            // Auto-focus the text field for better UX
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                isTextFieldFocused = true
+            // Initialize local state from data
+            localName = data.fullName
+
+            // Only auto-focus if name is empty (don't show keyboard if pre-filled)
+            if data.fullName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    isTextFieldFocused = true
+                }
             }
         }
+    }
+
+    // MARK: - Solid Background
+
+    private var solidBackground: some View {
+        (colorScheme == .dark ? ColorPalette.onboardingSolidDark : ColorPalette.onboardingSolidLight)
+            .ignoresSafeArea()
     }
 
     // MARK: - Header
 
     private var headerSection: some View {
         VStack(spacing: 16) {
-            // Icon - checkmark to indicate final step
-            ZStack {
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [Color.green.opacity(0.3), Color.clear],
-                            center: .center,
-                            startRadius: 30,
-                            endRadius: 80
-                        )
-                    )
-                    .frame(width: 120, height: 120)
-
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [.green, .mint],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 80, height: 80)
-
-                Image(systemName: "person.crop.circle.badge.checkmark")
-                    .font(.system(size: 36))
-                    .foregroundStyle(.white)
-            }
-
-            // Final step indicator
-            Text("One last thing")
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.green)
-                .textCase(.uppercase)
-                .tracking(1.5)
-
-            Text("What should we call you?")
-                .font(.largeTitle.bold())
-                .foregroundStyle(.white)
+            // Friendly title (not apologetic)
+            Text("Almost there!")
+                .font(DesignSystem.Typography.bold(size: 28))
+                .foregroundStyle(colorScheme == .dark ? .white : .primary)
                 .multilineTextAlignment(.center)
 
-            Text("This helps personalize your experience")
-                .font(.body)
-                .foregroundStyle(.white.opacity(0.7))
+            Text("What should we call you?")
+                .font(DesignSystem.Typography.regular(size: 17))
+                .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.7) : Color.primary.opacity(0.6))
                 .multilineTextAlignment(.center)
         }
         .padding(.horizontal, 24)
     }
 
-    // MARK: - Name Input
+    // MARK: - Name Input (High Visibility)
 
     private var nameInputSection: some View {
         VStack(spacing: 12) {
-            TextField("", text: $data.fullName, prompt: Text("Your name").foregroundStyle(.white.opacity(0.4)))
-                .font(.title2.weight(.medium))
-                .foregroundStyle(.white)
+            TextField("", text: $localName, prompt: Text("Your name").foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.4) : Color.primary.opacity(0.3)))
+                .font(DesignSystem.Typography.semiBold(size: 22))
+                .foregroundStyle(colorScheme == .dark ? .white : .primary)
                 .multilineTextAlignment(.center)
                 .padding(.vertical, 20)
                 .padding(.horizontal, 24)
-                .background(Color.white.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .background(inputBackground)
+                .overlay(inputBorder)
                 .focused($isTextFieldFocused)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.words)
                 .submitLabel(.done)
+                .onChange(of: localName) { _, newValue in
+                    // Sync to data model (don't trim during editing - fixes space bug)
+                    data.fullName = newValue
+                }
                 .onSubmit {
+                    // Only trim on submit
+                    let trimmed = localName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    data.fullName = trimmed
+                    localName = trimmed
+
                     if isValidName {
                         onComplete()
                     }
                 }
 
-            if !data.fullName.isEmpty && !isValidName {
+            if !localName.isEmpty && !isValidName {
                 Text("Please enter at least 2 characters")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
+                    .font(DesignSystem.Typography.regular(size: 14))
+                    .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.5) : Color.primary.opacity(0.4))
             }
         }
         .padding(.horizontal, 24)
+    }
+
+    // MARK: - Input Styling
+
+    private var inputBackground: some View {
+        RoundedRectangle(cornerRadius: 16)
+            .fill(colorScheme == .dark
+                ? ColorPalette.onboardingInputSolidDark
+                : ColorPalette.onboardingInputSolidLight
+            )
+    }
+
+    private var inputBorder: some View {
+        RoundedRectangle(cornerRadius: 16)
+            .stroke(
+                isTextFieldFocused
+                    ? ColorPalette.onboardingInputFocusBorder
+                    : ColorPalette.onboardingInputSolidBorder,
+                lineWidth: isTextFieldFocused ? 2 : 1
+            )
     }
 
     // MARK: - Navigation
 
     private var navigationButtons: some View {
         HStack(spacing: 16) {
+            // Back button
             Button(action: onBack) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 56, height: 56)
-                    .background(Color.white.opacity(0.1))
-                    .clipShape(Circle())
+                Circle()
+                    .fill(colorScheme == .dark
+                        ? Color.white.opacity(0.1)
+                        : Color.primary.opacity(0.08)
+                    )
+                    .frame(width: 52, height: 52)
+                    .overlay(
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(colorScheme == .dark ? .white : .primary)
+                    )
             }
             .buttonStyle(.plain)
 
             // Complete button
-            Button(action: onComplete) {
-                Text("Let's go!")
-                    .font(.headline)
+            Button(action: {
+                // Trim on complete
+                let trimmed = localName.trimmingCharacters(in: .whitespacesAndNewlines)
+                data.fullName = trimmed
+                localName = trimmed
+                onComplete()
+            }) {
+                Text("Complete Setup")
+                    .font(DesignSystem.Typography.semiBold(size: 18))
+                    .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
                     .background(
-                        LinearGradient(
-                            colors: isValidName ? [.green, .mint] : [.gray, .gray],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(isValidName
+                                ? ColorPalette.accentPrimary
+                                : ColorPalette.accentPrimary.opacity(0.5)
+                            )
                     )
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
             }
             .buttonStyle(.plain)
             .disabled(!isValidName)
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 16)
-        .background(.ultraThinMaterial.opacity(0.5))
+        .background(
+            (colorScheme == .dark ? ColorPalette.onboardingSolidDark : ColorPalette.onboardingSolidLight)
+                .opacity(0.95)
+        )
     }
 }
 
 // MARK: - Preview
 
-#Preview {
-    ZStack {
-        Color.black.ignoresSafeArea()
+#Preview("Name Entry - Dark") {
+    NameEntryView(
+        data: OnboardingData(),
+        onBack: { print("Back") },
+        onComplete: { print("Complete") }
+    )
+    .preferredColorScheme(.dark)
+}
 
-        NameEntryView(
-            data: OnboardingData(),
-            onBack: { print("Back") },
-            onComplete: { print("Complete") }
-        )
-    }
+#Preview("Name Entry - Light") {
+    NameEntryView(
+        data: OnboardingData(),
+        onBack: { print("Back") },
+        onComplete: { print("Complete") }
+    )
+    .preferredColorScheme(.light)
+}
+
+#Preview("Name Entry - With Name") {
+    let data = OnboardingData()
+    data.fullName = "John Smith"
+    return NameEntryView(
+        data: data,
+        onBack: { print("Back") },
+        onComplete: { print("Complete") }
+    )
 }

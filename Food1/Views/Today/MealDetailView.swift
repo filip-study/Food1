@@ -127,13 +127,16 @@ struct MealDetailView: View {
         .sheet(isPresented: $showingEditSheet) {
             MealEditView(editingMeal: meal)
         }
-        .alert("Delete Meal", isPresented: $showingDeleteAlert) {
-            Button("Cancel", role: .cancel) { }
-            Button("Delete", role: .destructive) {
-                deleteMeal()
-            }
-        } message: {
-            Text("Are you sure you want to delete this meal? This action cannot be undone.")
+        .confirmationSheet(
+            isPresented: $showingDeleteAlert,
+            title: "Delete Meal",
+            message: "Are you sure you want to delete this meal? This action cannot be undone.",
+            confirmTitle: "Delete",
+            confirmStyle: .destructive,
+            cancelTitle: "Cancel",
+            icon: "trash"
+        ) {
+            deleteMeal()
         }
     }
 

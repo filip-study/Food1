@@ -3,8 +3,13 @@
 //  Food1
 //
 //  Onboarding step 4: Enter profile information.
-//  Age, biological sex, weight, height - all required for calorie calculation.
-//  NOT skippable - this data is essential.
+//
+//  PREMIUM EDITORIAL DESIGN:
+//  - Solid dark background (Act II: Discovery)
+//  - High-visibility input fields with system fill backgrounds
+//  - Focus border: 2pt blue, subtle shadow
+//  - Sex selection: Pill segmented control (typography-only cards)
+//  - Keyboard handling: ScrollView with scrollDismissesKeyboard
 //
 
 import SwiftUI
@@ -30,26 +35,35 @@ struct ProfileInputView: View {
         case age, weight, height
     }
 
+    // MARK: - Environment
+
+    @Environment(\.colorScheme) private var colorScheme
+
     // MARK: - Body
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 32) {
-                // Header
-                headerSection
-                    .padding(.top, 24)
+        ZStack {
+            // Solid background
+            solidBackground
 
-                // Sex selection
-                sexSelectionSection
+            ScrollView {
+                VStack(spacing: 32) {
+                    // Header
+                    headerSection
+                        .padding(.top, 40)
 
-                // Input fields
-                inputFieldsSection
+                    // Sex selection
+                    sexSelectionSection
 
-                Spacer(minLength: 120)
+                    // Input fields
+                    inputFieldsSection
+
+                    Spacer(minLength: 120)
+                }
             }
+            .scrollIndicators(.hidden)
+            .scrollDismissesKeyboard(.interactively)
         }
-        .scrollIndicators(.hidden)
-        .scrollDismissesKeyboard(.interactively)
         .safeAreaInset(edge: .bottom) {
             navigationButtons
         }
@@ -67,38 +81,45 @@ struct ProfileInputView: View {
         }
     }
 
+    // MARK: - Solid Background
+
+    private var solidBackground: some View {
+        (colorScheme == .dark ? ColorPalette.onboardingSolidDark : ColorPalette.onboardingSolidLight)
+            .ignoresSafeArea()
+    }
+
     // MARK: - Header
 
     private var headerSection: some View {
         VStack(spacing: 12) {
             Text("Tell us about yourself")
-                .font(.largeTitle.bold())
-                .foregroundStyle(.white)
+                .font(DesignSystem.Typography.bold(size: 28))
+                .foregroundStyle(colorScheme == .dark ? .white : .primary)
                 .multilineTextAlignment(.center)
 
             Text("This info helps us calculate your daily targets accurately")
-                .font(.body)
-                .foregroundStyle(.white.opacity(0.7))
+                .font(DesignSystem.Typography.regular(size: 17))
+                .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.7) : Color.primary.opacity(0.6))
                 .multilineTextAlignment(.center)
         }
         .padding(.horizontal, 24)
     }
 
-    // MARK: - Sex Selection
+    // MARK: - Sex Selection (Typography-Only Cards)
 
     private var sexSelectionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Biological Sex")
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.white.opacity(0.8))
+                .font(DesignSystem.Typography.medium(size: 15))
+                .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.7) : Color.primary.opacity(0.6))
 
             HStack(spacing: 12) {
                 ForEach(BiologicalSex.allCases) { sex in
                     OnboardingSelectionCardCompact(
                         option: sex,
                         title: sex.title,
-                        icon: sex.icon,
-                        iconColor: sex == .male ? .blue : .pink,
+                        icon: sex.icon,  // Ignored - typography only
+                        iconColor: .white,
                         isSelected: data.biologicalSex == sex,
                         action: {
                             withAnimation(.spring(response: 0.3)) {
@@ -112,7 +133,7 @@ struct ProfileInputView: View {
         .padding(.horizontal, 24)
     }
 
-    // MARK: - Input Fields
+    // MARK: - Input Fields (High Visibility)
 
     private var inputFieldsSection: some View {
         VStack(spacing: 20) {
@@ -151,7 +172,7 @@ struct ProfileInputView: View {
         .padding(.horizontal, 24)
     }
 
-    // MARK: - Input Card Components
+    // MARK: - Input Card Components (High Visibility)
 
     private func inputCard(
         label: String,
@@ -163,26 +184,26 @@ struct ProfileInputView: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(label)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.white.opacity(0.8))
+                .font(DesignSystem.Typography.medium(size: 15))
+                .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.7) : Color.primary.opacity(0.6))
 
             HStack {
                 TextField(placeholder, text: value)
-                    .font(.title2.weight(.semibold))
+                    .font(DesignSystem.Typography.semiBold(size: 22))
                     .keyboardType(keyboardType)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(colorScheme == .dark ? .white : .primary)
                     .focused($focusedField, equals: field)
                     .onChange(of: value.wrappedValue) { _, newValue in
                         updateDataFromField(field, value: newValue)
                     }
 
                 Text(unit)
-                    .font(.body)
-                    .foregroundStyle(.white.opacity(0.6))
+                    .font(DesignSystem.Typography.regular(size: 17))
+                    .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.5) : Color.primary.opacity(0.4))
             }
             .padding()
-            .background(Color.white.opacity(0.1))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .background(inputBackground)
+            .overlay(inputBorder(for: field))
         }
     }
 
@@ -197,14 +218,14 @@ struct ProfileInputView: View {
     ) -> some View where U.RawValue == String {
         VStack(alignment: .leading, spacing: 8) {
             Text(label)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.white.opacity(0.8))
+                .font(DesignSystem.Typography.medium(size: 15))
+                .foregroundStyle(colorScheme == .dark ? Color.white.opacity(0.7) : Color.primary.opacity(0.6))
 
             HStack {
                 TextField(placeholder, text: value)
-                    .font(.title2.weight(.semibold))
+                    .font(DesignSystem.Typography.semiBold(size: 22))
                     .keyboardType(keyboardType)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(colorScheme == .dark ? .white : .primary)
                     .focused($focusedField, equals: field)
                     .onChange(of: value.wrappedValue) { _, newValue in
                         updateDataFromField(field, value: newValue)
@@ -216,12 +237,32 @@ struct ProfileInputView: View {
                     }
                 }
                 .pickerStyle(.menu)
-                .tint(.white.opacity(0.8))
+                .tint(colorScheme == .dark ? .white : .primary)
             }
             .padding()
-            .background(Color.white.opacity(0.1))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .background(inputBackground)
+            .overlay(inputBorder(for: field))
         }
+    }
+
+    // MARK: - Input Styling
+
+    private var inputBackground: some View {
+        RoundedRectangle(cornerRadius: 14)
+            .fill(colorScheme == .dark
+                ? ColorPalette.onboardingInputSolidDark
+                : ColorPalette.onboardingInputSolidLight
+            )
+    }
+
+    private func inputBorder(for field: ProfileField) -> some View {
+        RoundedRectangle(cornerRadius: 14)
+            .stroke(
+                focusedField == field
+                    ? ColorPalette.onboardingInputFocusBorder
+                    : ColorPalette.onboardingInputSolidBorder,
+                lineWidth: focusedField == field ? 2 : 1
+            )
     }
 
     // MARK: - Data Binding
@@ -254,41 +295,68 @@ struct ProfileInputView: View {
 
     private var navigationButtons: some View {
         HStack(spacing: 16) {
+            // Back button
             Button(action: onBack) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 56, height: 56)
-                    .background(Color.white.opacity(0.1))
-                    .clipShape(Circle())
+                Circle()
+                    .fill(colorScheme == .dark
+                        ? Color.white.opacity(0.1)
+                        : Color.primary.opacity(0.08)
+                    )
+                    .frame(width: 52, height: 52)
+                    .overlay(
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(colorScheme == .dark ? .white : .primary)
+                    )
             }
             .buttonStyle(.plain)
 
-            OnboardingNextButton(
-                text: isFormValid ? "Continue" : "Fill in all fields",
-                isEnabled: isFormValid,
-                action: {
-                    focusedField = nil
-                    onNext()
-                }
-            )
+            // Next button
+            Button {
+                focusedField = nil
+                onNext()
+            } label: {
+                Text(isFormValid ? "Continue" : "Fill in all fields")
+                    .font(DesignSystem.Typography.semiBold(size: 18))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(isFormValid
+                                ? ColorPalette.accentPrimary
+                                : ColorPalette.accentPrimary.opacity(0.5)
+                            )
+                    )
+            }
+            .buttonStyle(.plain)
+            .disabled(!isFormValid)
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 16)
-        .background(.ultraThinMaterial.opacity(0.5))
+        .background(
+            (colorScheme == .dark ? ColorPalette.onboardingSolidDark : ColorPalette.onboardingSolidLight)
+                .opacity(0.95)
+        )
     }
 }
 
 // MARK: - Preview
 
-#Preview {
-    ZStack {
-        Color.black.ignoresSafeArea()
+#Preview("Profile Input - Dark") {
+    ProfileInputView(
+        data: OnboardingData(),
+        onBack: { print("Back") },
+        onNext: { print("Next") }
+    )
+    .preferredColorScheme(.dark)
+}
 
-        ProfileInputView(
-            data: OnboardingData(),
-            onBack: { print("Back") },
-            onNext: { print("Next") }
-        )
-    }
+#Preview("Profile Input - Light") {
+    ProfileInputView(
+        data: OnboardingData(),
+        onBack: { print("Back") },
+        onNext: { print("Next") }
+    )
+    .preferredColorScheme(.light)
 }

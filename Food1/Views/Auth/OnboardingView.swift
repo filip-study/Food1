@@ -2,17 +2,14 @@
 //  OnboardingView.swift
 //  Prismae (Food1)
 //
-//  Authentication screen with Apple, Google, and email sign-in options.
-//  Users arrive here after tapping "Get Started" on WelcomeView.
-//  Features glassmorphic design, animated logo, and production-ready UX.
+//  Registration screen shown AFTER personalization onboarding.
+//  New users complete onboarding first, then create an account here.
 //
-//  WHY THIS ARCHITECTURE:
+//  DESIGN:
+//  - Black background with white logo (matches welcome screen)
 //  - Apple Sign In as primary (App Store requirement + best UX)
-//  - Google Sign In as secondary OAuth option (popular, familiar)
-//  - Email as tertiary option (progressive disclosure)
-//  - Animated brand logo for premium first impression
-//  - Glassmorphic cards for modern iOS aesthetic
-//  - Proper keyboard handling with scroll dismiss
+//  - Google Sign In as secondary OAuth option
+//  - Email as tertiary option
 //
 //  AUTH FLOW:
 //  - Apple: Native AuthenticationServices → Supabase ID token
@@ -35,7 +32,7 @@ struct OnboardingView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var showEmailAuth = false
-    @State private var isSignUpMode = false
+    @State private var isSignUpMode = true  // Default to sign up for new users
     @State private var isGoogleLoading = false
 
     enum Field {
@@ -44,34 +41,30 @@ struct OnboardingView: View {
 
     var body: some View {
         ZStack {
-            // Brand gradient background
-            BrandGradientBackground()
+            // Black background (matches welcome screen)
+            Color.black
+                .ignoresSafeArea()
 
             ScrollView {
                 VStack(spacing: 32) {
                     Spacer()
-                        .frame(height: 80)
+                        .frame(height: 60)
 
-                    // Animated MacroRings logo
-                    AnimatedLogoView()
+                    // White logo
+                    PrismaeLogoShape()
+                        .fill(Color.white)
+                        .frame(width: 100, height: 100)
                         .padding(.bottom, 8)
 
-                    // App title and tagline
+                    // Title and tagline
                     VStack(spacing: 8) {
-                        Text("Prismae")
-                            .font(DesignSystem.Typography.bold(size: 36))
-                            .tracking(-0.5)
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: [Color.primary, Color.primary.opacity(0.8)],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
+                        Text("Create your account")
+                            .font(DesignSystem.Typography.bold(size: 28))
+                            .foregroundColor(.white)
 
-                        Text("Sign in to continue")
+                        Text("Save your personalized plan")
                             .font(DesignSystem.Typography.medium(size: 17))
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.white.opacity(0.7))
                     }
                     .padding(.bottom, 24)
 
@@ -137,25 +130,24 @@ struct OnboardingView: View {
                     }
                     .padding(.horizontal, 24)
 
-                    // Trust indicators
+                    // Trial badge + Legal links (visible to ALL users, not just email)
                     if !showEmailAuth {
-                        VStack(spacing: 12) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.green)
-                                Text("7-day free trial")
-                                    .font(DesignSystem.Typography.medium(size: 14))
-                            }
+                        VStack(spacing: 16) {
+                            // Trial badge - cleaner, single-line
+                            Text("Start your 7-day free trial")
+                                .font(DesignSystem.Typography.medium(size: 15))
+                                .foregroundColor(.secondary)
 
-                            HStack(spacing: 8) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.blue)
-                                Text("No credit card required")
-                                    .font(DesignSystem.Typography.medium(size: 14))
+                            // Legal links (Terms & Privacy)
+                            HStack(spacing: 4) {
+                                Link("Terms of Use", destination: URL(string: "https://prismae.net/terms")!)
+                                Text("and")
+                                    .foregroundColor(.secondary)
+                                Link("Privacy Policy", destination: URL(string: "https://prismae.net/privacy")!)
                             }
+                            .font(DesignSystem.Typography.regular(size: 13))
                         }
-                        .foregroundColor(.secondary)
-                        .padding(.top, 8)
+                        .padding(.top, 16)
                     }
 
                     Spacer()
@@ -292,19 +284,13 @@ struct OnboardingView: View {
             .disabled(authViewModel.isLoading || !isFormValid)
             .accessibilityIdentifier("submitAuthButton")
 
-            // Legal agreement text with tappable links
+            // Legal reminder for email sign-up (main links are on main screen)
             if isSignUpMode {
-                HStack(spacing: 0) {
-                    Text("By creating an account, you agree to our ")
-                        .foregroundColor(.secondary)
-                    Link("Terms", destination: URL(string: "https://prismae.net/terms")!)
-                    Text(" and ")
-                        .foregroundColor(.secondary)
-                    Link("Privacy Policy", destination: URL(string: "https://prismae.net/privacy")!)
-                }
-                .font(DesignSystem.Typography.regular(size: 13))
-                .multilineTextAlignment(.center)
-                .padding(.top, 4)
+                Text("By creating an account, you agree to our Terms of Use and Privacy Policy")
+                    .font(DesignSystem.Typography.regular(size: 13))
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.top, 4)
             }
         }
     }

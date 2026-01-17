@@ -214,13 +214,16 @@ struct AccountView: View {
                     }
                     .disabled(isSigningOut)
                     .opacity(isSigningOut ? 0.6 : 1.0)
-                    .confirmationDialog("Sign Out", isPresented: $showingSignOutConfirmation) {
-                        Button("Sign Out", role: .destructive) {
-                            handleSignOut()
-                        }
-                        Button("Cancel", role: .cancel) {}
-                    } message: {
-                        Text("Are you sure you want to sign out?")
+                    .confirmationSheet(
+                        isPresented: $showingSignOutConfirmation,
+                        title: "Sign Out",
+                        message: "Are you sure you want to sign out of your account?",
+                        confirmTitle: "Sign Out",
+                        confirmStyle: .primary,
+                        cancelTitle: "Cancel",
+                        icon: "rectangle.portrait.and.arrow.right"
+                    ) {
+                        handleSignOut()
                     }
                 }
 
@@ -239,13 +242,16 @@ struct AccountView: View {
                     .accessibilityIdentifier("deleteAccountButton")
                     .disabled(isDeleting)
                     .opacity(isDeleting ? 0.6 : 1.0)
-                    .confirmationDialog("Delete Account", isPresented: $showingDeleteConfirmation) {
-                        Button("Delete Account", role: .destructive) {
-                            showingDeleteFinalConfirmation = true
-                        }
-                        Button("Cancel", role: .cancel) {}
-                    } message: {
-                        Text("This will permanently delete your account and all data. This cannot be undone.")
+                    .confirmationSheet(
+                        isPresented: $showingDeleteConfirmation,
+                        title: "Delete Account",
+                        message: "This will permanently delete your account and all data. This action cannot be undone.",
+                        confirmTitle: "Delete Account",
+                        confirmStyle: .destructive,
+                        cancelTitle: "Cancel",
+                        icon: "trash"
+                    ) {
+                        showingDeleteFinalConfirmation = true
                     }
                 } footer: {
                     Text("Permanently delete your account and all data.")

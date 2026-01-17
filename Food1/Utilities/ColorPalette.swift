@@ -60,6 +60,138 @@ struct ColorPalette {
     /// Calories color - Warm Amber (for area fills/totals)
     static let calories = Color(hex: "#F59E0B")
 
+    // MARK: - Semantic Colors
+
+    /// Success state - Emerald green
+    static let success = Color(hex: "#10B981")
+
+    /// Warning state - Amber
+    static let warning = Color(hex: "#F59E0B")
+
+    /// Error state - Red
+    static let error = Color(hex: "#EF4444")
+
+    /// Disabled state - Gray with reduced opacity
+    static let disabled = Color.gray.opacity(0.4)
+
+    // MARK: - Onboarding Colors (Premium Editorial Design)
+
+    /// Primary text on onboarding screens - adapts to background type
+    static let onboardingText = Color.white
+
+    /// Secondary text - 80% opacity white
+    static let onboardingTextSecondary = Color.white.opacity(0.8)
+
+    /// Tertiary text - 65% opacity white (minimum readable)
+    static let onboardingTextTertiary = Color.white.opacity(0.65)
+
+    /// Progress bar track - subtle white
+    static let onboardingProgressTrack = Color.white.opacity(0.2)
+
+    /// Progress bar fill - solid white
+    static let onboardingProgressFill = Color.white
+
+    /// Button background - solid white for primary buttons
+    static let onboardingButtonBackground = Color.white
+
+    /// Button text - black on white buttons
+    static let onboardingButtonText = Color.black
+
+    /// Card background - uses .ultraThinMaterial in views
+    /// Card border (unselected) - subtle white
+    static let onboardingCardBorder = Color.white.opacity(0.1)
+
+    /// Card border (selected) - solid white
+    static let onboardingCardBorderSelected = Color.white
+
+    /// Input field background - visible white tint
+    static let onboardingInputBackground = Color.white.opacity(0.15)
+
+    /// Input field border - subtle definition
+    static let onboardingInputBorder = Color.white.opacity(0.2)
+
+    /// Back button background - glass effect
+    static let onboardingBackButtonBackground = Color.white.opacity(0.15)
+
+    // MARK: - Solid Background Colors (Act II: Discovery)
+
+    /// Solid dark background for discovery screens (dark mode)
+    static let onboardingSolidDark = Color(hex: "#1A1A1A")
+
+    /// Solid light background for discovery screens (light mode)
+    static let onboardingSolidLight = Color(hex: "#FAFAF9")
+
+    /// Input field background on solid backgrounds (dark mode)
+    static let onboardingInputSolidDark = Color(uiColor: .systemGray5)
+
+    /// Input field background on solid backgrounds (light mode)
+    static let onboardingInputSolidLight = Color(uiColor: .systemGray6)
+
+    /// Input field border on solid backgrounds
+    static let onboardingInputSolidBorder = Color.primary.opacity(0.1)
+
+    /// Input focus border - brand blue
+    static let onboardingInputFocusBorder = Color(hex: "#007AFF")
+
+    // MARK: - Selection Card Colors (Typography-Only Design)
+
+    /// Card background (unselected) on solid backgrounds
+    static let onboardingCardSolidBackground = Color(uiColor: .systemGray6)
+
+    /// Card background (selected) - brand blue at 8% opacity
+    static let onboardingCardSelectedBackground = Color(hex: "#007AFF").opacity(0.08)
+
+    /// Card border (selected) - brand blue
+    static let onboardingCardSelectedBorder = Color(hex: "#007AFF")
+
+    // MARK: - Celebration Colors (Act III)
+    // Premium gradient: Deep indigo → Rich violet → Warm rose
+    // Avoids generic Apple blue/teal for a more sophisticated feel
+
+    /// Celebration gradient start - deep indigo (premium, luxurious)
+    static let celebrationStart = Color(hex: "#312E81")
+
+    /// Celebration gradient middle - rich violet
+    static let celebrationMiddle = Color(hex: "#5B21B6")
+
+    /// Celebration gradient end - warm rose/magenta for celebratory warmth
+    static let celebrationEnd = Color(hex: "#DB2777")
+
+    /// Gold particle color for celebrations
+    static let celebrationGold = Color(hex: "#F59E0B")
+
+    // MARK: - Legacy Onboarding Gradients (kept for compatibility)
+
+    /// Cosmic night gradient for onboarding dark screens
+    static let cosmicNight = LinearGradient(
+        colors: [
+            Color(hex: "#0F0A1F"),
+            Color(hex: "#1A1033")
+        ],
+        startPoint: .top,
+        endPoint: .bottom
+    )
+
+    /// Morning dew gradient for light/celebratory screens
+    static let morningDew = LinearGradient(
+        colors: [
+            Color(hex: "#FEF3C7"),
+            Color(hex: "#FDE68A")
+        ],
+        startPoint: .top,
+        endPoint: .bottom
+    )
+
+    /// Wellness gradient for health-related screens
+    static let wellnessGradient = LinearGradient(
+        colors: [
+            Color(hex: "#0D9488"),
+            Color(hex: "#14B8A6")
+        ],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+
     // MARK: - Helper Method for Progress Band Selection
 
     /// Returns appropriate gradient for given progress percentage

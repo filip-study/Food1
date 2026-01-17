@@ -3,27 +3,25 @@
 //  Food1
 //
 //  Welcome screen shown to new/logged-out users before authentication.
-//  Features a visually engaging introduction to Prismae's intelligent
-//  nutrition tracking capabilities with a prominent "Get Started" CTA.
 //
-//  WHY THIS DESIGN:
-//  - First impression matters: Premium visual experience builds trust
-//  - Single CTA reduces decision fatigue (Hick's law)
-//  - Feature highlights prime users for the value proposition
-//  - Animated elements create sense of quality and polish
+//  CLEAN DESIGN:
+//  - White Prismae logo on black background - elegant and minimal
+//  - Two clear call-to-action buttons:
+//    - "Get Started" for new users → personalization onboarding → register at end
+//    - "I already have an account" for returning users → login sheet → skip onboarding
+//  - No animations, no distractions - just brand clarity
 //
 //  DEBUG ONLY:
 //  - Triple-tap on logo activates Demo Mode (for screenshots/testing)
-//  - Completely stripped from release builds via #if DEBUG
 //
 
 import SwiftUI
 
 struct WelcomeView: View {
+    /// Triggers personalization onboarding for new users
     @Binding var showOnboarding: Bool
-    @State private var animateContent = false
-    @State private var animateButton = false
-    @Environment(\.colorScheme) var colorScheme
+    /// Shows login sheet for returning users
+    @Binding var showLoginSheet: Bool
 
     #if DEBUG
     /// Callback to activate demo mode (injected from parent)
@@ -36,22 +34,21 @@ struct WelcomeView: View {
 
     var body: some View {
         ZStack {
-            // Background
-            BrandGradientBackground()
+            // Solid black background - clean and elegant
+            Color.black
+                .ignoresSafeArea()
 
             VStack(spacing: 0) {
                 Spacer()
 
-                // Hero section
+                // Hero section - logo and brand
                 VStack(spacing: 32) {
-                    // Animated logo
-                    AnimatedLogoView()
-                        .scaleEffect(1.3)
-                        .opacity(animateContent ? 1 : 0)
-                        .offset(y: animateContent ? 0 : 20)
+                    // White logo - simple and bold
+                    PrismaeLogoShape()
+                        .fill(Color.white)
+                        .frame(width: 140, height: 140)
                         #if DEBUG
-                        .frame(width: 200, height: 200)  // Explicit frame for tap target
-                        .contentShape(Rectangle())  // Make entire frame tappable
+                        .contentShape(Rectangle())
                         .onTapGesture {
                             handleLogoTap()
                         }
@@ -63,115 +60,67 @@ struct WelcomeView: View {
                         Text("Prismae")
                             .font(DesignSystem.Typography.bold(size: 42))
                             .tracking(-0.5)
-                            .foregroundStyle(
-                                LinearGradient(
-                                    colors: colorScheme == .dark
-                                        ? [.white, .white.opacity(0.85)]
-                                        : [.black, .black.opacity(0.8)],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
+                            .foregroundColor(.white)
 
-                        Text("Intelligent Nutrition")
-                            .font(DesignSystem.Typography.medium(size: 18))
-                            .foregroundStyle(.secondary)
+                        Text("Every meal is data.\nEvery day is progress.")
+                            .font(DesignSystem.Typography.editorialItalic(size: 18))
+                            .foregroundColor(.white.opacity(0.7))
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(4)
                     }
-                    .opacity(animateContent ? 1 : 0)
-                    .offset(y: animateContent ? 0 : 15)
                 }
-                .padding(.bottom, 48)
 
                 Spacer()
-
-                // Feature highlights
-                VStack(spacing: 20) {
-                    FeatureRow(
-                        icon: "camera.fill",
-                        iconColor: Color(hex: "2563EB"),
-                        title: "Snap & Track",
-                        description: "AI recognizes your meals instantly"
-                    )
-                    .opacity(animateContent ? 1 : 0)
-                    .offset(x: animateContent ? 0 : -20)
-
-                    FeatureRow(
-                        icon: "chart.line.uptrend.xyaxis",
-                        iconColor: Color(hex: "14B8A6"),
-                        title: "Smart Insights",
-                        description: "Personalized nutrition guidance"
-                    )
-                    .opacity(animateContent ? 1 : 0)
-                    .offset(x: animateContent ? 0 : -20)
-
-                    FeatureRow(
-                        icon: "heart.fill",
-                        iconColor: Color(hex: "FB7185"),
-                        title: "Health Goals",
-                        description: "Track micros, macros, and trends"
-                    )
-                    .opacity(animateContent ? 1 : 0)
-                    .offset(x: animateContent ? 0 : -20)
-                }
-                .padding(.horizontal, 32)
-                .padding(.bottom, 48)
-
                 Spacer()
 
-                // Get Started button
-                Button {
-                    let impact = UIImpactFeedbackGenerator(style: .medium)
-                    impact.impactOccurred()
-
-                    withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
-                        showOnboarding = true
-                    }
-                } label: {
-                    HStack(spacing: 8) {
+                // Buttons section
+                VStack(spacing: 16) {
+                    // Primary: Get Started (new users → onboarding first)
+                    Button {
+                        HapticManager.medium()
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                            showOnboarding = true
+                        }
+                    } label: {
                         Text("Get Started")
                             .font(DesignSystem.Typography.semiBold(size: 18))
-
-                        Image(systemName: "arrow.right")
-                            .font(.system(size: 16, weight: .semibold))
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 58)
-                    .background {
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(
-                                LinearGradient(
-                                    colors: [Color(hex: "2563EB"), Color(hex: "1D4ED8")],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
+                            .foregroundColor(.black)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 56)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .fill(Color.white)
                             )
-                            .shadow(color: Color(hex: "2563EB").opacity(0.4), radius: 12, y: 6)
                     }
+                    .accessibilityIdentifier("getStartedButton")
+
+                    // Secondary: Already have account (returning users → login sheet)
+                    Button {
+                        HapticManager.light()
+                        showLoginSheet = true
+                    } label: {
+                        Text("I already have an account")
+                            .font(DesignSystem.Typography.medium(size: 16))
+                            .foregroundColor(.white.opacity(0.8))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                            )
+                    }
+                    .accessibilityIdentifier("signInButton")
                 }
                 .padding(.horizontal, 24)
-                .opacity(animateButton ? 1 : 0)
-                .offset(y: animateButton ? 0 : 20)
-                .accessibilityIdentifier("getStartedButton")
 
-                // Subtle privacy note
+                // Privacy note
                 Text("Your data stays private and secure")
                     .font(DesignSystem.Typography.regular(size: 13))
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 16)
-                    .opacity(animateButton ? 1 : 0)
+                    .foregroundColor(.white.opacity(0.5))
+                    .padding(.top, 24)
 
                 Spacer()
-                    .frame(height: 32)
-            }
-        }
-        .onAppear {
-            // Staggered animations for polish
-            withAnimation(.easeOut(duration: 0.6).delay(0.2)) {
-                animateContent = true
-            }
-            withAnimation(.easeOut(duration: 0.5).delay(0.6)) {
-                animateButton = true
+                    .frame(height: 48)
             }
         }
     }
@@ -179,13 +128,11 @@ struct WelcomeView: View {
     // MARK: - Demo Mode (DEBUG Only)
 
     #if DEBUG
-    /// Handle logo tap for demo mode activation (triple-tap within 1 second)
+    /// Handle logo tap for demo mode activation (triple-tap within 5 seconds)
     private func handleLogoTap() {
         let now = Date()
         let timeSinceLastTap = now.timeIntervalSince(lastTapTime)
 
-        // Reset count if more than 5 seconds since last tap
-        // (longer timeout to allow for automation testing latency)
         if timeSinceLastTap > 5.0 {
             logoTapCount = 1
         } else {
@@ -194,7 +141,6 @@ struct WelcomeView: View {
 
         lastTapTime = now
 
-        // Activate demo mode on third tap
         if logoTapCount >= 3 {
             logoTapCount = 0
             let impact = UIImpactFeedbackGenerator(style: .heavy)
@@ -203,7 +149,6 @@ struct WelcomeView: View {
             print("[DemoMode] Triple-tap detected - activating demo mode")
             onDemoModeActivated?()
         } else {
-            // Light feedback on each tap
             let impact = UIImpactFeedbackGenerator(style: .light)
             impact.impactOccurred()
         }
@@ -211,49 +156,11 @@ struct WelcomeView: View {
     #endif
 }
 
-// MARK: - Feature Row Component
+// MARK: - Preview
 
-private struct FeatureRow: View {
-    let icon: String
-    let iconColor: Color
-    let title: String
-    let description: String
-
-    var body: some View {
-        HStack(spacing: 16) {
-            // Icon with gradient background
-            ZStack {
-                Circle()
-                    .fill(iconColor.opacity(0.15))
-                    .frame(width: 48, height: 48)
-
-                Image(systemName: icon)
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(iconColor)
-            }
-
-            // Text content
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(DesignSystem.Typography.semiBold(size: 16))
-                    .foregroundStyle(.primary)
-
-                Text(description)
-                    .font(DesignSystem.Typography.regular(size: 14))
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-        }
-    }
-}
-
-#Preview("Welcome - Light") {
-    WelcomeView(showOnboarding: .constant(false))
-        .preferredColorScheme(.light)
-}
-
-#Preview("Welcome - Dark") {
-    WelcomeView(showOnboarding: .constant(false))
-        .preferredColorScheme(.dark)
+#Preview("Welcome") {
+    WelcomeView(
+        showOnboarding: .constant(false),
+        showLoginSheet: .constant(false)
+    )
 }

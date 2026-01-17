@@ -2,9 +2,15 @@
 //  YourTargetsView.swift
 //  Food1
 //
-//  Onboarding step 6: Display calculated nutrition targets.
-//  Shows daily calories and macro breakdown based on user's profile.
-//  This is a summary screen - no input required.
+//  Onboarding step 7: Display calculated nutrition targets.
+//
+//  ACT III - CELEBRATION DESIGN:
+//  - Celebration gradient background (blue → teal → purple)
+//  - Hero calorie number (72pt ExtraBold WHITE)
+//  - Particle burst on reveal
+//  - Macro cards with solid colored backgrounds + borders
+//  - 3-phase success haptics
+//  - Premium, rewarding, memorable
 //
 
 import SwiftUI
@@ -22,34 +28,50 @@ struct YourTargetsView: View {
     @State private var animateCalories = false
     @State private var animateMacros = false
     @State private var displayedCalories: Int = 0
+    @State private var showParticles = false
 
     // MARK: - Body
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 40) {
-                // Header
-                headerSection
-                    .padding(.top, 24)
+        ZStack {
+            // Celebration gradient background (Act III)
+            celebrationBackground
 
-                // Calorie display
-                calorieSection
+            // Main content
+            ScrollView {
+                VStack(spacing: 40) {
+                    // Top spacing to clear progress bar + Dynamic Island
+                    // Progress bar is ~44pt + needs 20pt for Dynamic Island clearance
+                    Spacer(minLength: 72)
 
-                // Macro breakdown
-                macroSection
+                    // Header (simplified, no icon)
+                    headerSection
 
-                // Science note
-                scienceNote
+                    // Hero calorie display
+                    calorieSection
 
-                Spacer(minLength: 120)
+                    // Macro breakdown with solid cards
+                    macroSection
+
+                    Spacer(minLength: 120)
+                }
             }
+            .scrollIndicators(.hidden)
+
+            // Celebration particles overlay
+            CelebrationParticles(
+                style: .burst,
+                trigger: $showParticles,
+                duration: 3.0,
+                particleCount: 50
+            )
+            .allowsHitTesting(false)
         }
-        .scrollIndicators(.hidden)
         .safeAreaInset(edge: .bottom) {
             navigationButtons
         }
         .onAppear {
-            // Animate the reveal
+            // Staggered reveal animations
             withAnimation(.easeOut(duration: 0.6).delay(0.2)) {
                 animateCalories = true
             }
@@ -59,92 +81,89 @@ struct YourTargetsView: View {
 
             // Count up animation for calories
             animateCalorieCount()
+
+            // Trigger celebration effects after calorie count completes
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                showParticles = true
+                triggerSuccessHaptics()
+            }
         }
     }
 
-    // MARK: - Header
+    // MARK: - Celebration Background (Midjourney Droplet Image)
+
+    private var celebrationBackground: some View {
+        OnboardingBackground(theme: .droplet)
+    }
+
+    // MARK: - Header (Typography-Driven, No Icon)
 
     private var headerSection: some View {
-        VStack(spacing: 12) {
-            // Checkmark icon
-            ZStack {
-                Circle()
-                    .fill(Color.green.opacity(0.2))
-                    .frame(width: 60, height: 60)
-
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 32))
-                    .foregroundStyle(.green)
-            }
-            .scaleEffect(animateCalories ? 1 : 0.5)
-            .opacity(animateCalories ? 1 : 0)
-
+        VStack(spacing: 8) {
             Text("Your personalized targets")
-                .font(.largeTitle.bold())
+                .font(DesignSystem.Typography.bold(size: 28))
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.center)
                 .opacity(animateCalories ? 1 : 0)
 
-            Text("Calculated using science-backed formulas")
-                .font(.body)
-                .foregroundStyle(.white.opacity(0.7))
+            Text("Built just for you")
+                .font(.custom("Georgia", size: 17))  // Serif for elegance
+                .italic()
+                .foregroundStyle(.white.opacity(0.8))
                 .multilineTextAlignment(.center)
                 .opacity(animateCalories ? 1 : 0)
         }
         .padding(.horizontal, 24)
     }
 
-    // MARK: - Calorie Display
+    // MARK: - Calorie Display (Hero Moment)
 
     private var calorieSection: some View {
         VStack(spacing: 8) {
+            // Hero calorie number - 72pt ExtraBold WHITE
             Text("\(displayedCalories)")
-                .font(.system(size: 72, weight: .bold, design: .rounded))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [.teal, .cyan],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
+                .font(DesignSystem.Typography.extraBold(size: 72))
+                .foregroundStyle(.white)
                 .contentTransition(.numericText())
 
+            // Elegant serif subtitle
             Text("calories per day")
-                .font(.title3)
-                .foregroundStyle(.white.opacity(0.7))
+                .font(.custom("Georgia", size: 18))  // Serif for elegance
+                .italic()
+                .foregroundStyle(.white.opacity(0.85))
         }
         .opacity(animateCalories ? 1 : 0)
         .offset(y: animateCalories ? 0 : 20)
     }
 
-    // MARK: - Macro Section
+    // MARK: - Macro Section (Solid Cards with Colored Borders)
 
     private var macroSection: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 16) {
             Text("Daily Macros")
-                .font(.headline)
-                .foregroundStyle(.white.opacity(0.8))
+                .font(DesignSystem.Typography.medium(size: 15))
+                .foregroundStyle(.white.opacity(0.7))
 
-            HStack(spacing: 16) {
+            HStack(spacing: 12) {
+                // Protein - Teal
                 macroCard(
                     label: "Protein",
                     value: data.calculatedProtein ?? 0,
-                    unit: "g",
-                    color: .blue
+                    color: ColorPalette.macroProtein
                 )
 
+                // Carbs - Coral/Pink
                 macroCard(
                     label: "Carbs",
                     value: data.calculatedCarbs ?? 0,
-                    unit: "g",
-                    color: .orange
+                    color: ColorPalette.macroCarbs
                 )
 
+                // Fat - Blue
                 macroCard(
                     label: "Fat",
                     value: data.calculatedFat ?? 0,
-                    unit: "g",
-                    color: .purple
+                    color: ColorPalette.macroFat
                 )
             }
         }
@@ -153,51 +172,33 @@ struct YourTargetsView: View {
         .offset(y: animateMacros ? 0 : 20)
     }
 
-    private func macroCard(label: String, value: Int, unit: String, color: Color) -> some View {
-        VStack(spacing: 8) {
-            Text("\(value)")
-                .font(.title.bold())
+    /// Macro card with dark base + colored tint for visibility over any background
+    private func macroCard(label: String, value: Int, color: Color) -> some View {
+        VStack(spacing: 6) {
+            // Value in macro color, 28pt bold
+            Text("\(value)g")
+                .font(DesignSystem.Typography.bold(size: 28))
                 .foregroundStyle(color)
 
-            Text(unit)
-                .font(.caption)
-                .foregroundStyle(.white.opacity(0.5))
-
+            // Label in white, 14pt
             Text(label)
-                .font(.caption)
-                .foregroundStyle(.white.opacity(0.7))
+                .font(DesignSystem.Typography.medium(size: 14))
+                .foregroundStyle(.white)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-        .background(color.opacity(0.15))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-
-    // MARK: - Science Note
-
-    private var scienceNote: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "brain.head.profile")
-                .font(.title3)
-                .foregroundStyle(.cyan)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Mifflin-St Jeor Equation")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.white.opacity(0.8))
-
-                Text("The gold standard for estimating daily energy needs")
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.5))
-            }
-
-            Spacer()
-        }
-        .padding(16)
-        .background(Color.cyan.opacity(0.1))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .padding(.horizontal, 24)
-        .opacity(animateMacros ? 1 : 0)
+        .padding(.vertical, 20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.black.opacity(0.25))  // Dark base for contrast
+        )
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(color.opacity(0.20))  // Increased from 0.15
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(color.opacity(0.7), lineWidth: 1.5)  // Stronger border
+        )
     }
 
     // MARK: - Navigation
@@ -205,30 +206,33 @@ struct YourTargetsView: View {
     private var navigationButtons: some View {
         VStack(spacing: 12) {
             HStack(spacing: 16) {
-                Button(action: onBack) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 56, height: 56)
-                        .background(Color.white.opacity(0.1))
-                        .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
+                OnboardingBackButton(action: onBack)
 
+                // "Perfect!" button - celebration moment
                 OnboardingNextButton(
-                    text: "Looks good!",
+                    text: "Perfect!",
                     isEnabled: true,
                     action: onNext
                 )
             }
 
             Text("You can adjust these anytime in Settings")
-                .font(.caption)
-                .foregroundStyle(.white.opacity(0.5))
+                .font(DesignSystem.Typography.regular(size: 14))
+                .foregroundStyle(.white.opacity(0.6))
         }
         .padding(.horizontal, 24)
-        .padding(.vertical, 16)
-        .background(.ultraThinMaterial.opacity(0.5))
+        .padding(.top, 16)
+        .padding(.bottom, 44)  // Generous bottom padding for home indicator clearance
+        // SOLID background - no transparency issues over gradient
+        .background(Color.black.opacity(0.3))
+    }
+
+    // MARK: - Haptics
+
+    /// Trigger 3-phase success haptic pattern
+    private func triggerSuccessHaptics() {
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
     }
 
     // MARK: - Animation
@@ -252,23 +256,19 @@ struct YourTargetsView: View {
 // MARK: - Preview
 
 #Preview {
-    ZStack {
-        Color.black.ignoresSafeArea()
-
-        YourTargetsView(
-            data: {
-                let d = OnboardingData()
-                d.biologicalSex = .male
-                d.age = 30
-                d.weightKg = 75
-                d.heightCm = 178
-                d.activityLevel = .moderatelyActive
-                d.goal = .healthOptimization
-                d.dietType = .balanced
-                return d
-            }(),
-            onBack: { print("Back") },
-            onNext: { print("Next") }
-        )
-    }
+    YourTargetsView(
+        data: {
+            let d = OnboardingData()
+            d.biologicalSex = .male
+            d.age = 30
+            d.weightKg = 75
+            d.heightCm = 178
+            d.activityLevel = .moderatelyActive
+            d.goal = .healthOptimization
+            d.dietType = .balanced
+            return d
+        }(),
+        onBack: { print("Back") },
+        onNext: { print("Next") }
+    )
 }

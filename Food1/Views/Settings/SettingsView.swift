@@ -71,6 +71,9 @@ struct SettingsView: View {
 
                         // Reminders Card
                         remindersCard
+
+                        // Legal links at bottom
+                        legalSection
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
@@ -183,7 +186,7 @@ struct SettingsView: View {
                 HStack(spacing: 10) {
                     Image(systemName: "slider.horizontal.3")
                         .font(.system(size: 18))
-                        .foregroundColor(.blue)
+                        .foregroundColor(ColorPalette.accentPrimary)
 
                     Text("Goals & Targets")
                         .font(DesignSystem.Typography.semiBold(size: 15))
@@ -315,6 +318,34 @@ struct SettingsView: View {
             }
         }
     }
+
+    // MARK: - Legal Section
+
+    private var legalSection: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 16) {
+                Link(destination: URL(string: "https://prismae.net/terms")!) {
+                    Text("Terms of Use")
+                        .font(DesignSystem.Typography.regular(size: 14))
+                        .foregroundColor(.secondary)
+                }
+
+                Text("•")
+                    .foregroundColor(.secondary.opacity(0.5))
+
+                Link(destination: URL(string: "https://prismae.net/privacy")!) {
+                    Text("Privacy Policy")
+                        .font(DesignSystem.Typography.regular(size: 14))
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")")
+                .font(DesignSystem.Typography.regular(size: 12))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.top, 8)
+    }
 }
 
 // MARK: - Settings Card Container
@@ -421,9 +452,9 @@ private struct SettingsRow: View {
 
     private func badgeColor(for badge: String) -> Color {
         if badge.contains("trial") {
-            return .orange
+            return ColorPalette.warning
         } else if badge == "Auto" {
-            return .green
+            return ColorPalette.success
         } else if badge == "Custom" {
             return ColorPalette.accentPrimary
         }
@@ -481,7 +512,7 @@ private struct SettingsTextRow: View {
 
     private func badgeColor(for badge: String) -> Color {
         if badge == "Auto" {
-            return .green
+            return ColorPalette.success
         } else if badge == "Custom" {
             return ColorPalette.accentPrimary
         }
@@ -535,7 +566,7 @@ private struct GoalPickerSheet: View {
                                     .frame(width: 40, height: 40)
                                     .background(
                                         Circle()
-                                            .fill(goal == selectedGoal ? Color.blue : Color.secondary.opacity(0.15))
+                                            .fill(goal == selectedGoal ? ColorPalette.accentPrimary : Color.secondary.opacity(0.15))
                                     )
 
                                 VStack(alignment: .leading, spacing: 2) {
@@ -552,7 +583,7 @@ private struct GoalPickerSheet: View {
 
                                 if goal == selectedGoal {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.blue)
+                                        .foregroundColor(ColorPalette.accentPrimary)
                                         .font(.title2)
                                 }
                             }
@@ -560,12 +591,12 @@ private struct GoalPickerSheet: View {
                             .background(
                                 RoundedRectangle(cornerRadius: 14)
                                     .fill(goal == selectedGoal
-                                          ? Color.blue.opacity(0.1)
+                                          ? ColorPalette.accentPrimary.opacity(0.1)
                                           : Color(UIColor.secondarySystemBackground))
                             )
                             .overlay(
                                 RoundedRectangle(cornerRadius: 14)
-                                    .stroke(goal == selectedGoal ? Color.blue : Color.clear, lineWidth: 2)
+                                    .stroke(goal == selectedGoal ? ColorPalette.accentPrimary : Color.clear, lineWidth: 2)
                             )
                         }
                         .buttonStyle(.plain)
@@ -615,7 +646,7 @@ private struct DietPickerSheet: View {
                                     .frame(width: 40, height: 40)
                                     .background(
                                         Circle()
-                                            .fill(diet == selectedDiet ? Color.blue : Color.secondary.opacity(0.15))
+                                            .fill(diet == selectedDiet ? ColorPalette.accentPrimary : Color.secondary.opacity(0.15))
                                     )
 
                                 VStack(alignment: .leading, spacing: 2) {
@@ -632,7 +663,7 @@ private struct DietPickerSheet: View {
 
                                 if diet == selectedDiet {
                                     Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.blue)
+                                        .foregroundColor(ColorPalette.accentPrimary)
                                         .font(.title2)
                                 }
                             }
@@ -640,12 +671,12 @@ private struct DietPickerSheet: View {
                             .background(
                                 RoundedRectangle(cornerRadius: 14)
                                     .fill(diet == selectedDiet
-                                          ? Color.blue.opacity(0.1)
+                                          ? ColorPalette.accentPrimary.opacity(0.1)
                                           : Color(UIColor.secondarySystemBackground))
                             )
                             .overlay(
                                 RoundedRectangle(cornerRadius: 14)
-                                    .stroke(diet == selectedDiet ? Color.blue : Color.clear, lineWidth: 2)
+                                    .stroke(diet == selectedDiet ? ColorPalette.accentPrimary : Color.clear, lineWidth: 2)
                             )
                         }
                         .buttonStyle(.plain)

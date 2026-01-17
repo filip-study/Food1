@@ -3,7 +3,12 @@
 //  Food1
 //
 //  Onboarding step 1: Select primary nutrition goal.
-//  Weight Loss, Health Optimization, or Muscle Building.
+//
+//  ACT II - DISCOVERY DESIGN:
+//  - Solid color background for high visibility
+//  - Primary/secondary text colors (adapts to light/dark mode)
+//  - Typography-only selection cards (no icons)
+//  - Left-aligned footer note
 //
 
 import SwiftUI
@@ -16,43 +21,50 @@ struct GoalSelectionView: View {
     var onNext: () -> Void
     var onSkip: () -> Void
 
+    @Environment(\.colorScheme) private var colorScheme
+
     // MARK: - Body
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 32) {
-                // Header
-                headerSection
-                    .padding(.top, 24)
+        ZStack {
+            // Solid color background (Act II)
+            OnboardingBackground(theme: .solid)
 
-                // Goal options
-                VStack(spacing: 16) {
-                    ForEach(NutritionGoal.allCases) { goal in
-                        OnboardingSelectionCard(
-                            option: goal,
-                            title: goal.title,
-                            description: goal.description,
-                            icon: goal.icon,
-                            iconColor: goal.iconColor,
-                            isSelected: data.goal == goal,
-                            action: {
-                                withAnimation(.spring(response: 0.3)) {
-                                    data.goal = goal
+            ScrollView {
+                VStack(spacing: 32) {
+                    // Header
+                    headerSection
+                        .padding(.top, 24)
+
+                    // Goal options - typography-only cards
+                    VStack(spacing: 16) {
+                        ForEach(NutritionGoal.allCases) { goal in
+                            OnboardingSelectionCard(
+                                option: goal,
+                                title: goal.title,
+                                description: goal.description,
+                                icon: goal.icon,  // Ignored in typography-only design
+                                iconColor: .white,  // Ignored
+                                isSelected: data.goal == goal,
+                                action: {
+                                    withAnimation(.spring(response: 0.3)) {
+                                        data.goal = goal
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
-                }
-                .padding(.horizontal, 24)
-
-                // Footer note
-                footerNote
                     .padding(.horizontal, 24)
 
-                Spacer(minLength: 120)
+                    // Footer note - LEFT aligned
+                    footerNote
+                        .padding(.horizontal, 24)
+
+                    Spacer(minLength: 120)
+                }
             }
+            .scrollIndicators(.hidden)
         }
-        .scrollIndicators(.hidden)
         .safeAreaInset(edge: .bottom) {
             navigationButtons
         }
@@ -63,13 +75,13 @@ struct GoalSelectionView: View {
     private var headerSection: some View {
         VStack(spacing: 12) {
             Text("What's your main goal?")
-                .font(.largeTitle.bold())
-                .foregroundStyle(.white)
+                .font(DesignSystem.Typography.bold(size: 28))
+                .foregroundStyle(.primary)  // Adapts to light/dark mode
                 .multilineTextAlignment(.center)
 
             Text("This helps us personalize your experience")
-                .font(.body)
-                .foregroundStyle(.white.opacity(0.7))
+                .font(DesignSystem.Typography.regular(size: 17))
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
         .padding(.horizontal, 24)
@@ -80,11 +92,11 @@ struct GoalSelectionView: View {
     private var footerNote: some View {
         HStack(spacing: 8) {
             Image(systemName: "arrow.triangle.2.circlepath")
-                .foregroundStyle(.teal)
+                .foregroundStyle(.secondary)
 
             Text("You can change this anytime in Settings")
-                .font(.caption)
-                .foregroundStyle(.white.opacity(0.6))
+                .font(DesignSystem.Typography.regular(size: 14))
+                .foregroundStyle(.tertiary)
         }
     }
 
@@ -99,25 +111,25 @@ struct GoalSelectionView: View {
             )
 
             Button("Skip for now", action: onSkip)
-                .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.6))
+                .font(DesignSystem.Typography.regular(size: 14))
+                .foregroundStyle(.tertiary)
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 16)
-        .background(.ultraThinMaterial.opacity(0.5))
+        .background(
+            colorScheme == .dark
+                ? Color.black.opacity(0.3)
+                : Color.white.opacity(0.5)
+        )
     }
 }
 
 // MARK: - Preview
 
 #Preview {
-    ZStack {
-        Color.black.ignoresSafeArea()
-
-        GoalSelectionView(
-            data: OnboardingData(),
-            onNext: { print("Next") },
-            onSkip: { print("Skip") }
-        )
-    }
+    GoalSelectionView(
+        data: OnboardingData(),
+        onNext: { print("Next") },
+        onSkip: { print("Skip") }
+    )
 }

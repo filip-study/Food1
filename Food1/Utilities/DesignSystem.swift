@@ -2,7 +2,15 @@
 //  DesignSystem.swift
 //  Food1
 //
-//  Centralized design constants for consistent spacing, sizing, and typography
+//  Centralized design constants for consistent spacing, sizing, and typography.
+//
+//  TYPOGRAPHY SYSTEM (Premium Dual/Triple Font):
+//  - Manrope: Primary sans-serif for UI, body text, buttons
+//  - Instrument Serif: Editorial headlines, philosophy statements
+//  - SF Mono: Data precision, numbers, metrics
+//
+//  This intentional pairing follows Oura/Whoop patterns where font choices
+//  signal "we care about every detail" - a key premium differentiator.
 //
 
 import SwiftUI
@@ -111,6 +119,38 @@ enum DesignSystem {
         /// ExtraBold (800) - Display, hero text
         static func extraBold(size: CGFloat) -> Font {
             .custom(manropeName, size: size).weight(.heavy)
+        }
+
+        // MARK: - Monospaced Numbers (Data Precision)
+
+        /// Monospaced numbers for metrics, calories, stats - implies precision
+        /// Uses SF Mono for that "data dashboard" feel
+        static func monoNumber(size: CGFloat, weight: Font.Weight = .regular) -> Font {
+            .system(size: size, design: .monospaced).weight(weight)
+        }
+
+        // MARK: - Editorial Serif (Premium Headlines)
+
+        /// Instrument Serif for editorial headlines and philosophy statements
+        /// Adds sophistication and gravitas to key moments
+        static func editorial(size: CGFloat) -> Font {
+            .custom("InstrumentSerif-Regular", size: size)
+        }
+
+        /// Instrument Serif Italic for elegant subtitles and emphasis
+        static func editorialItalic(size: CGFloat) -> Font {
+            .custom("InstrumentSerif-Italic", size: size)
+        }
+
+        /// Georgia fallback for when Instrument Serif isn't available
+        /// Already installed system-wide, reliable alternative
+        static func serifFallback(size: CGFloat) -> Font {
+            .custom("Georgia", size: size)
+        }
+
+        /// Georgia italic fallback
+        static func serifFallbackItalic(size: CGFloat) -> Font {
+            .custom("Georgia-Italic", size: size)
         }
     }
 
