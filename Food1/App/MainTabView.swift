@@ -24,6 +24,7 @@ struct MainTabView: View {
     @State private var showingAddMenu = false  // Controls add button menu + blur backdrop
     @State private var showStreakTooltip = false  // Controls streak tooltip + blur backdrop
     @State private var showingFastingSheet = false  // Controls start fasting options sheet
+    @State private var fastingSheetFromCard = false  // True when sheet opened from fasting prompt card (shows recommendation)
     @AppStorage("appTheme") private var selectedTheme: AppTheme = .system
     @Environment(\.colorScheme) private var colorScheme
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -192,7 +193,15 @@ struct MainTabView: View {
             Group {
                 switch selectedTab {
                 case .meals:
-                    TodayView(selectedDate: $selectedDate, showStreakTooltip: $showStreakTooltip)
+                    TodayView(
+                        selectedDate: $selectedDate,
+                        showStreakTooltip: $showStreakTooltip,
+                        onShowFastingSheet: {
+                            // Triggered from fasting prompt card - show recommendation
+                            fastingSheetFromCard = true
+                            showingFastingSheet = true
+                        }
+                    )
                 case .stats:
                     StatsView()
                 case .myHealth:
@@ -326,9 +335,13 @@ struct MainTabView: View {
         .sheet(isPresented: $showingPaywall) {
             PaywallView()
         }
-        .sheet(isPresented: $showingFastingSheet) {
+        .sheet(isPresented: $showingFastingSheet, onDismiss: {
+            // Reset flag when sheet dismisses
+            fastingSheetFromCard = false
+        }) {
             StartFastingSheet(
                 lastMealDate: mostRecentMeal?.timestamp,
+                recommendFromLastMeal: fastingSheetFromCard,
                 onStartNow: {
                     startFastNow()
                 },
@@ -356,6 +369,7 @@ struct MainTabView: View {
         } else {
             // Show fasting options sheet (or start immediately if no meals)
             if mostRecentMeal != nil {
+                fastingSheetFromCard = false  // FAB doesn't show recommendation
                 showingFastingSheet = true
             } else {
                 // No meals logged - just start now

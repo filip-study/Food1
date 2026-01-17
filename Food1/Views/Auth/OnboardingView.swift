@@ -296,12 +296,13 @@ struct OnboardingView: View {
             if isSignUpMode {
                 HStack(spacing: 0) {
                     Text("By creating an account, you agree to our ")
+                        .foregroundColor(.secondary)
                     Link("Terms", destination: URL(string: "https://prismae.net/terms")!)
                     Text(" and ")
+                        .foregroundColor(.secondary)
                     Link("Privacy Policy", destination: URL(string: "https://prismae.net/privacy")!)
                 }
                 .font(DesignSystem.Typography.regular(size: 13))
-                .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.top, 4)
             }

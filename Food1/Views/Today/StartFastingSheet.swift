@@ -17,6 +17,7 @@ import SwiftUI
 
 struct StartFastingSheet: View {
     let lastMealDate: Date?
+    var recommendFromLastMeal: Bool = false  // Stage 2: Highlight "From last meal" option
     let onStartNow: () -> Void
     let onStartFromLastMeal: (Date) -> Void
 
@@ -108,9 +109,24 @@ struct StartFastingSheet: View {
                                 .frame(width: 24)
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("From last meal")
-                                    .font(DesignSystem.Typography.medium(size: 16))
-                                    .foregroundStyle(.primary)
+                                HStack(spacing: 4) {
+                                    Text("From last meal")
+                                        .font(DesignSystem.Typography.medium(size: 16))
+                                        .foregroundStyle(.primary)
+
+                                    // Stage 2: Show recommendation badge when opened from card
+                                    if recommendFromLastMeal {
+                                        Text("Recommended")
+                                            .font(DesignSystem.Typography.medium(size: 11))
+                                            .foregroundStyle(ColorPalette.calories)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(
+                                                Capsule()
+                                                    .fill(ColorPalette.calories.opacity(0.12))
+                                            )
+                                    }
+                                }
 
                                 if let timeSince = timeSinceLastMeal {
                                     Text(timeSince)
@@ -127,6 +143,12 @@ struct StartFastingSheet: View {
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 14)
+                        // Stage 2: Subtle highlight when recommended
+                        .background(
+                            recommendFromLastMeal
+                                ? ColorPalette.calories.opacity(colorScheme == .dark ? 0.06 : 0.04)
+                                : Color.clear
+                        )
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(PlainButtonStyle())

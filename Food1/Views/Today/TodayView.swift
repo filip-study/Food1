@@ -63,11 +63,11 @@ struct TodayView: View {
     @State private var showingSettings = false
     @Binding var selectedDate: Date  // Shared with MainTabView for FAB date sync
     @Binding var showStreakTooltip: Bool  // Controlled by MainTabView for blur coordination
+    var onShowFastingSheet: () -> Void  // Triggers fasting sheet in MainTabView (unified with FAB, shows recommendation)
     @State private var dragOffset: CGFloat = 0
     @State private var shimmerPhase: CGFloat = -100  // For greeting shimmer (starts off-screen left)
     @State private var celebrateStreak = false  // Triggers streak flame animation
     @State private var lastKnownMealCount = 0   // For detecting new meals
-    @State private var isConfirmingFast = false // Prevents duplicate fast confirmations
 
     /// User's nutrition goal (converted from raw string)
     private var userGoal: NutritionGoal? {
@@ -260,25 +260,6 @@ struct TodayView: View {
 
     // MARK: - Fast Management
 
-    /// Confirms a fast and saves it to the database
-    private func confirmFast() {
-        // Prevent duplicate confirmations from rapid clicks
-        guard !isConfirmingFast else { return }
-        guard let lastMealDate = mostRecentMealDate else { return }
-
-        isConfirmingFast = true
-
-        let fast = Fast(startTime: lastMealDate, confirmedAt: Date())
-        modelContext.insert(fast)
-
-        HapticManager.success()
-
-        // Reset after short delay to allow UI to update
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            isConfirmingFast = false
-        }
-    }
-
     /// Deletes a fast from the database
     private func deleteFast(_ fast: Fast) {
         modelContext.delete(fast)
@@ -431,15 +412,15 @@ struct TodayView: View {
                             }
                             .padding(.horizontal)
 
-                            if mealsForSelectedDate.isEmpty && fastsForSelectedDate.isEmpty {
+                            if mealsForSelectedDate.isEmpty && fastsForSelectedDate.isEmpty && !isFasting {
                                 // Only show fasting prompt for today, not historical dates
                                 if Calendar.current.isDateInToday(selectedDate) {
                                     FastingPromptView(
                                         lastMealDate: mostRecentMealDate,
                                         onConfirmFast: {
-                                            confirmFast()
-                                        },
-                                        isConfirming: isConfirmingFast
+                                            // Trigger fasting sheet in MainTabView (unified with FAB)
+                                            onShowFastingSheet()
+                                        }
                                     )
                                 } else {
                                     // Historical day with no meals - show simple empty state
@@ -514,12 +495,11 @@ struct TodayView: View {
 // MARK: - Fasting Prompt View
 
 /// Prompt shown in the meal timeline when no meals logged today.
-/// Shows time since last meal and option to confirm a fast.
+/// Shows time since last meal and option to start a fast.
 /// Design: Inset/embedded appearance - recessed into background rather than floating.
 struct FastingPromptView: View {
     let lastMealDate: Date?
     let onConfirmFast: () -> Void
-    var isConfirming: Bool = false  // Prevents double-tap issues
 
     @State private var currentTime = Date()
     @Environment(\.colorScheme) var colorScheme
@@ -570,17 +550,16 @@ struct FastingPromptView: View {
                         .foregroundStyle(.tertiary)
                 }
 
-                // Confirm button
+                // Start Fast button - opens unified sheet from MainTabView
                 Button(action: {
                     HapticManager.light()
                     onConfirmFast()
                 }) {
-                    Text(isConfirming ? "Confirming..." : "Confirm")
+                    Text("Start Fast")
                         .font(DesignSystem.Typography.medium(size: 14))
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .disabled(isConfirming)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 24)
@@ -947,7 +926,11 @@ struct EmptyMealsView: View {
 
 #Preview {
     let preview = PreviewContainer()
-    return TodayView(selectedDate: .constant(Date()), showStreakTooltip: .constant(false))
-        .modelContainer(preview.container)
-        .environmentObject(AuthViewModel())
+    return TodayView(
+        selectedDate: .constant(Date()),
+        showStreakTooltip: .constant(false),
+        onShowFastingSheet: { print("Fasting sheet triggered") }
+    )
+    .modelContainer(preview.container)
+    .environmentObject(AuthViewModel())
 }

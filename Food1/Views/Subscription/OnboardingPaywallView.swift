@@ -201,7 +201,6 @@ struct OnboardingPaywallView: View {
                 Link("Privacy Policy", destination: URL(string: "https://prismae.net/privacy")!)
             }
             .font(.system(size: 12))
-            .foregroundColor(.secondary)
 
             Text("Payment will be charged to your Apple ID account at confirmation of purchase. Subscription automatically renews unless cancelled at least 24 hours before the end of the current period.")
                 .font(.system(size: 10))
